@@ -4,6 +4,7 @@ import time
 import random
 import argparse
 import numpy as np
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,92 +12,111 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 class DynamicModel:
-    def __init__(self, dynamic_graph, model, optimizer, use_cuda):
+    def __init__(self, dynamic_graph, model, optimizer, ns_loss, use_cuda):
         self.dynamic_graph = dynamic_graph
         self.model = model
         self.optimizer = optimizer
+        self.ns_loss = ns_loss
         self.use_cuda = use_cuda
 
         if self.use_cuda:
             model.cuda()
 
-    def train_step(self, epoch, batches):
-        t = time.time()
-        self.model.train()
-        self.optimizer.zero_grad()
-        for b in batches:
-            adj, features, targets = self.dynamic_graph.sample_train()
-        output = self.model(features, adj)
-        loss_train = F.nll_loss(output[idx_train], labels[idx_train])
-        acc_train = accuracy(output[idx_train], labels[idx_train])
-        loss_train.backward()
-        optimizer.step()
+    def train(self, epochs, patience, timesteps=1):
+        # Train model
+        t_total = time.time()
+        loss_values = []
+        bad_counter = 0
+        best = epochs + 1
+        best_epoch = 0
+        for epoch in range(epochs):
+            loss_values.append(self.train_step(epoch, timesteps=timesteps))
 
-        if not args.fastmode:
-            # Evaluate validation set performance separately,
-            # deactivates dropout during validation run.
-            model.eval()
-            output = model(features, adj)
+            torch.save(model.state_dict(), '{}.pkl'.format(epoch))
+            if loss_values[-1] < best:
+                best = loss_values[-1]
+                best_epoch = epoch
+                bad_counter = 0
+            else:
+                bad_counter += 1
 
-        loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-        acc_val = accuracy(output[idx_val], labels[idx_val])
-        print('Epoch: {:04d}'.format(epoch+1),
-            'loss_train: {:.4f}'.format(loss_train.data.item()),
-            'acc_train: {:.4f}'.format(acc_train.data.item()),
-            'loss_val: {:.4f}'.format(loss_val.data.item()),
-            'acc_val: {:.4f}'.format(acc_val.data.item()),
-            'time: {:.4f}s'.format(time.time() - t))
+            if bad_counter == patience:
+                break
 
-        return loss_val.data.item()
-
-
-    def compute_test():
-        model.eval()
-        output = model(features, adj)
-        loss_test = F.nll_loss(output[idx_test], labels[idx_test])
-        acc_test = accuracy(output[idx_test], labels[idx_test])
-        print("Test set results:",
-            "loss= {:.4f}".format(loss_test.data.item()),
-            "accuracy= {:.4f}".format(acc_test.data.item()))
-
-    # Train model
-    t_total = time.time()
-    loss_values = []
-    bad_counter = 0
-    best = args.epochs + 1
-    best_epoch = 0
-    for epoch in range(args.epochs):
-        loss_values.append(train(epoch))
-
-        torch.save(model.state_dict(), '{}.pkl'.format(epoch))
-        if loss_values[-1] < best:
-            best = loss_values[-1]
-            best_epoch = epoch
-            bad_counter = 0
-        else:
-            bad_counter += 1
-
-        if bad_counter == args.patience:
-            break
+            files = glob.glob('*.pkl')
+            for file in files:
+                epoch_nb = int(file.split('.')[0])
+                if epoch_nb < best_epoch:
+                    os.remove(file)
 
         files = glob.glob('*.pkl')
         for file in files:
             epoch_nb = int(file.split('.')[0])
-            if epoch_nb < best_epoch:
+            if epoch_nb > best_epoch:
                 os.remove(file)
 
-    files = glob.glob('*.pkl')
-    for file in files:
-        epoch_nb = int(file.split('.')[0])
-        if epoch_nb > best_epoch:
-            os.remove(file)
+        print("Optimization Finished!")
+        print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
-    print("Optimization Finished!")
-    print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
+        # Restore best model
+        print('Loading {}th epoch'.format(best_epoch))
+        model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
 
-    # Restore best model
-    print('Loading {}th epoch'.format(best_epoch))
-    model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
+        # Testing
+        test_losses = compute_test(timesteps=timesteps)
+        return loss_values, test_losses
 
-    # Testing
-    compute_test()
+    def train_step(self, epoch, timesteps=1):
+        t = time.time()
+        self.model.train()
+        self.optimizer.zero_grad()
+        for adj, locations, features, targets in tqdm(self.dynamic_graph.sample_train(generator=True, timesteps=timesteps)):
+            outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
+
+            loss_train = self.recursive_loss(locations, features, targets, outputs)
+            loss_train.backward()
+            self.optimizer.step()
+
+        if not args.fastmode:
+            # Evaluate validation set performance separately,
+            # deactivates dropout during validation run.
+            self.model.eval()
+            outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
+
+        loss_val = self.recursive_loss(locations, features, targets, outputs)
+        print('Epoch: {:04d}'.format(epoch+1),
+            'loss_train: {:.4f}'.format(loss_train.data.item()),
+            'loss_val: {:.4f}'.format(loss_val.data.item()),
+            'time: {:.4f}s'.format(time.time() - t))
+
+        return loss_val.data.item()
+
+    def get_loss(self, locations, features, targets, outputs):
+        mse_loss = F.mse_loss(outputs, targets)
+        ns_loss = self.ns_loss(locations, features, outputs)
+        return mse_loss + ns_loss
+
+    def recursive_predict(self, locations, features, adj, timesteps=1):
+        outputs = []
+        for i in range(timesteps):
+            output = self.model(locations, features, adj)
+            outputs.append(output)
+            features = output
+        return outputs
+
+    def recursive_loss(self, locations, features, targets, outputs):
+        total_loss = 0
+        for output, target in zip(outputs, targets):
+            total_loss += self.get_loss(locations, features, target, output)
+            features = output
+        return total_loss
+
+    def compute_test(self, timesteps=1):
+        test_losses = []
+        self.model.eval()
+        for adj, locations, features, targets in self.dynamic_graph.sample_test(generator=True, timesteps=timesteps):
+            outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
+            loss_test = self.recursive_loss(locations, features, targets, outputs)
+            
+            test_losses.append(loss_test.data.item())
+        return test_losses

@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import glob
 import torch
+from torch_geometric.utils import get_laplacian
 
 class DynamicGraph3D:
     def __init__(self, grd_path, solution_path, periodic=False):
@@ -56,18 +57,16 @@ class DynamicGraph3D:
         yindices = np.arange(grid.shape[1])
         zindices = np.arange(grid.shape[2])
 
-        #find periodic cutoffs
-        xcutoff = xindices[np.all(solution == solution[:, :1, :, :, :], axis=(0, 2, 3, 4))]
-        ycutoff = yindices[np.all(solution == solution[:, :, :1, :, :], axis=(0, 1, 3, 4))]
-        zcutoff = zindices[np.all(solution == solution[:, :, :, :1, :], axis=(0, 1, 2, 4))]
+        helper = lambda comparison, axes: np.argmax(np.sum(comparison, axis=axes)) + 1
 
-        print(xcutoff, ycutoff, zcutoff)
+        #find periodic cutoffs
+        xcutoff = helper(solution[:, 1:] == solution[:, :1, :, :, :], (0, 2, 3, 4))
+        ycutoff = helper(solution[:, :, 1:] == solution[:, :, :1, :, :], (0, 1, 3, 4))
+        zcutoff = helper(solution[:, :, :, 1:] == solution[:, :, :, :1, :], (0, 1, 2, 4))
 
         #cut grid and solution
         grid = grid[:xcutoff, :ycutoff, :zcutoff, :]
         solution = solution[:, :xcutoff, :ycutoff, :zcutoff, :]
-
-        print(grid.shape, solution.shape)
 
         return grid, solution
 
@@ -85,34 +84,39 @@ class DynamicGraph3D:
     def build_adj_matrix(self):
         #edgelist should be the same for both source and target
         edges = self.construct_edgelist(*self.grid.shape[:3], periodic=self.periodic)
-        adj = torch.sparse_coo_tensor(edges, np.ones(edges.shape[0]))
-
-        # build symmetric adjacency matrix
-        adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-        adj = self.normalize_adj(adj + sp.eye(adj.shape[0]))
-
-        return torch.FloatTensor(adj)
-
-    def sample_graph(self, flow_features, t=None):
+        # edges, weights = get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]), normalization='sym')
+        # adj = torch.sparse_coo_tensor(edges, weights)
+        # return adj
+        return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
+                             normalization='sym')
+        
+    def sample_graph(self, flow_features, t=None, tdif=1):
         if t is None:
-            t = np.random.randint(len(flow_features) - 1)
-        features, target = flow_features[t], flow_features[t+1]
+            t = np.random.randint(len(flow_features) - tdif)
+        features, targets = flow_features[t], flow_features[t+1: t+tdif+1]
         
         #shape into feature matrics
         features = features.reshape((-1, features.shape[-1]))
-        features = np.concatenate([self.locations, features], axis = -1)
-        target = target.reshape((-1, target.shape[-1]))
+        targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
 
-        features = torch.FloatTensor(features)
-        targets = torch.FloatTensor(targets)
-        
-        return self.adj, features, targets
+        features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
+        targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
+        locations = torch.from_numpy(self.locations.astype(np.float32)).requires_grad_()
 
-    def sample_train(self, t=None):
-        return self.sample_graph(self.train, t=t)
-    
-    def sample_test(self, t=None):
-        return self.sample_graph(self.test, t=t)
+        return self.adj, locations, features, targets
+
+    def sample_train(self, t=None, generator=False, timesteps=1):
+        if not generator:
+            return self.sample_graph(self.train, t=t, tdif=timesteps)
+        ts = np.random.permutation(len(self.train))
+        for t in ts:
+            yield self.sample_graph(self.train, t=t, tdif=timesteps)
+
+    def sample_test(self, t=None, generator=False, timesteps=1):
+        if not generator:
+            return self.sample_graph(self.test, t=t, tdif=timesteps)
+        for t in range(len(self.test)):
+            yield self.sample_graph(self.test, t=t, tdif=timesteps)
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):
@@ -122,18 +126,22 @@ class DynamicGraph3D:
             for y in range(ydim):
                 for z in range(zdim):
                     node = getnode(x, y, z)
+                    edges.append([node, node])
                     if x > 0:
                         node_x_1 = getnode(x - 1, y, z)
                         if node_x_1 < node:
-                            edges.append([node_x_1, node]) 
+                            edges.append([node_x_1, node])
+                            edges.append([node, node_x_1]) 
                     if y > 0:
                         node_y_1 = getnode(x, y - 1, z)
                         if node_y_1 < node:
                             edges.append([node_y_1, node])
+                            edges.append([node, node_y_1])
                     if z > 0:
                         node_z_1 = getnode(x, y, z - 1)
                         if node_z_1 < node:
                             edges.append([node_z_1, node])
+                            edges.append([node, node_z_1])
         if periodic:
             # add connections from (ydim - 1) to 0
             for x in range(xdim):
@@ -141,26 +149,20 @@ class DynamicGraph3D:
                     n0 = getnode(x, 0, z)
                     n1 = getnode(x, ydim - 1, z)
                     edges.append([n0, n1])
+                    edges.append([n1, n0])
             # add connections from (xdim - 1) to 0
             for y in range(ydim):
                 for z in range(zdim):
                     n0 = getnode(0, y, z)
                     n1 = getnode(xdim - 1, y, z)
                     edges.append([n0, n1])
+                    edges.append([n1, n0])
             # add connections from (zdim - 1) to 0
             for x in range(xdim):
                 for y in range(ydim):
                     n0 = getnode(x, y, 0)
                     n1 = getnode(x, y, zdim - 1)
                     edges.append([n0, n1])
+                    edges.append([n1, n0])
 
-        return np.array(edges, dtype=np.int32)
-
-    @staticmethod
-    def normalize_adj(mx):
-        """Row-normalize sparse matrix"""
-        rowsum = np.array(mx.sum(1))
-        r_inv_sqrt = np.power(rowsum, -0.5).flatten()
-        r_inv_sqrt[np.isinf(r_inv_sqrt)] = 0.
-        r_mat_inv_sqrt = sp.diags(r_inv_sqrt)
-        return mx.dot(r_mat_inv_sqrt).transpose().dot(r_mat_inv_sqrt)
+        return np.array(edges, dtype=np.int64).T
