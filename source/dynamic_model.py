@@ -71,7 +71,7 @@ class DynamicModel:
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets in tqdm(self.dynamic_graph.sample_train(generator=True, timesteps=timesteps)):
-            if use_cuda:
+            if self.use_cuda:
                 adj[0].cuda()
                 adj[1].cuda()
                 locations.cuda()
