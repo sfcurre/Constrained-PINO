@@ -71,12 +71,6 @@ class DynamicModel:
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets in tqdm(self.dynamic_graph.sample_train(generator=True, timesteps=timesteps)):
-            if self.use_cuda:
-                adj[0].cuda()
-                adj[1].cuda()
-                locations.cuda()
-                features.cuda()
-                targets.cuda()
 
             outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
 
@@ -106,6 +100,12 @@ class DynamicModel:
     def recursive_predict(self, locations, features, adj, timesteps=1):
         outputs = []
         for i in range(timesteps):
+            if self.use_cuda:
+                locations.cuda()
+                features.cuda()
+                adj[0].cuda()
+                adj[1].cuda()
+                
             output = self.model(locations, features, adj)
             outputs.append(output)
             features = output
