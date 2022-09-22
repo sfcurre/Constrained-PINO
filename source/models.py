@@ -58,7 +58,6 @@ class PeriodicSpGATTorchGeo(nn.Module):
                                     concat=False)
         
     def forward(self, locations, features, adj):
-        print(locations.get_device(), features.get_device(), adj[0].get_device(), adj[1].get_device())
         x = self.wave_transform(locations, concat_to=features)
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.att(x, *adj)
