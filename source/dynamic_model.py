@@ -98,13 +98,14 @@ class DynamicModel:
         return mse_loss + ns_loss
 
     def recursive_predict(self, locations, features, adj, timesteps=1):
-        outputs = []
-        for i in range(timesteps):
-            if self.use_cuda:
+        if self.use_cuda:
                 locations.cuda()
                 features.cuda()
                 adj[0].cuda()
                 adj[1].cuda()
+            
+        outputs = []
+        for i in range(timesteps):
                 
             output = self.model(locations, features, adj)
             outputs.append(output)

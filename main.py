@@ -10,10 +10,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 # default `log_dir` is "runs" - we'll be more specific here
-writer = SummaryWriter()
+# writer = SummaryWriter()
 
 from source.dynamic_graph import DynamicGraph3D
 from source.dynamic_model import DynamicModel
@@ -55,6 +55,7 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if args.cuda:
+        print("Using CUDA.")
         torch.cuda.manual_seed(args.seed)
 
     # Load data
@@ -67,7 +68,7 @@ def main():
                 dropout=args.dropout, 
                 nheads=args.nb_heads, 
                 alpha=args.alpha)
-    optimizer = optim.Adam(model.parameters(), 
+    optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
                         weight_decay=args.weight_decay)
 
