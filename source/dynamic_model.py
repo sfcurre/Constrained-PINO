@@ -99,11 +99,10 @@ class DynamicModel:
 
     def recursive_predict(self, locations, features, adj, timesteps=1):
         if self.use_cuda:
-                locations.cuda()
-                features.cuda()
-                adj[0].cuda()
-                adj[1].cuda()
-            
+            locations = locations.cuda()
+            features = features.cuda()
+            adj = (adj[0].cuda(), adj[1].cuda())
+
         outputs = []
         for i in range(timesteps):
                 
