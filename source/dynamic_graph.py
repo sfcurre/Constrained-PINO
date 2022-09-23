@@ -13,6 +13,7 @@ class DynamicGraph3D:
         else:
             self.grid, self.solution = np.load(grd_path), np.load(solution_path)
         self.periodic = periodic
+        self.use_cuda = use_cuda
         if self.periodic:
             self.grid, self.solution = self.cut_periodic(self.grid, self.solution)
             trig_grid = self.periodicize_grid(self.grid)
