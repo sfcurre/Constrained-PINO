@@ -59,7 +59,7 @@ def main():
         torch.cuda.manual_seed(args.seed)
 
     # Load data
-    dynamic_data = DynamicGraph3D(args.grd, args.sol, periodic=True)
+    dynamic_data = DynamicGraph3D(args.grd, args.sol, periodic=True, use_cuda=args.cuda)
 
     # Model and optimizer
     model = PeriodicSpGATTorchGeo(nfeat=5,

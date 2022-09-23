@@ -5,7 +5,7 @@ import torch
 from torch_geometric.utils import get_laplacian
 
 class DynamicGraph3D:
-    def __init__(self, grd_path, solution_path, periodic=False):
+    def __init__(self, grd_path, solution_path, periodic=False, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = self.read_input_directory(grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
@@ -103,7 +103,13 @@ class DynamicGraph3D:
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(self.locations.astype(np.float32)).requires_grad_()
 
-        return self.adj, locations, features, targets
+        if self.use_cuda:
+            adj = (self.adj[0].cuda(), self.adj[1].cuda())
+            locations = locations.cuda()
+            features = features.cuda()
+            targets = targets.cuda()
+
+        return adj, locations, features, targets
 
     def sample_train(self, t=None, generator=False, timesteps=1):
         if not generator:
