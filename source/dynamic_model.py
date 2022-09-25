@@ -32,7 +32,7 @@ class DynamicModel:
         for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch, timesteps=timesteps))
 
-            torch.save(model.state_dict(), '{}.pkl'.format(epoch))
+            torch.save(self.model.state_dict(), '{}.pkl'.format(epoch))
             if loss_values[-1] < best:
                 best = loss_values[-1]
                 best_epoch = epoch
@@ -60,10 +60,10 @@ class DynamicModel:
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
+        self.model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
 
         # Testing
-        test_losses = compute_test(timesteps=timesteps)
+        test_losses = self.compute_test(timesteps=timesteps)
         return loss_values, test_losses
 
     def train_step(self, epoch, timesteps=1):
