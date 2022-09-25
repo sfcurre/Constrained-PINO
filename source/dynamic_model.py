@@ -78,11 +78,10 @@ class DynamicModel:
             loss_train.backward()
             self.optimizer.step()
 
-        if not args.fastmode:
-            # Evaluate validation set performance separately,
-            # deactivates dropout during validation run.
-            self.model.eval()
-            outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
+        # Evaluate validation set performance separately,
+        # deactivates dropout during validation run.
+        self.model.eval()
+        outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
 
         loss_val = self.recursive_loss(locations, features, targets, outputs)
         print('Epoch: {:04d}'.format(epoch+1),
