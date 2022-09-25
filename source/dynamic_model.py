@@ -29,7 +29,7 @@ class DynamicModel:
         bad_counter = 0
         best = epochs + 1
         best_epoch = 0
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch, timesteps=timesteps))
 
             torch.save(model.state_dict(), '{}.pkl'.format(epoch))
@@ -70,7 +70,7 @@ class DynamicModel:
         t = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for adj, locations, features, targets in tqdm(self.dynamic_graph.sample_train(generator=True, timesteps=timesteps)):
+        for adj, locations, features, targets in self.dynamic_graph.sample_train(generator=True, timesteps=timesteps):
 
             outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
 
