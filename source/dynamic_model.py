@@ -60,7 +60,7 @@ class DynamicModel:
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        self.model.load_state_dict(torch.load('{}.pkl'.format(best_epoch)))
+        self.load_model('{}.pkl'.format(best_epoch))
 
         # Testing
         test_losses = self.compute_test(timesteps=timesteps)
@@ -121,3 +121,6 @@ class DynamicModel:
             
             test_losses.append(loss_test.data.item())
         return test_losses
+
+    def load_model(self, pkl_file):
+        self.model.load_state_dict(torch.load(pkl_file))

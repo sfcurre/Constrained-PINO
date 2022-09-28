@@ -36,13 +36,15 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=72, help='Random seed.')
     parser.add_argument('--epochs', type=int, default=10000, help='Number of epochs to train.')
     parser.add_argument('--lr', type=float, default=0.005, help='Initial learning rate.')
-    parser.add_argument('--weight_decay', type=float, default=5e-4, help='Weight decay (L2 loss on parameters).')
+    parser.add_argument('--weight-decay', type=float, default=5e-4, help='Weight decay (L2 loss on parameters).')
     parser.add_argument('--hidden', type=int, default=8, help='Number of hidden units.')
-    parser.add_argument('--nb_heads', type=int, default=8, help='Number of head attentions.')
+    parser.add_argument('--nb-heads', type=int, default=8, help='Number of head attentions.')
     parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate (1 - keep probability).')
     parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
     parser.add_argument('--patience', type=int, default=100, help='Patience')
     parser.add_argument('--timesteps', type=int, default=1, help='Number of timesteps to train over.')
+    parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
+    parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -76,7 +78,11 @@ def main():
     ns_loss = NavierStokesLoss3D(1)
     dynamic_model = DynamicModel(dynamic_data, model, optimizer, ns_loss, args.cuda)
 
-    train_losses, test_losses = dynamic_model.train(args.epochs, args.patience, timesteps=args.timesteps)
+    if self.load_pkl:
+        dynamic_model.load_model(args.load_pkl)
+
+    if not args.no_train:
+        train_losses, test_losses = dynamic_model.train(args.epochs, args.patience, timesteps=args.timesteps)
 
     adj, locations, features, _ = dynamic_model.sample_train(t=0)
     predictions = dynamic_model.recursive_predict(locations, features, adj, t=1000)
