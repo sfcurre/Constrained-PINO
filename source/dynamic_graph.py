@@ -116,14 +116,16 @@ class DynamicGraph3D:
         if not generator:
             return self.sample_graph(self.train, t=t, tdif=timesteps)
         ts = np.random.permutation(len(self.train) - timesteps)
-        for t in ts:
-            yield self.sample_graph(self.train, t=t, tdif=timesteps)
+        return (self.sample_graph(self.train, t=t, tdif=timesteps) for t in ts)
+        # for t in ts:
+        #     yield self.sample_graph(self.train, t=t, tdif=timesteps)
 
     def sample_test(self, t=None, generator=False, timesteps=1):
         if not generator:
             return self.sample_graph(self.test, t=t, tdif=timesteps)
-        for t in range(len(self.test) - timesteps):
-            yield self.sample_graph(self.test, t=t, tdif=timesteps)
+        return (self.sample_graph(self.test, t=t, tdif=timesteps) for t in range(len(self.test) - timesteps))
+        # for t in range(len(self.test) - timesteps):
+        #     yield self.sample_graph(self.test, t=t, tdif=timesteps)
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):
