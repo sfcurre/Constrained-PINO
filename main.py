@@ -84,11 +84,11 @@ def main():
     if not args.no_train:
         train_losses, test_losses = dynamic_model.train(args.epochs, args.patience, timesteps=args.timesteps)
 
-    adj, locations, features, _ = dynamic_model.sample_train(t=0)
+    adj, locations, features, _ = dynamic_data.sample_train(t=0)
     predictions = dynamic_model.recursive_predict(locations, features, adj, t=1000)
     np.save('full_predictions.npy', predictions)
 
-    adj, locations, features, _ = dynamic_model.sample_test(t=0)
+    adj, locations, features, _ = dynamic_data.sample_test(t=0)
     predictions = dynamic_model.recursive_predict(locations, features, adj, t=200)
     np.save('test_predictions.npy', predictions)
 
