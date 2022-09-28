@@ -78,7 +78,7 @@ def main():
     ns_loss = NavierStokesLoss3D(1)
     dynamic_model = DynamicModel(dynamic_data, model, optimizer, ns_loss, args.cuda)
 
-    if self.load_pkl:
+    if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)
 
     if not args.no_train:
