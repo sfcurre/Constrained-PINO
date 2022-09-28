@@ -49,6 +49,9 @@ class DynamicModel:
                 if epoch_nb < best_epoch:
                     os.remove(file)
 
+            with open('outfile.txt', 'a') as fp:
+                print(epoch, loss_values[-1], sep='\t', file=fp)
+
         files = glob.glob('*.pkl')
         for file in files:
             epoch_nb = int(file.split('.')[0])
