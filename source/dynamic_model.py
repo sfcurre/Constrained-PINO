@@ -85,7 +85,8 @@ class DynamicModel:
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
         self.model.eval()
-        outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
+        with torch.no_grad():
+            outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps, evaluate=True)
 
         loss_val = self.recursive_loss(locations, features, targets, outputs)
         print('Epoch: {:04d}'.format(epoch+1),
