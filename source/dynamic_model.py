@@ -74,7 +74,7 @@ class DynamicModel:
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets in self.dynamic_graph.sample_train(generator=True, timesteps=timesteps):
-            optimizer.zero_grad()
+            self.optimizer.zero_grad()
             
             outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
             loss_train = self.recursive_loss(locations, features, targets, outputs)
