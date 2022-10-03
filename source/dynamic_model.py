@@ -74,10 +74,11 @@ class DynamicModel:
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets in self.dynamic_graph.sample_train(generator=True, timesteps=timesteps):
-
+            optimizer.zero_grad()
+            
             outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
-
             loss_train = self.recursive_loss(locations, features, targets, outputs)
+            
             loss_train.backward()
             self.optimizer.step()
 
@@ -99,13 +100,14 @@ class DynamicModel:
         ns_loss = self.ns_loss(locations, features, outputs)
         return mse_loss + ns_loss
 
-    def recursive_predict(self, locations, features, adj, timesteps=1):
+    def recursive_predict(self, locations, features, adj, timesteps=1, evaluate=False):
         outputs = []
         for i in range(timesteps):
-                
             output = self.model(locations, features, adj)
-            outputs.append(output)
             features = output
+            if evaluate:
+                output = output.detach().cpu()
+            outputs.append(output)
         return outputs
 
     def recursive_loss(self, locations, features, targets, outputs):

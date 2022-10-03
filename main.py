@@ -85,13 +85,14 @@ def main():
         train_losses, test_losses = dynamic_model.train(args.epochs, args.patience, timesteps=args.timesteps)
 
     dynamic_model.model.eval()
-    adj, locations, features, _ = dynamic_data.sample_train(t=0)
-    predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=1000)
-    np.save('full_predictions.npy', predictions)
+    with torch.no_grad():
+        adj, locations, features, _ = dynamic_data.sample_train(t=0)
+        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=1000, evaluate=True)
+        np.save('full_predictions.npy', predictions)
 
-    adj, locations, features, _ = dynamic_data.sample_test(t=0)
-    predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=200)
-    np.save('test_predictions.npy', predictions)
+        adj, locations, features, _ = dynamic_data.sample_test(t=0)
+        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=200, evaluate=True)
+        np.save('test_predictions.npy', predictions)
 
 if __name__ == '__main__':
     main()
