@@ -29,7 +29,7 @@ class DynamicGraph3D:
 
         flow_features = []
         for i in range(10001):
-            filename = solution_path + f'ijkmvmv{i}00'
+            filename = solution_path + f'{i}00'
             flow_features.append(self.read_solution_data(filename))
         features = np.stack(flow_features, axis = 0)
 
