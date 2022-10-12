@@ -28,8 +28,10 @@ class DynamicGraph3D:
         locations = self.read_grd_data(grd_path)
 
         flow_features = []
-        for i in range(10001):
-            filename = solution_path + f'{i}00'
+        for i in range(1001):
+            if i != 0:
+                i *= 100
+            filename = solution_path + f'{i}'
             flow_features.append(self.read_solution_data(filename))
         features = np.stack(flow_features, axis = 0)
 
