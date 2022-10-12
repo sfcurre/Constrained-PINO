@@ -87,11 +87,11 @@ def main():
     dynamic_model.model.eval()
     with torch.no_grad():
         adj, locations, features, _ = dynamic_data.sample_train(t=0)
-        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=1000, evaluate=True, cpu=True)
+        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=1000, evaluate=True, numpy=True)
         np.save('full_predictions.npy', np.array(predictions))
 
         adj, locations, features, _ = dynamic_data.sample_test(t=0)
-        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=200, evaluate=True, cpu=True)
+        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=200, evaluate=True, numpy=True)
         np.save('test_predictions.npy', np.array(predictions))
 
 if __name__ == '__main__':
