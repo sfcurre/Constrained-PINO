@@ -108,6 +108,8 @@ class DynamicModel:
             features = output
             if evaluate:
                 output = output.detach().cpu()
+                if numpy:
+                    output = output.numpy()
             outputs.append(output)
         return outputs
 

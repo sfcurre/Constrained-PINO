@@ -28,9 +28,9 @@ class DynamicGraph3D:
         locations = self.read_grd_data(grd_path)
 
         flow_features = []
-        for filename in sorted(glob.glob(solution_path + '*')):
-            if not filename.endswith('.grd'):
-                flow_features.append(self.read_solution_data(filename))
+        for i in range(10001):
+            filename = solution_path + f'ijkmvmv{i}00'
+            flow_features.append(self.read_solution_data(filename))
         features = np.stack(flow_features, axis = 0)
 
         return locations, features
