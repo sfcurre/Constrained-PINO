@@ -101,7 +101,7 @@ class DynamicModel:
         ns_loss = self.ns_loss(locations, features, outputs)
         return mse_loss + ns_loss
 
-    def recursive_predict(self, locations, features, adj, timesteps=1, evaluate=False):
+    def recursive_predict(self, locations, features, adj, timesteps=1, evaluate=False, numpy=False):
         outputs = []
         for i in range(timesteps):
             output = self.model(locations, features, adj)
