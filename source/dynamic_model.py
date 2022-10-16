@@ -70,6 +70,9 @@ class DynamicModel:
         return loss_values, test_losses
 
     def train_step(self, epoch, timesteps=1):
+        if timesteps > 1:
+            return self.recursive_train_step(epoch, timesteps)
+
         t = time.time()
         self.model.train()
         self.optimizer.zero_grad()
@@ -81,6 +84,36 @@ class DynamicModel:
             self.optimizer.zero_grad()
             loss_train.backward()
             self.optimizer.step()
+
+        # Evaluate validation set performance separately,
+        # deactivates dropout during validation run.
+        self.model.eval()
+        outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
+
+        loss_val = self.recursive_loss(locations, features, targets, outputs)
+        print('Epoch: {:04d}'.format(epoch+1),
+            'loss_train: {:.4f}'.format(loss_train.data.item()),
+            'loss_val: {:.4f}'.format(loss_val.data.item()),
+            'time: {:.4f}s'.format(time.time() - t))
+
+        return loss_val.data.item()
+
+    def recursive_train_step(self, epoch, timesteps):
+        t = time.time()
+        self.model.train()
+        self.optimizer.zero_grad()
+        for adj, locations, features, targets in self.dynamic_graph.sample_train(generator=True, timesteps=timesteps):
+            for i in range(timesteps):
+
+                output = self.model(locations, features, adj)
+                
+                loss_train = self.get_loss(locations, features, targets[i], output)
+                
+                self.optimizer.zero_grad()
+                loss_train.backward()
+                self.optimizer.step()
+
+                features = output
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.

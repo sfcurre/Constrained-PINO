@@ -30,7 +30,8 @@ def animate_density(p_mat, name):
     vmin = p_mat.min()
 
     def update(n=0):
-        pl = ax.imshow(p_mat[n], cmap='Spectral_r', animated=True, vmin=vmin, vmax=vmax, origin='lower')
+        pl = ax.imshow(p_mat[n], cmap='jet', animated=True, vmin=vmin, vmax=vmax, origin='lower')
+        #pl = ax.imshow(p_mat[n], cmap='jet', animated=True, origin='lower')
         return pl,
 
     plt.title('Fluid Density')
@@ -67,11 +68,9 @@ def main():
     true_yslice = true_data[:, :, i, ...]
     true_zslice = true_data[:, :, :, i, ...]
 
-    animate_density(true_xslice[..., 0], 'Tx16')
-    animate_density(true_yslice[..., 0], 'Ty16')
-    animate_density(true_zslice[..., 0], 'Tz16')
-
-    return
+    animate_density(np.tile(true_xslice[..., 0], (1, 1, 1)), f'Tx{i}')
+    animate_density(np.tile(true_yslice[..., 0], (1, 1, 1)), f'Ty{i}')
+    animate_density(np.tile(true_zslice[..., 0], (1, 1, 1)), f'Tz{i}')
     
     full_out = np.load('full_predictions_npy.npy').reshape((1000, 63, 63, 63, -1))
     test_out = np.load('test_predictions_npy.npy').reshape((200, 63, 63, 63, -1))

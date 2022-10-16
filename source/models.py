@@ -51,6 +51,12 @@ class PeriodicSpGATTorchGeo(nn.Module):
                                 dropout=dropout,
                                 negative_slope=alpha,
                                 concat=True)
+        self.att2 = tgnn.GATConv(nfeat + 6,
+                                nhid,
+                                nheads,
+                                dropout=dropout,
+                                negative_slope=alpha,
+                                concat=True)
         self.out_att = tgnn.GATConv(nhid * nheads,
                                     nclass,
                                     dropout=dropout,
@@ -61,6 +67,8 @@ class PeriodicSpGATTorchGeo(nn.Module):
         x = self.wave_transform(locations, concat_to=features)
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.att(x, *adj)
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.att2(x, *adj)
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.out_att(x, *adj)
         return x
