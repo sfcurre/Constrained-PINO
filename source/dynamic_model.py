@@ -149,7 +149,7 @@ class DynamicModel:
         total_loss = 0
         for output, target in zip(outputs, targets):
             total_loss += self.get_loss(locations, features, target, output)
-            features = output
+            features = output.detach()
         return total_loss
 
     def compute_test(self, timesteps=1):
