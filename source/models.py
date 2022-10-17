@@ -51,7 +51,7 @@ class PeriodicSpGATTorchGeo(nn.Module):
                                 dropout=dropout,
                                 negative_slope=alpha,
                                 concat=True)
-        self.att2 = tgnn.GATConv(nfeat + 6,
+        self.att2 = tgnn.GATConv(nhid,
                                 nhid,
                                 nheads,
                                 dropout=dropout,
