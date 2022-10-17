@@ -51,6 +51,34 @@ class PeriodicSpGATTorchGeo(nn.Module):
                                 dropout=dropout,
                                 negative_slope=alpha,
                                 concat=True)
+        self.out_att = tgnn.GATConv(nhid * nheads,
+                                    nclass,
+                                    dropout=dropout,
+                                    negative_slope=alpha,
+                                    concat=False)
+        
+    def forward(self, locations, features, adj):
+        x = self.wave_transform(locations, concat_to=features)
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.att(x, *adj)
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.out_att(x, *adj)
+        return x
+
+
+class PeriodicSpGATTorchGeo2(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, dropout, alpha, nheads):
+        """Sparse version of GAT."""
+        super(PeriodicSpGATTorchGeo, self).__init__()
+        self.dropout = dropout
+
+        self.wave_transform = WaveTransform()
+        self.att = tgnn.GATConv(nfeat + 6,
+                                nhid,
+                                nheads,
+                                dropout=dropout,
+                                negative_slope=alpha,
+                                concat=True)
         self.att2 = tgnn.GATConv(nhid * nheads,
                                 nhid,
                                 nheads,
