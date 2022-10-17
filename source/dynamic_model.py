@@ -110,7 +110,7 @@ class DynamicModel:
                 loss_train = self.get_loss(locations, features, targets[i], output)
                 
                 self.optimizer.zero_grad()
-                loss_train.backward()
+                loss_train.backward(retain_graph=True)
                 self.optimizer.step()
 
                 features = output
