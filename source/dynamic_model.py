@@ -113,7 +113,7 @@ class DynamicModel:
                 loss_train.backward(retain_graph=True)
                 self.optimizer.step()
 
-                features = output
+                features = output.detach()
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
