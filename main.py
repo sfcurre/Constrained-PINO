@@ -75,7 +75,7 @@ def main():
                         weight_decay=args.weight_decay)
 
     # Train Model
-    ns_loss = NavierStokesLoss3D(10, 1)
+    ns_loss = NavierStokesLoss3D(0, 0)
     dynamic_model = DynamicModel(dynamic_data, model, optimizer, ns_loss, args.cuda)
 
     if args.load_pkl:
