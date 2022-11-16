@@ -20,7 +20,7 @@ from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph
 from source.data.pdebench_graph import PDEBenchGraph
 from source.dynamic_model import DynamicModel
 from source.losses.navier_stokes_loss import NavierStokesLoss3D
-from source.models import PeriodicSpGAT, PeriodicSpGATTorchGeo
+from source.models import PeriodicSpGAT, PeriodicSpGATTorchGeo, PeriodicSpGATTorchGeo2
 
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy
@@ -28,6 +28,8 @@ from source.models import PeriodicSpGAT, PeriodicSpGATTorchGeo
 # Code collected from https://github.com/Diego999/pyGAT
 
 # Training settings
+
+torch.autograd.set_detect_anomaly(True)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -77,7 +79,7 @@ def main():
     dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    model = PeriodicSpGATTorchGeo(nfeat=5,
+    model = PeriodicSpGATTorchGeo2(nfeat=5,
                 nhid=args.hidden, 
                 nclass=5, 
                 dropout=args.dropout, 
