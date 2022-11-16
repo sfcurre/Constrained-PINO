@@ -1,0 +1,3 @@
+[submodule "PDEBench"]
+	path = PDEBench
+	url = https://github.com/pdebench/PDEBench.git

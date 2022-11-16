@@ -10,12 +10,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
 
 # default `log_dir` is "runs" - we'll be more specific here
 # writer = SummaryWriter()
 
-from source.dynamic_graph import DynamicGraph3D
+from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph
+from source.data.pdebench_graph import PDEBenchGraph
 from source.dynamic_model import DynamicModel
 from source.losses.navier_stokes_loss import NavierStokesLoss3D
 from source.models import PeriodicSpGAT, PeriodicSpGATTorchGeo
@@ -31,6 +33,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--grd', type=str, help='Path to grd data file.')
     parser.add_argument('--sol', type=str, help='Beginning of solution filename(s).')
+    parser.add_argument('--pdebench', type=str, help='Filename for pdebench dataset.')
     parser.add_argument('--no-cuda', action='store_true', default=False, help='Disables CUDA training.')
     parser.add_argument('--fastmode', action='store_true', default=False, help='Validate during training pass.')
     parser.add_argument('--seed', type=int, default=72, help='Random seed.')
@@ -45,6 +48,8 @@ def parse_args():
     parser.add_argument('--timesteps', type=int, default=5, help='Number of timesteps to train over.')
     parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
+    parser.add_argument('--periodic-bc', action='store_true', default=False, help='Enable a periodic boundary condition.')
+    parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -61,7 +66,15 @@ def main():
         torch.cuda.manual_seed(args.seed)
 
     # Load data
-    dynamic_data = DynamicGraph3D(args.grd, args.sol, periodic=True, use_cuda=args.cuda)
+    if args.grd and args.sol:
+        if args.periodic_bc:
+            dynamic_data = PeriodicTGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
+        else:
+            dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
+    elif args.pdebench:
+        dynamic_data = PDEBenchGraph(args.pdebench)
+
+    dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
     model = PeriodicSpGATTorchGeo(nfeat=5,
@@ -76,7 +89,7 @@ def main():
 
     # Train Model
     ns_loss = NavierStokesLoss3D(0, 0)
-    dynamic_model = DynamicModel(dynamic_data, model, optimizer, ns_loss, args.cuda)
+    dynamic_model = DynamicModel(dataloader, model, optimizer, ns_loss, args.cuda)
 
     if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)
@@ -86,11 +99,13 @@ def main():
 
     dynamic_model.model.eval()
     with torch.no_grad():
-        adj, locations, features, _ = dynamic_data.sample_train(t=0)
+        dynamic_data.training()
+        adj, locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=1000, evaluate=True, numpy=True)
         np.save('full_predictions.npy', np.array(predictions))
 
-        adj, locations, features, _ = dynamic_data.sample_test(t=0)
+        dynamic_data.testing()
+        adj, locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=200, evaluate=True, numpy=True)
         np.save('test_predictions.npy', np.array(predictions))
 

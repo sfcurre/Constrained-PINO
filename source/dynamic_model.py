@@ -12,8 +12,8 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 class DynamicModel:
-    def __init__(self, dynamic_graph, model, optimizer, ns_loss, use_cuda):
-        self.dynamic_graph = dynamic_graph
+    def __init__(self, dataloader, model, optimizer, ns_loss, use_cuda):
+        self.dataloader = dataloader
         self.model = model
         self.optimizer = optimizer
         self.ns_loss = ns_loss
@@ -76,7 +76,7 @@ class DynamicModel:
         t = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for adj, locations, features, targets in self.dynamic_graph.sample_train(generator=True, timesteps=timesteps):
+        for adj, locations, features, targets in self.dataloader:
             
             outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
             loss_train = self.recursive_loss(locations, features, targets, outputs)
@@ -102,7 +102,7 @@ class DynamicModel:
         t = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for adj, locations, features, targets in self.dynamic_graph.sample_train(generator=True, timesteps=timesteps):
+        for adj, locations, features, targets in self.dataloader:
             for i in range(timesteps):
 
                 output = self.model(locations, features, adj)
@@ -155,7 +155,7 @@ class DynamicModel:
     def compute_test(self, timesteps=1):
         test_losses = []
         self.model.eval()
-        for adj, locations, features, targets in self.dynamic_graph.sample_test(generator=True, timesteps=timesteps):
+        for adj, locations, features, targets in self.dataloader:
             outputs = self.recursive_predict(locations, features, adj, timesteps=timesteps)
             loss_test = self.recursive_loss(locations, features, targets, outputs)
             
