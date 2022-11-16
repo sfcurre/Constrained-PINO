@@ -6,7 +6,7 @@ from torch_geometric.utils import get_laplacian
 from torch.utils.data import Dataset
 
 class DynamicGraph(Dataset):
-    def __init__(self, grid, solution, timesteps=0, use_cuda=False):
+    def __init__(self, grid, solution, timesteps=1, use_cuda=False):
         self.grid = grid
         self.solution = solution
         self.timesteps = timesteps
@@ -25,7 +25,7 @@ class DynamicGraph(Dataset):
         return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
                              normalization='sym')
         
-    def sample_graph(self, flow_features, t, tdif=0):
+    def sample_graph(self, flow_features, t, tdif=1):
         features, targets = flow_features[t], flow_features[t+1: t+tdif+1]
         
         #shape into feature matrics
@@ -59,9 +59,9 @@ class DynamicGraph(Dataset):
 
     def __len__(self):
         if self.training:
-            return len(self.train) - self.timesteps - 1
+            return len(self.train) - self.timesteps
         else:
-            return len(self.test) - self.timesteps - 1
+            return len(self.test) - self.timesteps
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):

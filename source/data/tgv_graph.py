@@ -8,7 +8,7 @@ from .dynamic_graph import DynamicGraph
 from .periodic_graph import PeriodicGraph
 
 class TGVGraph(DynamicGraph):
-    def __init__(self, grd_path, solution_path, timesteps=0, use_cuda=False):
+    def __init__(self, grd_path, solution_path, timesteps=1, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = self.read_input_directory(grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
@@ -48,7 +48,7 @@ class TGVGraph(DynamicGraph):
         return q
 
 class PeriodicTGVGraph(PeriodicGraph):
-    def __init__(self, grd_path, solution_path, timesteps=0, use_cuda=False):
+    def __init__(self, grd_path, solution_path, timesteps=1, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = self.read_input_directory(grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
