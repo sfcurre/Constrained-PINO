@@ -13,7 +13,7 @@ from .periodic_graph import PeriodicGraph
 class PDEBenchGraph(DynamicGraph):
     def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
         grid, solution = self.read_input_directory(*args, **kwargs)
-        super().__init__(self, grid, solution, timesteps=timesteps, use_cuda=use_cuda)
+        super(PDEBenchGraph, self).__init__(grid, solution, timesteps=timesteps, use_cuda=use_cuda)
 
     def read_input_directory(self, filename,
                                    saved_folder='../data/',
@@ -187,4 +187,4 @@ class PDEBenchGraph(DynamicGraph):
 class PeriodicPDEBenchGraph(PeriodicGraph):
     def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
         grid, solution = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
-        super().__init__(self, grid, solution, timesteps=timesteps, use_cuda=use_cuda)
+        super(PeriodicPDEBenchGraph, self).__init__(grid, solution, timesteps=timesteps, use_cuda=use_cuda)

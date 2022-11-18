@@ -10,6 +10,8 @@ class PeriodicGraph(DynamicGraph):
         self.grid, self.solution = self.cut_periodic(grid, solution)
         self.timesteps = timesteps
         self.use_cuda = use_cuda
+        self.nfeats = self.solution.shape[-1]
+        self.ndims = self.grid.shape[-1]
         
         trig_grid = self.periodicize_grid(self.grid)
         self.locations = trig_grid.reshape((-1, trig_grid.shape[-1]))
@@ -17,7 +19,7 @@ class PeriodicGraph(DynamicGraph):
         
         self.train = self.solution[:int(.8 * len(self.solution))]
         self.test = self.solution[int(.8 * len(self.solution)):]
-        self.training = True
+        self.is_training = True
 
     def cut_periodic(self, grid, solution):
         #cut features to ensure periodicity

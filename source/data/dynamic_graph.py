@@ -11,13 +11,15 @@ class DynamicGraph(Dataset):
         self.solution = solution
         self.timesteps = timesteps
         self.use_cuda = use_cuda
+        self.nfeats = self.solution.shape[-1]
+        self.ndims = self.grid.shape[-1]
         
         self.locations = self.grid.reshape((-1, self.grid.shape[-1]))
         self.adj = self.build_adj_matrix()
         
         self.train = self.solution[:int(.8 * len(self.solution))]
         self.test = self.solution[int(.8 * len(self.solution)):]
-        self.training = True
+        self.is_training = True
 
     def build_adj_matrix(self):
         #edgelist should be the same for both source and target
@@ -46,19 +48,19 @@ class DynamicGraph(Dataset):
         return adj, locations, features, targets
 
     def training(self):
-        self.training = True
+        self.is_training = True
 
     def testing(self):
-        self.training = False
+        self.is_training = False
 
     def __getitem__(self, index):
-        if self.training:
+        if self.is_training:
             return self.sample_graph(self.train, index, tdif=self.timesteps)
         else:
             return self.sample_graph(self.test, index, tdif=self.timesteps)
 
     def __len__(self):
-        if self.training:
+        if self.is_training:
             return len(self.train) - self.timesteps
         else:
             return len(self.test) - self.timesteps

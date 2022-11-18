@@ -16,18 +16,18 @@ from torch.utils.data import DataLoader
 # default `log_dir` is "runs" - we'll be more specific here
 # writer = SummaryWriter()
 
+from source.data.dynamic_graph import DynamicGraph
+from source.data.periodic_graph import PeriodicGraph
 from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph
-from source.data.pdebench_graph import PDEBenchGraph
-from source.dynamic_model import DynamicModel
-from source.losses.navier_stokes_loss import NavierStokesLoss3D
-from source.models import PeriodicSpGAT, PeriodicSpGATTorchGeo, PeriodicSpGATTorchGeo2
+from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph
+from source.models.onestep_model import OneStepModel
+from source.models.pushforward_model import PushForwardModel
+from source.models.recursive_model import RecursiveModel
+from source.losses.navier_stokes_loss import NavierStokesLoss2D, NavierStokesLoss3D
+from source.nn_models import SpGAT, PeriodicSpGAT
 
 # Example call:
-# python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy
-
-# Code collected from https://github.com/Diego999/pyGAT
-
-# Training settings
+# python test.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -74,41 +74,48 @@ def main():
         else:
             dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
     elif args.pdebench:
-        dynamic_data = PDEBenchGraph(args.pdebench)
+        if args.periodic_bc:
+            dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
+        else:
+            dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
 
-    dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
+    if args.cuda:
+        dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
+    else:
+        dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    model = PeriodicSpGATTorchGeo2(nfeat=5,
-                nhid=args.hidden, 
-                nclass=5, 
-                dropout=args.dropout, 
-                nheads=args.nb_heads, 
+    model = PeriodicSpGAT(nfeat=dynamic_data.nfeats + dynamic_data.ndims,
+                nhid=args.hidden,
+                nclass=dynamic_data.nfeats,
+                dropout=args.dropout,
+                nheads=args.nb_heads,
                 alpha=args.alpha)
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
                         weight_decay=args.weight_decay)
 
     # Train Model
-    ns_loss = NavierStokesLoss3D(0, 0)
+    ns_loss = NavierStokesLoss3D(1, 1)
     dynamic_model = DynamicModel(dataloader, model, optimizer, ns_loss, args.cuda)
 
     if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)
 
     if not args.no_train:
-        train_losses, test_losses = dynamic_model.train(args.epochs, args.patience, timesteps=args.timesteps)
+        train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
 
+    #TODO: fix here
     dynamic_model.model.eval()
     with torch.no_grad():
         dynamic_data.training()
         adj, locations, features, _ = dynamic_data[0]
-        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=1000, evaluate=True, numpy=True)
+        predictions = dynamic_model.predict(locations, features, adj, timesteps=1000, numpy=True)
         np.save('full_predictions.npy', np.array(predictions))
 
         dynamic_data.testing()
         adj, locations, features, _ = dynamic_data[0]
-        predictions = dynamic_model.recursive_predict(locations, features, adj, timesteps=200, evaluate=True, numpy=True)
+        predictions = dynamic_model.predict(locations, features, adj, timesteps=200, numpy=True)
         np.save('test_predictions.npy', np.array(predictions))
 
 if __name__ == '__main__':
