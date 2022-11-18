@@ -23,12 +23,11 @@ class AutoRegressiveModel(DynamicModel):
         self.optimizer.zero_grad()
         for adj, locations, features, targets in self.dataloader:
             for ti_target in targets:
-
-                output = self.model(locations, features, adj)
+                self.optimizer.zero_grad()
                 
+                output = self.model(locations, features, adj)
                 loss_train = self.get_loss(locations, features, ti_target, output)
                 
-                self.optimizer.zero_grad()
                 loss_train.backward(retain_graph=True)
                 self.optimizer.step()
 

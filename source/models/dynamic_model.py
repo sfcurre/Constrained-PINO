@@ -76,6 +76,7 @@ class DynamicModel:
         raise NotImplementedError()
 
     def predict(self, locations, features, adj, timesteps=1, numpy=False):
+        # add with torch.no_grad
         outputs = []
         for i in range(timesteps):
             output = self.model(locations, features, adj)
@@ -87,6 +88,7 @@ class DynamicModel:
         return outputs
 
     def compute_test(self):
+        #LOOK AT THIS
         test_losses = []
         self.model.eval()
         for adj, locations, features, targets in self.dataloader:

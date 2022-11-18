@@ -23,6 +23,7 @@ from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
+from source.models.broken_autoregressive_model import BrokenAutoRegressiveModel
 from source.losses.navier_stokes_loss import *
 from source.nn_models import SpGAT, PeriodicSpGAT
 
@@ -109,7 +110,9 @@ def main():
 
     # Train Models
     ns_loss = TestLoss()
-    for modeltype, name in [(OneStepModel, 'OneStep'), (PushForwardModel, 'PushForward'), (AutoRegressiveModel, 'Recursive')]:
+    ns_loss = NavierStokesLoss2D(1, 1)
+    # for modeltype, name in [(OneStepModel, 'OneStep'), (PushForwardModel, 'PushForward'), (AutoRegressiveModel, 'Recursive')]:
+    for modeltype, name in [(BrokenAutoRegressiveModel, 'BrokenAR')]:
         dynamic_model = modeltype(dataloader, model, optimizer, ns_loss, args.cuda)
         train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
 

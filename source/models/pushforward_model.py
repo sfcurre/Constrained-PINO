@@ -22,7 +22,8 @@ class PushForwardModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets in self.dataloader:
-            
+            self.optimizer.zero_grad()
+
             output_1 = self.model(locations, features, adj)
             output_1 = output_1.detach()
             
@@ -30,7 +31,6 @@ class PushForwardModel(DynamicModel):
             
             loss_train = self.get_loss(locations, output_1, targets[1], output_2)
             
-            self.optimizer.zero_grad()
             loss_train.backward()
             self.optimizer.step()
 

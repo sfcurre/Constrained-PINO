@@ -22,11 +22,11 @@ class OneStepModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets in self.dataloader:
+            self.optimizer.zero_grad()
             
             output = self.model(locations, features, adj)
             loss_train = self.get_loss(locations, features, targets[0], output)
             
-            self.optimizer.zero_grad()
             loss_train.backward()
             self.optimizer.step()
 
