@@ -29,14 +29,19 @@ conda activate pignn
 cd ~/Physics-Informed-GNNs
 '''
     call = f'python main.py --epochs {e} --patience {patience} --lr {lr} --weight-decay {wd} \\\n'
-    if bs:
-        call += f'    --batch-size {bs} \\\n'
-
     call += f'    --hidden {hdim} --layers {layers} --nb-heads {heads} \\\n'
     call += f'    --dropout {dropout} --alpha {alpha} --timesteps {timesteps} \\\n'
+    if grd and sol:
+        call += f'    --grd {grd} --sol {sol} \\\n'
+    elif pdebench:
+        call += f'    --pdebench {pdebench} \\\n'
+    else:
+        raise ValueError(f"Must define data files (grd and sol or pdebench) for {name}")
 
     if periodic:
         call += f'    --periodic-bc \\\n'
+    if bs:
+        call += f'    --batch-size {bs} \\\n'
 
     call += f'    --model-type {modeltype} --name {name}\n\n'
 

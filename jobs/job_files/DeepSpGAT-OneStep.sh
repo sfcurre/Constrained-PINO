@@ -21,6 +21,7 @@ cd ~/Physics-Informed-GNNs
 python main.py --epochs 20 --patience 100 --lr 0.0001 --weight-decay 1e-08 \
     --hidden 32 --layers 6 --nb-heads 4 \
     --dropout 0.0 --alpha 0.2 --timesteps 1 \
+    --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy \
     --periodic-bc \
     --model-type OneStep --name DeepSpGAT-OneStep
 
