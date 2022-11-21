@@ -30,7 +30,7 @@ cd ~/Physics-Informed-GNNs
 '''
     call = f'''python main.py --epochs {e} --patience {patience} --learning-rate {lr} --weight-decay {wd}\\
     '''
-    if batch_size:
+    if bs:
         call += f'    --batch-size {bs} \\\n'
 
     call += f'    --hidden {hdim} --layers {layers} --nb-heads {heads} \\\n'
