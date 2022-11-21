@@ -9,8 +9,8 @@ def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None, e=100, l
               dropout=0.0, alpha=0.2, patience=100, timesteps=5, periodic=True, modeltype='PushForward', video=False):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN
-#SBATCH --output="out/PIGNN_{name}-%j.out"
 #SBATCH --time={time}
+#SBATCH --output="out/PIGNN_{name}-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=28
@@ -28,7 +28,7 @@ conda activate pignn
 
 cd ~/Physics-Informed-GNNs
 '''
-    call = f'''python main.py --epochs {e} --patience {patience} --learning-rate {lr} --weight-decay {wd}\\
+    call = f'''python main.py --epochs {e} --patience {patience} --learning-rate {lr} --weight-decay {wd} \\
     '''
     if bs:
         call += f'    --batch-size {bs} \\\n'
