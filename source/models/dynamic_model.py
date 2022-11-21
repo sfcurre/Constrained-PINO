@@ -12,11 +12,12 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 class DynamicModel:
-    def __init__(self, dataloader, model, optimizer, pde_loss, use_cuda):
+    def __init__(self, dataloader, model, optimizer, pde_loss, name, use_cuda):
         self.dataloader = dataloader
         self.model = model
         self.optimizer = optimizer
         self.pde_loss = pde_loss
+        self.name = name
         self.use_cuda = use_cuda
 
         if self.use_cuda:
@@ -32,7 +33,7 @@ class DynamicModel:
         for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch))
 
-            torch.save(self.model.state_dict(), '{}.pkl'.format(epoch))
+            torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
             if loss_values[-1] < best:
                 best = loss_values[-1]
                 best_epoch = epoch
@@ -43,18 +44,18 @@ class DynamicModel:
             if bad_counter == patience:
                 break
 
-            files = glob.glob('*.pkl')
+            files = glob.glob(f'out/saved_models/{self.name}_*.pkl')
             for file in files:
-                epoch_nb = int(file.split('.')[0])
+                epoch_nb = int(file.split('_')[-1].split('.')[0])
                 if epoch_nb < best_epoch:
                     os.remove(file)
 
-            with open('outfile.txt', 'a') as fp:
+            with open(f'outfile_{self.name}.txt', 'a') as fp:
                 print(epoch, loss_values[-1], sep='\t', file=fp)
 
-        files = glob.glob('*.pkl')
+        files = glob.glob(f'out/saved_models/{self.name}_*.pkl')
         for file in files:
-            epoch_nb = int(file.split('.')[0])
+            epoch_nb = int(file.split('_')[-1].split('.')[0])
             if epoch_nb > best_epoch:
                 os.remove(file)
 
@@ -63,7 +64,7 @@ class DynamicModel:
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        self.load_model('{}.pkl'.format(best_epoch))
+        self.load_model(f'out/saved_models/{self.name}_{best_epoch}.pkl')
 
         # Testing
         test_losses = self.compute_test()

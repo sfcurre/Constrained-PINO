@@ -33,7 +33,6 @@ class SpGAT(nn.Module):
         x = self.out_att(x, *adj)
         return x
 
-
 class PeriodicSpGAT(nn.Module):
     def __init__(self, nfeat, ndims, nhid, nclass, dropout, alpha, nheads):
         """Sparse version of GAT."""
@@ -57,6 +56,52 @@ class PeriodicSpGAT(nn.Module):
         x = self.wave_transform(locations, concat_to=features)
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.att(x, *adj)
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.out_att(x, *adj)
+        return x
+
+class DeepSpGAT(nn.Module):
+    def __init__(self, nfeat, ndims, nhid, natt, nclass, dropout, alpha, nheads, periodic=True):
+        """Sparse version of GAT."""
+        super(PeriodicSpGAT, self).__init__()
+        self.dropout = dropout
+        self.periodic = True
+
+        if self.periodic:
+            self.wave_transform = WaveTransform()
+        
+        self.att = tgnn.GATConv(nfeat + 2*ndims,
+                                nhid,
+                                nheads,
+                                dropout=dropout,
+                                negative_slope=alpha,
+                                concat=True)
+        
+        self.internal_atts = []
+        for i in range(natt - 2):
+            self.internal_atts.append(tgnn.GATConv(nhid * nheads,
+                                      nhid,
+                                      nheads,
+                                      dropout=dropout,
+                                      negative_slope=alpha,
+                                      concat=True))
+
+        self.out_att = tgnn.GATConv(nhid * nheads,
+                                    nclass,
+                                    dropout=dropout,
+                                    negative_slope=alpha,
+                                    concat=False)
+        
+    def forward(self, locations, features, adj):
+        if self.periodic:
+            x = self.wave_transform(locations, concat_to=features)
+        else:
+            x = torch.cat([locations, features], dim=-1)
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.att(x, *adj)
+        for att in self.internal_atts:
+            x = F.dropout(x, self.dropout, training=self.training)
+            x = att(x, *adj)
         x = F.dropout(x, self.dropout, training=self.training)
         x = self.out_att(x, *adj)
         return x

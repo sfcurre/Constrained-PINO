@@ -22,9 +22,9 @@ from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph
 from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
-from source.models.recursive_model import RecursiveModel
+from source.models.autoregressive_model import AutoRegressiveModel
 from source.losses.navier_stokes_loss import NavierStokesLoss2D, NavierStokesLoss3D
-from source.nn_models import SpGAT, PeriodicSpGAT
+from source.nn_models import DeepSpGAT
 
 # Example call:
 # python test.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy
@@ -33,6 +33,7 @@ torch.autograd.set_detect_anomaly(True)
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--name', type=str, help='Model name for saving files.')
     parser.add_argument('--grd', type=str, help='Path to grd data file.')
     parser.add_argument('--sol', type=str, help='Beginning of solution filename(s).')
     parser.add_argument('--pdebench', type=str, help='Filename for pdebench dataset.')
@@ -43,6 +44,7 @@ def parse_args():
     parser.add_argument('--lr', type=float, default=0.0001, help='Initial learning rate.')
     parser.add_argument('--weight-decay', type=float, default=5e-4, help='Weight decay (L2 loss on parameters).')
     parser.add_argument('--hidden', type=int, default=8, help='Number of hidden units.')
+    parser.add_argument('--layers', type=int, default=2, help='Number of layers in the neural network.')
     parser.add_argument('--nb-heads', type=int, default=8, help='Number of head attentions.')
     parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate (1 - keep probability).')
     parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
@@ -52,6 +54,8 @@ def parse_args():
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     parser.add_argument('--periodic-bc', action='store_true', default=False, help='Enable a periodic boundary condition.')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
+    parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
+                                        default='PushForward', help='Type of training model.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -85,19 +89,26 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    model = PeriodicSpGAT(nfeat=dynamic_data.nfeats + dynamic_data.ndims,
+    model = DeepSpGAT(nfeat=dynamic_data.nfeats + dynamic_data.ndims,
                 nhid=args.hidden,
+                natt=args.layers,
                 nclass=dynamic_data.nfeats,
                 dropout=args.dropout,
                 nheads=args.nb_heads,
-                alpha=args.alpha)
+                alpha=args.alpha,
+                periodic=args.periodic_bc)
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
                         weight_decay=args.weight_decay)
 
     # Train Model
-    ns_loss = NavierStokesLoss3D(1, 1)
-    dynamic_model = DynamicModel(dataloader, model, optimizer, ns_loss, args.cuda)
+    pde_loss = NavierStokesLoss3D(1, 1)
+    if args.model_type == 'OneStep':
+        dynamic_model = OneStepModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
+    elif args.model_type == 'AutoRegressive':
+        dynamic_model = AutoRegressiveModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
+    else:
+        dynamic_model = PushForwardModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
 
     if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)
@@ -111,12 +122,12 @@ def main():
         dynamic_data.training()
         adj, locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, adj, timesteps=1000, numpy=True)
-        np.save('full_predictions.npy', np.array(predictions))
+        np.save(f'out/predictions/{args.name}_full.npy', np.array(predictions))
 
         dynamic_data.testing()
         adj, locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, adj, timesteps=200, numpy=True)
-        np.save('test_predictions.npy', np.array(predictions))
+        np.save(f'out/predictions/{args.name}_test.npy', np.array(predictions))
 
 if __name__ == '__main__':
     main()
