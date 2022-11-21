@@ -8,9 +8,9 @@ def write_bash(fp, call, name):
 def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None, e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, patience=100, timesteps=5, periodic=True, modeltype='PushForward', video=False):
     HEADER = f'''#!/bin/bash
-#SBATCH --job-name=PIGNN
+#SBATCH --job-name=PIGNN-{name}
 #SBATCH --time={time}
-#SBATCH --output="out/PIGNN_{name}-%j.out"
+#SBATCH --output="out/PIGNN-{name}-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=28
@@ -28,8 +28,7 @@ conda activate pignn
 
 cd ~/Physics-Informed-GNNs
 '''
-    call = f'''python main.py --epochs {e} --patience {patience} --learning-rate {lr} --weight-decay {wd} \\
-    '''
+    call = f'python main.py --epochs {e} --patience {patience} --learning-rate {lr} --weight-decay {wd} \\\n'
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
