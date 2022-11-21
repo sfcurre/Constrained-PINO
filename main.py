@@ -89,7 +89,8 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    model = DeepSpGAT(nfeat=dynamic_data.nfeats + dynamic_data.ndims,
+    model = DeepSpGAT(nfeat=dynamic_data.nfeats,
+                ndims=dynamic_data.ndims,
                 nhid=args.hidden,
                 natt=args.layers,
                 nclass=dynamic_data.nfeats,
