@@ -28,7 +28,7 @@ conda activate pignn
 
 cd ~/Physics-Informed-GNNs
 '''
-    call = f'python main.py --epochs {e} --patience {patience} --learning-rate {lr} --weight-decay {wd} \\\n'
+    call = f'python main.py --epochs {e} --patience {patience} --lr {lr} --weight-decay {wd} \\\n'
     if bs:
         call += f'    --batch-size {bs} \\\n'
 

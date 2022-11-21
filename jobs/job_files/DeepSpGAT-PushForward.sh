@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=PIGNN
-#SBATCH --output="out/PIGNN_DeepSpGAT-PushForward-%j.out"
+#SBATCH --job-name=PIGNN-DeepSpGAT-PushForward
 #SBATCH --time=23:59:59
+#SBATCH --output="out/PIGNN-DeepSpGAT-PushForward-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=28
@@ -18,8 +18,8 @@ source /usr/local/python/3.6-conda5.2/etc/profile.d/conda.sh
 conda activate pignn
 
 cd ~/Physics-Informed-GNNs
-python main.py --epochs 20 --patience 100 --learning-rate 0.0001 --weight-decay 1e-08\
-        --hidden 32 --layers 6 --nb-heads 4 \
+python main.py --epochs 20 --patience 100 --lr 0.0001 --weight-decay 1e-08 \
+    --hidden 32 --layers 6 --nb-heads 4 \
     --dropout 0.0 --alpha 0.2 --timesteps 2 \
     --periodic-bc \
     --model-type PushForward --name DeepSpGAT-PushForward
