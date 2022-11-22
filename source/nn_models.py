@@ -63,7 +63,7 @@ class PeriodicSpGAT(nn.Module):
 class DeepSpGAT(nn.Module):
     def __init__(self, nfeat, ndims, nhid, natt, nclass, dropout, alpha, nheads, periodic=True):
         """Sparse version of GAT."""
-        super(PeriodicSpGAT, self).__init__()
+        super(DeepSpGAT, self).__init__()
         self.dropout = dropout
         self.periodic = True
 
