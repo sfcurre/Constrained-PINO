@@ -11,6 +11,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
+#from torch.profiler import profile, record_function, ProfilerActivity
+from pytorch_memlab import LineProfiler
+
 # from torch.utils.tensorboard import SummaryWriter
 
 # default `log_dir` is "runs" - we'll be more specific here
@@ -114,8 +117,19 @@ def main():
     if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)
 
+    # if not args.no_train:
+    #     train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
+
     if not args.no_train:
-        train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                     record_shapes=True, profile_memory=True, use_cuda=True) as prof:
+            with record_function("model_training"):
+                train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
+
+    with open(f'{args.name}_profile.txt', 'w') as fp:
+        print(prof.key_averages(), file=fp)
+
+    prof.export_chrome_trace(f"{args.name}_trace.json")
 
     #TODO: fix here
     dynamic_model.model.eval()

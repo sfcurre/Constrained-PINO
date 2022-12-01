@@ -14,7 +14,6 @@ class TestLoss(nn.Module):
         loss = F.mse_loss(residual, torch.ones_like(residual))
         return loss
 
-
 class NavierStokesLoss2D(nn.Module):
     def __init__(self, nu, continuity_weight=1, momentum_weight=1):
         self.nu_constant = nu
@@ -22,37 +21,34 @@ class NavierStokesLoss2D(nn.Module):
         self.momentum_weight = momentum_weight
         super(NavierStokesLoss2D, self).__init__()
  
-    def continuity_loss(self, locations, velocities):
-        du_dx, _= torch.autograd.grad(velocities[0].sum(), locations, 
-                                          retain_graph=True)[0].T
-        _, dv_dy= torch.autograd.grad(velocities[1].sum(), locations, 
-                                          retain_graph=True)[0].T
+    def continuity_loss(self, locations, features):
+        du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
+        dv_dy = dde.grad.jacobian(features, locations, i=2, j=1)
+
         residual = du_dx + dv_dy
         return residual
 
-    def momentum_loss(self, density, locations, velocities, di_dt, rho, index):
-        di_dx, di_dy = torch.autograd.grad(velocities[index].sum(),
-        locations, create_graph=True, retain_graph=True)[0].T
+    def momentum_loss(self, locations, features, outputs, index):
+        di_dx, di_dy = dde.grad.jacobian(outputs, locations, i=index)
         
-        di_dxx, _ = torch.autograd.grad(di_dx.sum(), locations, 
-                                           retain_graph=True)[0].T
-        _, di_dyy = torch.autograd.grad(di_dy.sum(), locations, 
-                                           retain_graph=True)[0].T
+        di_dxx = dde.grad.hessian(outputs, locations, component=index, i=0, j=0)
+        di_dyy = dde.grad.hessian(outputs, locations, component=index, i=1, j=1)
 
-        dp_di = torch.autograd.grad(density.sum(), locations, 
-                                    retain_graph=True)[0][:, index]
+        dp_di = dde.grad.jacobian(outputs, locations, i=0, j=index-1)
+        di_dt = (outputs[..., index] - features[..., index]).unsqueeze(-1) 
 
-        residual = (di_dt + velocities[0] * di_dx + velocities[1] * di_dy + 
-                    dp_di / rho - self.nu_constant * (di_dxx + di_dyy))
+        u_o = outputs[..., 1].unsqueeze(-1)
+        v_o = outputs[..., 2].unsqueeze(-1)
+        r_o = outputs[..., -1].unsqueeze(-1)
+
+        residual = (di_dt + u_o * di_dx + v_o * di_dy + 
+                    dp_di / r_o - self.nu_constant * (di_dxx + di_dyy))
         return residual
 
     def forward(self, locations, features, outputs):
-        p_i, u_i, v_i, r_i = torch.unbind(features, dim=-1)
-        p_o, u_o, v_o, r_o = torch.unbind(outputs, dim=-1)
-
-        continuity = self.continuity_loss(locations, (u_o, v_o))
-        momentum_x = self.momentum_loss(p_o, locations, (u_o, v_o), u_o - u_i, r_o, 0)
-        momentum_y = self.momentum_loss(p_o, locations, (u_o, v_o), v_o - v_i, r_o, 1)
+        continuity = self.continuity_loss(locations, outputs)
+        momentum_x = self.momentum_loss(locations, features, outputs, 1)
+        momentum_y = self.momentum_loss(locations, features, outputs, 2)
 
         residual = (self.continuity_weight * continuity +
                 self.momentum_weight * (momentum_x + momentum_y))
@@ -67,45 +63,40 @@ class NavierStokesLoss3D(nn.Module):
         self.nu_constant = nu
         self.continuity_weight = continuity_weight
         self.momentum_weight = momentum_weight
-        super(NavierStokesLoss3D, self).__init__()
+        super(NavierStokesLoss2D, self).__init__()
  
-    def continuity_loss(self, locations, velocities):
-        du_dx, _, _ = torch.autograd.grad(velocities[0].sum(), locations, 
-                                          retain_graph=True)[0].T
-        _, dv_dy, _ = torch.autograd.grad(velocities[1].sum(), locations, 
-                                          retain_graph=True)[0].T
-        _, _, dw_dz = torch.autograd.grad(velocities[2].sum(), locations, 
-                                          retain_graph=True)[0].T
+    def continuity_loss(self, locations, features):
+        du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
+        dv_dy = dde.grad.jacobian(features, locations, i=2, j=1)
+        dw_dz = dde.grad.jacobian(features, locations, i=3, j=2)
+
         residual = du_dx + dv_dy + dw_dz
         return residual
 
-    def momentum_loss(self, density, locations, velocities, di_dt, rho, index):
-        di_dx, di_dy, di_dz = torch.autograd.grad(velocities[index].sum(),
-        locations, create_graph=True, retain_graph=True)[0].T
+    def momentum_loss(self, locations, features, outputs, index):
+        di_dx, di_dy, di_dz = dde.grad.jacobian(outputs, locations, i=index)
         
-        di_dxx, _, _ = torch.autograd.grad(di_dx.sum(), locations, 
-                                           retain_graph=True)[0].T
-        _, di_dyy, _ = torch.autograd.grad(di_dy.sum(), locations, 
-                                           retain_graph=True)[0].T
-        _, _, di_dzz = torch.autograd.grad(di_dz.sum(), locations, 
-                                           retain_graph=True)[0].T
+        di_dxx = dde.grad.hessian(outputs, locations, component=index, i=0, j=0)
+        di_dyy = dde.grad.hessian(outputs, locations, component=index, i=1, j=1)
+        di_dzz = dde.grad.hessian(outputs, locations, component=index, i=2, j=2)
 
-        dp_di = torch.autograd.grad(density.sum(), locations, 
-                                    retain_graph=True)[0][:, index]
+        dp_di = dde.grad.jacobian(outputs, locations, i=0, j=index-1)
+        di_dt = (outputs[..., index] - features[..., index]).unsqueeze(-1) 
 
-        residual = (di_dt + velocities[0] * di_dx + velocities[1] * di_dy +
-                    velocities[2] * di_dz + dp_di / rho -
-                    self.nu_constant * (di_dxx + di_dyy + di_dzz))
+        u_o = outputs[..., 1].unsqueeze(-1)
+        v_o = outputs[..., 2].unsqueeze(-1)
+        w_o = outputs[..., 3].unsqueeze(-1)
+        r_o = outputs[..., -1].unsqueeze(-1)
+
+        residual = (di_dt + u_o * di_dx + v_o * di_dy + w_o * di_dz +
+                    dp_di / r_o - self.nu_constant * (di_dxx + di_dyy + di_dzz))
         return residual
 
     def forward(self, locations, features, outputs):
-        p_i, u_i, v_i, w_i, r_i = torch.unbind(features, dim=-1)
-        p_o, u_o, v_o, w_o, r_o = torch.unbind(outputs, dim=-1)
-
-        continuity = self.continuity_loss(locations, (u_o, v_o, w_o))
-        momentum_x = self.momentum_loss(p_o, locations, (u_o, v_o, w_o), u_o - u_i, r_o, 0)
-        momentum_y = self.momentum_loss(p_o, locations, (u_o, v_o, w_o), v_o - v_i, r_o, 1)
-        momentum_z = self.momentum_loss(p_o, locations, (u_o, v_o, w_o), w_o - w_i, r_o, 2)
+        continuity = self.continuity_loss(locations, outputs)
+        momentum_x = self.momentum_loss(locations, features, outputs, 1)
+        momentum_y = self.momentum_loss(locations, features, outputs, 2)
+        momentum_z = self.momentum_loss(locations, features, outputs, 3)
 
         residual = (self.continuity_weight * continuity +
                 self.momentum_weight * (momentum_x + momentum_y + momentum_z))
@@ -113,7 +104,6 @@ class NavierStokesLoss3D(nn.Module):
         loss = F.mse_loss(residual, torch.zeros_like(residual))
 
         return loss
-
 
 #=======================================================================
 
