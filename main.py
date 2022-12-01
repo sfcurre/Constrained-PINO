@@ -30,7 +30,7 @@ from source.losses.navier_stokes_loss import NavierStokesLoss2D, NavierStokesLos
 from source.nn_models import DeepSpGAT
 
 # Example call:
-# python test.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy
+# python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
 
 torch.autograd.set_detect_anomaly(True)
 

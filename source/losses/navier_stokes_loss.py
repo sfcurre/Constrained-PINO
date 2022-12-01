@@ -63,7 +63,7 @@ class NavierStokesLoss3D(nn.Module):
         self.nu_constant = nu
         self.continuity_weight = continuity_weight
         self.momentum_weight = momentum_weight
-        super(NavierStokesLoss2D, self).__init__()
+        super(NavierStokesLoss3D, self).__init__()
  
     def continuity_loss(self, locations, features):
         du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
