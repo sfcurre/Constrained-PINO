@@ -49,10 +49,6 @@ class AutoRegressiveModel(DynamicModel):
         return loss_val.data.item()
 
     def get_loss(self, locations, features, targets, outputs):
-        total_loss = 0
-        for output, target in zip(outputs, targets):
-            mse_loss = F.mse_loss(output, target)
-            pde_loss = self.pde_loss(locations, features, output)
-            total_loss += mse_loss + pde_loss
-            features = output.detach()
-        return total_loss
+        mse_loss = F.mse_loss(outputs, targets)
+        pde_loss = self.pde_loss(locations, features, outputs)
+        return mse_loss + pde_loss

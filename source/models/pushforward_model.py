@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+from pytorch_memlab import profile
 
 from .dynamic_model import DynamicModel
 
@@ -17,6 +18,7 @@ class PushForwardModel(DynamicModel):
     def __init__(self, *args, **kwargs):
         super(PushForwardModel, self).__init__(*args, **kwargs)
 
+    @profile
     def train_step(self, epoch):
         t = time.time()
         self.model.train()

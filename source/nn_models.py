@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch_geometric.nn as tgnn
 from .layers.fourier import SpectralConv2d_fast
 from .layers.wave_transform import WaveTransform
+from pytorch_memlab import profile
 
 # Code collected from https://github.com/Diego999/pyGAT
 
@@ -92,6 +93,7 @@ class DeepSpGAT(nn.Module):
                                     negative_slope=alpha,
                                     concat=False)
         
+    @profile
     def forward(self, locations, features, adj):
         if self.periodic:
             x = self.wave_transform(locations, concat_to=features)
