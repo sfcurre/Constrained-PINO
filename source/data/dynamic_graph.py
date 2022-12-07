@@ -2,8 +2,10 @@ import numpy as np
 import scipy.sparse as sp
 import glob
 import torch
-from torch_geometric.utils import get_laplacian
+from torch_geometric.utils import get_laplacian, coalesce
 from torch.utils.data import Dataset
+
+# MINIBATCH EVERYTHING with collate_fn
 
 class DynamicGraph(Dataset):
     def __init__(self, grid, solution, timesteps=1, use_cuda=False):
@@ -37,6 +39,7 @@ class DynamicGraph(Dataset):
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(self.locations.astype(np.float32)).requires_grad_()
+        mask = None
 
         adj = self.adj
         if self.use_cuda:
@@ -45,7 +48,7 @@ class DynamicGraph(Dataset):
             features = features.cuda()
             targets = targets.cuda()
 
-        return adj, locations, features, targets
+        return adj, locations, features, targets, mask
 
     def training(self):
         self.is_training = True
@@ -67,49 +70,25 @@ class DynamicGraph(Dataset):
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):
-        getnode = lambda x, y, z: x * ydim * zdim + y * zdim + z
+        mode = 'wrap' if periodic else 'clip'
+        getnode = lambda x, y, z: np.ravel_multi_index((x, y, z), (xdim, ydim, zdim), mode=mode)
         edges = []
         for x in range(xdim):
             for y in range(ydim):
                 for z in range(zdim):
                     node = getnode(x, y, z)
                     edges.append([node, node])
-                    if x > 0:
-                        node_x_1 = getnode(x - 1, y, z)
-                        if node_x_1 < node:
-                            edges.append([node_x_1, node])
-                            edges.append([node, node_x_1]) 
-                    if y > 0:
-                        node_y_1 = getnode(x, y - 1, z)
-                        if node_y_1 < node:
-                            edges.append([node_y_1, node])
-                            edges.append([node, node_y_1])
-                    if z > 0:
-                        node_z_1 = getnode(x, y, z - 1)
-                        if node_z_1 < node:
-                            edges.append([node_z_1, node])
-                            edges.append([node, node_z_1])
-        if periodic:
-            # add connections from (ydim - 1) to 0
-            for x in range(xdim):
-                for z in range(zdim):
-                    n0 = getnode(x, 0, z)
-                    n1 = getnode(x, ydim - 1, z)
-                    edges.append([n0, n1])
-                    edges.append([n1, n0])
-            # add connections from (xdim - 1) to 0
-            for y in range(ydim):
-                for z in range(zdim):
-                    n0 = getnode(0, y, z)
-                    n1 = getnode(xdim - 1, y, z)
-                    edges.append([n0, n1])
-                    edges.append([n1, n0])
-            # add connections from (zdim - 1) to 0
-            for x in range(xdim):
-                for y in range(ydim):
-                    n0 = getnode(x, y, 0)
-                    n1 = getnode(x, y, zdim - 1)
-                    edges.append([n0, n1])
-                    edges.append([n1, n0])
+                    
+                    node_x_1 = getnode(x - 1, y, z)
+                    edges.append([node_x_1, node])
+                    edges.append([node, node_x_1])
+                    
+                    node_y_1 = getnode(x, y - 1, z)
+                    edges.append([node_y_1, node])
+                    edges.append([node, node_y_1])
+                    
+                    node_z_1 = getnode(x, y, z - 1)
+                    edges.append([node_z_1, node])
+                    edges.append([node, node_z_1])
 
         return np.array(edges, dtype=np.int64).T

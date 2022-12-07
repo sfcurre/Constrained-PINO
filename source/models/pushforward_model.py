@@ -23,7 +23,7 @@ class PushForwardModel(DynamicModel):
         t = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for adj, locations, features, targets in self.dataloader:
+        for adj, locations, features, targets, mask in self.dataloader:
             self.optimizer.zero_grad()
 
             output_1 = self.model(locations, features, adj)
@@ -31,7 +31,7 @@ class PushForwardModel(DynamicModel):
             
             output_2 = self.model(locations, output_1, adj)
             
-            loss_train = self.get_loss(locations, output_1, targets[1], output_2)
+            loss_train = self.get_loss(locations, output_1, targets[1], output_2, mask)
             
             loss_train.backward()
             self.optimizer.step()
@@ -41,7 +41,7 @@ class PushForwardModel(DynamicModel):
         self.model.eval()
         outputs = self.predict(locations, features, adj, timesteps=len(targets))
 
-        loss_val = self.get_test_loss(targets, outputs)
+        loss_val = self.get_test_loss(targets, outputs, mask)
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.data.item()),
             'loss_val: {:.4f}'.format(loss_val.data.item()),
@@ -49,7 +49,10 @@ class PushForwardModel(DynamicModel):
 
         return loss_val.data.item()
 
-    def get_loss(self, locations, features, targets, outputs):
-        mse_loss = F.mse_loss(outputs, targets)
-        pde_loss = self.pde_loss(locations, features, outputs)
+    def get_loss(self, locations, features, targets, outputs, mask=None):
+        if mask is not None:
+            mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
+        else:
+            mse_loss = F.mse_loss(outputs, targets)
+        pde_loss = self.pde_loss(locations, features, outputs, mask)
         return mse_loss + pde_loss

@@ -6,7 +6,7 @@ def write_bash(fp, call, name):
     fp.write(f'sbatch {name}.sh\n')
 
 def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None, e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
-              dropout=0.0, alpha=0.2, patience=100, timesteps=5, periodic=True, modeltype='PushForward', video=False):
+              dropout=0.0, alpha=0.2, patience=100, timesteps=5, periodic=True, minibatch=0, modeltype='PushForward', video=False):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN-{name}
 #SBATCH --time={time}
@@ -40,6 +40,8 @@ cd ~/Physics-Informed-GNNs
 
     if periodic:
         call += f'    --periodic-bc \\\n'
+        if minibatch:
+            call += f'    --mini-batch-width {minibatch} \\\n'
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
@@ -51,11 +53,11 @@ def main():
     with open('jobs/batch_jobs.sh', 'w') as fp:
         fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
         write_bash(fp, *make_call('DeepSpGAT-OneStep', grd='TGV/ijk_snapshots/ijkmvmv_grd.npy', sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-                                  e=20, timesteps=1, modeltype='OneStep'))
+                                  e=20, timesteps=1, minibatch=8, modeltype='OneStep'))
         write_bash(fp, *make_call('DeepSpGAT-PushForward', grd='TGV/ijk_snapshots/ijkmvmv_grd.npy', sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-                                  e=20, timesteps=2, modeltype='PushForward'))
+                                  e=20, timesteps=2, minibatch=8, modeltype='PushForward'))
         write_bash(fp, *make_call('DeepSpGAT-AutoRegressive', grd='TGV/ijk_snapshots/ijkmvmv_grd.npy', sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-                                  e=20, timesteps=5, modeltype='AutoRegressive'))
+                                  e=20, timesteps=5, minibatch=8, modeltype='AutoRegressive'))
 
 if __name__ == '__main__':
     main()

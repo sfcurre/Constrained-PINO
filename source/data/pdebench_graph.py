@@ -9,6 +9,7 @@ from torch_geometric.utils import get_laplacian
 
 from .dynamic_graph import DynamicGraph
 from .periodic_graph import PeriodicGraph
+from .minibatch_graph import MiniBatchGraph
 
 class PDEBenchGraph(DynamicGraph):
     def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
@@ -188,3 +189,9 @@ class PeriodicPDEBenchGraph(PeriodicGraph):
     def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
         grid, solution = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
         super(PeriodicPDEBenchGraph, self).__init__(grid, solution, timesteps=timesteps, use_cuda=use_cuda)
+
+class MiniBatchPDEBenchGraph(MiniBatchGraph):
+    def __init__(self, width, depth, *args, timesteps=1, use_cuda=False, **kwargs):
+        grid, solution = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
+        super(MiniBatchPDEBenchGraph, self).__init__(grid, solution, width, depth,
+                                                     timesteps=timesteps, use_cuda=use_cuda)

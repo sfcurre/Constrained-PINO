@@ -7,7 +7,8 @@ from .dynamic_graph import DynamicGraph
 
 class PeriodicGraph(DynamicGraph):
     def __init__(self, grid, solution, timesteps=1, use_cuda=False):
-        self.grid, self.solution = self.cut_periodic(grid, solution)
+        self.grid = grid
+        self.solution = solution
         self.timesteps = timesteps
         self.use_cuda = use_cuda
         self.nfeats = self.solution.shape[-1]
@@ -21,33 +22,17 @@ class PeriodicGraph(DynamicGraph):
         self.test = self.solution[int(.8 * len(self.solution)):]
         self.is_training = True
 
-    def cut_periodic(self, grid, solution):
-        #cut features to ensure periodicity
-        xindices = np.arange(grid.shape[0])
-        yindices = np.arange(grid.shape[1])
-        zindices = np.arange(grid.shape[2])
-
-        helper = lambda comparison, axes: np.argmax(np.sum(comparison, axis=axes)) + 1
-
-        #find periodic cutoffs
-        xcutoff = helper(solution[:, 1:] == solution[:, :1, :, :, :], (0, 2, 3, 4))
-        ycutoff = helper(solution[:, :, 1:] == solution[:, :, :1, :, :], (0, 1, 3, 4))
-        zcutoff = helper(solution[:, :, :, 1:] == solution[:, :, :, :1, :], (0, 1, 2, 4))
-
-        #cut grid and solution
-        grid = grid[:xcutoff, :ycutoff, :zcutoff, :]
-        solution = solution[:, :xcutoff, :ycutoff, :zcutoff, :]
-
-        return grid, solution
-
     def periodicize_grid(self, grid):
         #new coordinate system
+        #tested, checks out
         #scale invariant, will produce wrap-around coordinates when combined with WaveTranform
-        xcoords = np.linspace(0, 2*np.pi, grid.shape[0])
-        ycoords = np.linspace(0, 2*np.pi, grid.shape[1])
-        zcoords = np.linspace(0, 2*np.pi, grid.shape[2])
+        
+        # FIX SCALING
+        xcoords = np.linspace(0, 2*np.pi, grid.shape[0] + 1)[:-1]
+        ycoords = np.linspace(0, 2*np.pi, grid.shape[1] + 1)[:-1]
+        zcoords = np.linspace(0, 2*np.pi, grid.shape[2] + 1)[:-1]
 
-        x, y, z = np.meshgrid(xcoords, ycoords, zcoords)
+        x, y, z = np.meshgrid(xcoords, ycoords, zcoords, indexing='ij')
         trig_grid = np.stack([x, y, z], axis = -1)
         return trig_grid
 

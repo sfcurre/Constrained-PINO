@@ -73,7 +73,7 @@ class DynamicModel:
     def train_step(self, epoch):
         raise NotImplementedError()
 
-    def get_loss(self, locations, features, targets, outputs):
+    def get_loss(self, locations, features, targets, outputs, mask):
         raise NotImplementedError()
 
     def predict(self, locations, features, adj, timesteps=1, numpy=False):
@@ -98,10 +98,13 @@ class DynamicModel:
             test_losses.append(loss_test.data.item())
         return test_losses
 
-    def get_test_loss(self, targets, outputs):
+    def get_test_loss(self, targets, outputs, mask = None):
         total_loss = 0
         for output, target in zip(outputs, targets):
-            total_loss += F.mse_loss(output.cpu(), target.cpu())
+            if mask is not None:
+                total_loss += torch.sum(((output.cpu() - target.cpu()) * mask) ** 2) / torch.sum(mask)
+            else:
+                total_loss += F.mse_loss(output, target)
         return total_loss
 
     def load_model(self, pkl_file):

@@ -21,8 +21,8 @@ from pytorch_memlab import LineProfiler
 
 from source.data.dynamic_graph import DynamicGraph
 from source.data.periodic_graph import PeriodicGraph
-from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph
-from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph
+from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph, MiniBatchTGVGraph
+from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph, MiniBatchPDEBenchGraph
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     parser.add_argument('--periodic-bc', action='store_true', default=False, help='Enable a periodic boundary condition.')
+    parser.add_argument('--mini-batch-width', type=int, default=0, help='Enable minibatch training with input width (requires periodic BC)')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
                                         default='PushForward', help='Type of training model.')
@@ -77,12 +78,20 @@ def main():
     # Load data
     if args.grd and args.sol:
         if args.periodic_bc:
-            dynamic_data = PeriodicTGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
+            if args.mini_batch_width:
+                dynamic_data = MiniBatchTGVGraph(args.grd, args.sol, args.mini_batch_width,
+                                                 args.layers, args.timesteps, use_cuda=args.cuda)
+            else:
+                dynamic_data = PeriodicTGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
         else:
             dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
     elif args.pdebench:
         if args.periodic_bc:
-            dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
+            if args.mini_batch_width:
+                dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
+                                                      args.layers, args.timesteps, use_cuda=args.cuda)
+            else:
+                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
         else:
             dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
 

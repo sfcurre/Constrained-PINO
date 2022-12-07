@@ -45,7 +45,7 @@ class NavierStokesLoss2D(nn.Module):
                     dp_di / r_o - self.nu_constant * (di_dxx + di_dyy))
         return residual
 
-    def forward(self, locations, features, outputs):
+    def forward(self, locations, features, outputs, mask):
         continuity = self.continuity_loss(locations, outputs)
         momentum_x = self.momentum_loss(locations, features, outputs, 1)
         momentum_y = self.momentum_loss(locations, features, outputs, 2)
@@ -53,7 +53,7 @@ class NavierStokesLoss2D(nn.Module):
         residual = (self.continuity_weight * continuity +
                 self.momentum_weight * (momentum_x + momentum_y))
 
-        loss = F.mse_loss(residual, torch.zeros_like(residual))
+        loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
 
         return loss
 
@@ -92,7 +92,7 @@ class NavierStokesLoss3D(nn.Module):
                     dp_di / r_o - self.nu_constant * (di_dxx + di_dyy + di_dzz))
         return residual
 
-    def forward(self, locations, features, outputs):
+    def forward(self, locations, features, outputs, mask):
         continuity = self.continuity_loss(locations, outputs)
         momentum_x = self.momentum_loss(locations, features, outputs, 1)
         momentum_y = self.momentum_loss(locations, features, outputs, 2)
@@ -101,7 +101,7 @@ class NavierStokesLoss3D(nn.Module):
         residual = (self.continuity_weight * continuity +
                 self.momentum_weight * (momentum_x + momentum_y + momentum_z))
 
-        loss = F.mse_loss(residual, torch.zeros_like(residual))
+        loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
 
         return loss
 

@@ -21,7 +21,7 @@ class BrokenAutoRegressiveModel(DynamicModel):
         t = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for adj, locations, features, targets in self.dataloader:
+        for adj, locations, features, targets, mask in self.dataloader:
             self.optimizer.zero_grad()
             
             outputs = []
@@ -31,7 +31,7 @@ class BrokenAutoRegressiveModel(DynamicModel):
                 outputs.append(output)
                 tmp_feats = output.detach()
 
-            loss_train = self.get_loss(locations, features, targets, outputs)
+            loss_train = self.get_loss(locations, features, targets, outputs, mask)
             
             loss_train.backward(retain_graph=True)
             self.optimizer.step()
@@ -42,7 +42,7 @@ class BrokenAutoRegressiveModel(DynamicModel):
         self.model.eval()
         outputs = self.predict(locations, features, adj, timesteps=len(targets))
 
-        loss_val = self.get_test_loss(targets, outputs)
+        loss_val = self.get_test_loss(targets, outputs, mask)
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.data.item()),
             'loss_val: {:.4f}'.format(loss_val.data.item()),
@@ -50,11 +50,14 @@ class BrokenAutoRegressiveModel(DynamicModel):
 
         return loss_val.data.item()
 
-    def get_loss(self, locations, features, targets, outputs):
+    def get_loss(self, locations, features, targets, outputs, mask=None):
         total_loss = 0
         for output, target in zip(outputs, targets):
-            mse_loss = F.mse_loss(output, target)
-            pde_loss = self.pde_loss(locations, features, output)
+            if mask is not None:
+                mse_loss = torch.sum(((output - target) * mask) ** 2) / torch.sum(mask)
+            else:
+                mse_loss = F.mse_loss(output, target)
+            pde_loss = self.pde_loss(locations, features, output, mask)
             total_loss += mse_loss + pde_loss
             features = output
         return total_loss
