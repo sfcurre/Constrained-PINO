@@ -86,6 +86,6 @@ class MiniBatchTGVGraph(MiniBatchGraph):
             np.save(solution_path + '_sol.npy', self.solution)
         else:
             self.grid, self.solution = np.load(grd_path), np.load(solution_path)
-        self.grid, self.solution = PeriodicTGVGraph.cut_periodic(self.grid, self.solution)
+        self.grid, self.solution = PeriodicTGVGraph.cut_periodic(self, self.grid, self.solution)
         super(MiniBatchTGVGraph, self).__init__(self.grid, self.solution, width, depth,
                                                 timesteps=timesteps, use_cuda=use_cuda)
