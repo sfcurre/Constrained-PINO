@@ -57,7 +57,7 @@ class MiniBatchGraph(PeriodicGraph):
         features = features.reshape((-1, features.shape[-1]))
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
         locations = locations.reshape((-1, locations.shape[-1]))
-        mask = locations.reshape((-1, mask.shape[-1]))
+        mask = mask.reshape((-1, mask.shape[-1]))
 
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
