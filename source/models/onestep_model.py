@@ -32,6 +32,8 @@ class OneStepModel(DynamicModel):
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
+
+        print('Evaluating...')
         
         self.model.eval()
         outputs = self.predict(locations, features, adj, timesteps=len(targets))
