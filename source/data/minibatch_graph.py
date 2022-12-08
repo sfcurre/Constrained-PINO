@@ -48,7 +48,7 @@ class MiniBatchGraph(PeriodicGraph):
         targets = targets[:, :size, :size, :size]
         locations = locations[:size, :size, :size]
         
-        mask = np.ones_like(targets[0])
+        mask = np.ones(locations.shape[:-1])
         mask[self.depth:self.depth + self.width,
              self.depth:self.depth + self.width,
              self.depth:self.depth + self.width] = 0
