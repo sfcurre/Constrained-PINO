@@ -70,8 +70,10 @@ class DeepSpGAT(nn.Module):
 
         if self.periodic:
             self.wave_transform = WaveTransform()
+            ndims *= 2
         
-        self.att = tgnn.GATConv(nfeat + 2*ndims,
+
+        self.att = tgnn.GATConv(nfeat + ndims,
                                 nhid,
                                 nheads,
                                 dropout=dropout,
@@ -80,14 +82,14 @@ class DeepSpGAT(nn.Module):
         
         self.internal_atts = []
         for i in range(natt - 2):
-            self.internal_atts.append(tgnn.GATConv(nhid * nheads,
+            self.internal_atts.append(tgnn.GATConv(nhid,
                                       nhid,
                                       nheads,
                                       dropout=dropout,
                                       negative_slope=alpha,
                                       concat=False))
 
-        self.out_att = tgnn.GATConv(nhid * nheads,
+        self.out_att = tgnn.GATConv(nhid,
                                     nclass,
                                     dropout=dropout,
                                     negative_slope=alpha,
