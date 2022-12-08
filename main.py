@@ -32,7 +32,7 @@ from source.nn_models import DeepSpGAT
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
 
-torch.autograd.set_detect_anomaly(True)
+# torch.autograd.set_detect_anomaly(True)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -135,10 +135,10 @@ def main():
             with record_function("model_training"):
                 train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
 
-    with open(f'{args.name}_profile.txt', 'w') as fp:
-        print(prof.key_averages(), file=fp)
+        with open(f'{args.name}_profile.txt', 'w') as fp:
+            print(prof.key_averages(), file=fp)
 
-    prof.export_chrome_trace(f"{args.name}_trace.json")
+        prof.export_chrome_trace(f"{args.name}_trace.json")
 
     #TODO: fix here
     dynamic_model.model.eval()

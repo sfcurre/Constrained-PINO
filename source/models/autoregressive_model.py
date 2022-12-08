@@ -28,7 +28,7 @@ class AutoRegressiveModel(DynamicModel):
                 output = self.model(locations, features, adj)
                 loss_train = self.get_loss(locations, features, ti_target, output, mask)
                 
-                loss_train.backward(retain_graph=True)
+                loss_train.backward()
                 self.optimizer.step()
 
                 features = output.detach()

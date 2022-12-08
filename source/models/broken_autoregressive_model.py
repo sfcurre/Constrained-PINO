@@ -33,7 +33,7 @@ class BrokenAutoRegressiveModel(DynamicModel):
 
             loss_train = self.get_loss(locations, features, targets, outputs, mask)
             
-            loss_train.backward(retain_graph=True)
+            loss_train.backward()
             self.optimizer.step()
 
 
