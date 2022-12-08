@@ -76,7 +76,7 @@ class DeepSpGAT(nn.Module):
                                 nheads,
                                 dropout=dropout,
                                 negative_slope=alpha,
-                                concat=True)
+                                concat=False)
         
         self.internal_atts = []
         for i in range(natt - 2):
@@ -85,7 +85,7 @@ class DeepSpGAT(nn.Module):
                                       nheads,
                                       dropout=dropout,
                                       negative_slope=alpha,
-                                      concat=True))
+                                      concat=False))
 
         self.out_att = tgnn.GATConv(nhid * nheads,
                                     nclass,
