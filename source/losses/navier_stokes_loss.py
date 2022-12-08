@@ -29,7 +29,8 @@ class NavierStokesLoss2D(nn.Module):
         return residual
 
     def momentum_loss(self, locations, features, outputs, index):
-        di_dx, di_dy = dde.grad.jacobian(outputs, locations, i=index)
+        di_dx = dde.grad.jacobian(outputs, locations, i=index, j=0)
+        di_dy = dde.grad.jacobian(outputs, locations, i=index, j=1)
         
         di_dxx = dde.grad.hessian(outputs, locations, component=index, i=0, j=0)
         di_dyy = dde.grad.hessian(outputs, locations, component=index, i=1, j=1)
@@ -74,7 +75,9 @@ class NavierStokesLoss3D(nn.Module):
         return residual
 
     def momentum_loss(self, locations, features, outputs, index):
-        di_dx, di_dy, di_dz = dde.grad.jacobian(outputs, locations, i=index)
+        di_dx = dde.grad.jacobian(outputs, locations, i=index, j=0)
+        di_dy = dde.grad.jacobian(outputs, locations, i=index, j=1)
+        di_dz = dde.grad.jacobian(outputs, locations, i=index, j=2)
         
         di_dxx = dde.grad.hessian(outputs, locations, component=index, i=0, j=0)
         di_dyy = dde.grad.hessian(outputs, locations, component=index, i=1, j=1)
