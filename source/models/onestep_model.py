@@ -30,8 +30,6 @@ class OneStepModel(DynamicModel):
             loss_train.backward()
             self.optimizer.step()
 
-            del output
-            del loss_train
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
