@@ -112,6 +112,46 @@ class NavierStokesLoss3D(nn.Module):
 
         return loss
 
+@profile
+def pde_IFD3d(x, y1, y2, mask):
+    h = y2[..., 0].unsqueeze(1)  # rho
+    ux = y2[..., 1].unsqueeze(1)  # vx
+    uy = y2[..., 2].unsqueeze(1)  # vy
+    uz = y2[..., 3].unsqueeze(1)  # vz
+    p = y2[..., 4].unsqueeze(1)  # p
+    
+    # non conservative form
+    ux_x = dde.grad.jacobian(y2, x, i=1, j=0)
+    ux_y = dde.grad.jacobian(y2, x, i=1, j=1)
+    ux_z = dde.grad.jacobian(y2, x, i=1, j=2)
+    
+    uy_x = dde.grad.jacobian(y2, x, i=2, j=0)
+    uy_y = dde.grad.jacobian(y2, x, i=2, j=1)
+    uy_z = dde.grad.jacobian(y2, x, i=2, j=2)
+    
+    uz_x = dde.grad.jacobian(y2, x, i=3, j=0)
+    uz_y = dde.grad.jacobian(y2, x, i=3, j=1)
+    uz_z = dde.grad.jacobian(y2, x, i=3, j=2)
+    
+    p_x = dde.grad.jacobian(y2, x, i=4, j=0)
+    p_y = dde.grad.jacobian(y2, x, i=4, j=1)
+    p_z = dde.grad.jacobian(y2, x, i=4, j=2)
+
+    ux_t = (y2[..., 1] - y1[..., 1]).unsqueeze(1)
+    uy_t = (y2[..., 2] - y1[..., 2]).unsqueeze(1)
+    uz_t = (y2[..., 3] - y1[..., 3]).unsqueeze(1)
+    p_t  = (y2[..., 4] - y1[..., 4]).unsqueeze(1)
+    
+    # assume nu = 0
+    eq1 = ux_x + uy_y + uz_z                
+    eq2 = h * (ux_t + ux * ux_x + uy * ux_y + uz * ux_z) - p_x
+    eq3 = h * (uy_t + ux * uy_x + uy * uy_y + uz * uy_z) - p_y
+    eq4 = h * (uz_t + ux * uz_x + uy * uz_y + uz * uz_z) - p_z
+    
+    residual = eq1 + eq2 + eq3 + eq4
+    loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
+    return loss
+
 #=======================================================================
 
 def reaction_1(u1, u2):

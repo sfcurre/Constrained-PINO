@@ -26,7 +26,7 @@ from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph, Min
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
-from source.losses.navier_stokes_loss import NavierStokesLoss2D, NavierStokesLoss3D
+from source.losses.navier_stokes_loss import *
 from source.nn_models import DeepSpGAT
 
 # Example call:
@@ -115,7 +115,7 @@ def main():
                         weight_decay=args.weight_decay)
 
     # Train Model
-    pde_loss = NavierStokesLoss3D(1, 1)
+    pde_loss = pde_IFD3d
     if args.model_type == 'OneStep':
         dynamic_model = OneStepModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
     elif args.model_type == 'AutoRegressive':
