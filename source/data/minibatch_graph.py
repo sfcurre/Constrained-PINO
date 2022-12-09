@@ -59,14 +59,16 @@ class MiniBatchGraph(PeriodicGraph):
         locations = locations.reshape((-1, locations.shape[-1]))
         mask = mask.reshape((-1, 1))
         print('61:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-        # features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
-        # targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
-        # locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
-        # mask = torch.from_numpy(mask.astype(np.float32))
-        features = torch.tensor(features.astype(np.float32), requires_grad=True)
-        targets = torch.tensor(targets.astype(np.float32), requires_grad=True)
-        locations = torch.tensor(locations.astype(np.float32), requires_grad=True)
-        mask = torch.tensor(mask.astype(np.float32), requires_grad=True)
+        features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
+        targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
+        locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
+        mask = torch.from_numpy(mask.astype(np.float32)).requires_grad_()
+        
+        # MEMORY FAILS FASTER WITH THIS
+        # features = torch.tensor(features.astype(np.float32), requires_grad=True)
+        # targets = torch.tensor(targets.astype(np.float32), requires_grad=True)
+        # locations = torch.tensor(locations.astype(np.float32), requires_grad=True)
+        # mask = torch.tensor(mask.astype(np.float32), requires_grad=True)
 
         #Leak here?!?
         print('68:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
