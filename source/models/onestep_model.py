@@ -38,6 +38,9 @@ class OneStepModel(DynamicModel):
             self.optimizer.step()            
             self.optimizer.zero_grad()
 
+            if torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated() > 0.25:
+                torch.cuda.empty_cache()
+
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
