@@ -20,6 +20,10 @@ class MiniBatchGraph(PeriodicGraph):
         self.locations = self.trig_grid.reshape((-1, self.trig_grid.shape[-1]))
         self.mini_adj = self.build_minibatch_adj_matrix()
         self.adj = self.build_adj_matrix()
+
+        if self.use_cuda:
+            self.mini_adj = self.mini_adj.to(device='cuda')
+            self.adj = self.mini_adj.to(device='cuda')
         
         self.train = self.solution[:int(.8 * len(self.solution))]
         self.test = self.solution[int(.8 * len(self.solution)):]
@@ -66,15 +70,13 @@ class MiniBatchGraph(PeriodicGraph):
 
         #Leak here?!?
         print('68:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-        adj = self.mini_adj
         if self.use_cuda:
-            adj = (adj[0].to(device='cuda'), adj[1].to(device='cuda'))
             locations = locations.to(device='cuda')
             features = features.to(device='cuda')
             targets = targets.to(device='cuda')
             mask = mask.to(device='cuda')
         print('76:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-        return adj, locations, features, targets, mask
+        return self.mini_adj, locations, features, targets, mask
 
     def __getitem__(self, index):
         if self.is_training:
