@@ -12,6 +12,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from .dynamic_model import DynamicModel
+import deepxde as dde
 
 class OneStepModel(DynamicModel):
     def __init__(self, *args, **kwargs):
@@ -37,6 +38,7 @@ class OneStepModel(DynamicModel):
             print('37:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             self.optimizer.step()            
             self.optimizer.zero_grad()
+            dde.grad.clear()
 
 
         # Evaluate validation set performance separately,

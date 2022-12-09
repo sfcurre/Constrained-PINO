@@ -4,15 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import deepxde as dde
-# from pytorch_memlab import profile
-
-def jacobian(y, x, i, j=None):
-    dim_x, dim_y = x.shape[1], y.shape[1]
-    y = y[:, i : i + 1] if dim_y > 1 else y
-    J_i = torch.autograd.grad(y, x, grad_outputs=torch.ones_like(y), create_graph=True)[0]
-    if j is not None and dim_x > 1:
-        return J_i[:, j : j + 1]
-    return J_i
+from pytorch_memlab import profile
 
 class TestLoss(nn.Module):
     def __init__(self):
@@ -75,7 +67,7 @@ class NavierStokesLoss3D(nn.Module):
         self.momentum_weight = momentum_weight
         super(NavierStokesLoss3D, self).__init__()
  
-    # @profile
+    @profile
     def continuity_loss(self, locations, features):
         du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
         dv_dy = dde.grad.jacobian(features, locations, i=2, j=1)
@@ -84,7 +76,7 @@ class NavierStokesLoss3D(nn.Module):
         residual = du_dx + dv_dy + dw_dz
         return residual
 
-    # @profile
+    @profile
     def momentum_loss(self, locations, features, outputs, index):
         di_dx = dde.grad.jacobian(outputs, locations, i=index, j=0)
         di_dy = dde.grad.jacobian(outputs, locations, i=index, j=1)
@@ -106,7 +98,7 @@ class NavierStokesLoss3D(nn.Module):
                     dp_di / r_o - self.nu_constant * (di_dxx + di_dyy + di_dzz))
         return residual
 
-    # @profile
+    @profile
     def forward(self, locations, features, outputs, mask):
         continuity = self.continuity_loss(locations, outputs)
         momentum_x = self.momentum_loss(locations, features, outputs, 1)
@@ -127,42 +119,38 @@ def pde_IFD3d(x, y1, y2, mask):
     uy = y2[..., 2].unsqueeze(1)  # vy
     uz = y2[..., 3].unsqueeze(1)  # vz
     # p = y2[..., 4].unsqueeze(1)  # p
-
-    # conservative form
-    # ux_x = jacobian(y2, x, i=1, j=0)
-    # ux_y = jacobian(y2, x, i=1, j=1)
-    # ux_z = jacobian(y2, x, i=1, j=2)
     
-    # uy_x = jacobian(y2, x, i=2, j=0)
-    # uy_y = jacobian(y2, x, i=2, j=1)
-    # uy_z = jacobian(y2, x, i=2, j=2)
+    # non conservative form
+    ux_x = dde.grad.jacobian(y2, x, i=1, j=0)
+    ux_y = dde.grad.jacobian(y2, x, i=1, j=1)
+    ux_z = dde.grad.jacobian(y2, x, i=1, j=2)
     
-    # uz_x = jacobian(y2, x, i=3, j=0)
-    # uz_y = jacobian(y2, x, i=3, j=1)
-    # uz_z = jacobian(y2, x, i=3, j=2)
+    uy_x = dde.grad.jacobian(y2, x, i=2, j=0)
+    uy_y = dde.grad.jacobian(y2, x, i=2, j=1)
+    uy_z = dde.grad.jacobian(y2, x, i=2, j=2)
     
-    # p_x = jacobian(y2, x, i=4, j=0)
-    # p_y = jacobian(y2, x, i=4, j=1)
-    # p_z = jacobian(y2, x, i=4, j=2)
-
-    ux_x, ux_y, ux_z = jacobian(y2, x, i=1).unbind(axis=-1)
-    uy_x, uy_y, uy_z = jacobian(y2, x, i=2).unbind(axis=-1)
-    uz_x, uz_y, uz_z = jacobian(y2, x, i=3).unbind(axis=-1)
-    p_x, p_y, p_z = jacobian(y2, x, i=4).unbind(axis=-1)
+    uz_x = dde.grad.jacobian(y2, x, i=3, j=0)
+    uz_y = dde.grad.jacobian(y2, x, i=3, j=1)
+    uz_z = dde.grad.jacobian(y2, x, i=3, j=2)
+    
+    p_x = dde.grad.jacobian(y2, x, i=4, j=0)
+    p_y = dde.grad.jacobian(y2, x, i=4, j=1)
+    p_z = dde.grad.jacobian(y2, x, i=4, j=2)
 
     ux_t = (y2[..., 1] - y1[..., 1]).unsqueeze(1)
     uy_t = (y2[..., 2] - y1[..., 2]).unsqueeze(1)
     uz_t = (y2[..., 3] - y1[..., 3]).unsqueeze(1)
     # p_t  = (y2[..., 4] - y1[..., 4]).unsqueeze(1)
-
+    
     # assume nu = 0
     eq1 = ux_x + uy_y + uz_z                
     eq2 = h * (ux_t + ux * ux_x + uy * ux_y + uz * ux_z) - p_x
     eq3 = h * (uy_t + ux * uy_x + uy * uy_y + uz * uy_z) - p_y
     eq4 = h * (uz_t + ux * uz_x + uy * uz_y + uz * uz_z) - p_z
+    
     residual = torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) + torch.abs(eq4)
     loss = residual * mask
-    return torch.mean(loss)
+    return loss
 
 #=======================================================================
 
