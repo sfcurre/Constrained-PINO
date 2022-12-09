@@ -129,21 +129,26 @@ def pde_IFD3d(x, y1, y2, mask):
     # p = y2[..., 4].unsqueeze(1)  # p
 
     # conservative form
-    ux_x = jacobian(y2, x, i=1, j=0)
-    ux_y = jacobian(y2, x, i=1, j=1)
-    ux_z = jacobian(y2, x, i=1, j=2)
+    # ux_x = jacobian(y2, x, i=1, j=0)
+    # ux_y = jacobian(y2, x, i=1, j=1)
+    # ux_z = jacobian(y2, x, i=1, j=2)
     
-    uy_x = jacobian(y2, x, i=2, j=0)
-    uy_y = jacobian(y2, x, i=2, j=1)
-    uy_z = jacobian(y2, x, i=2, j=2)
+    # uy_x = jacobian(y2, x, i=2, j=0)
+    # uy_y = jacobian(y2, x, i=2, j=1)
+    # uy_z = jacobian(y2, x, i=2, j=2)
     
-    uz_x = jacobian(y2, x, i=3, j=0)
-    uz_y = jacobian(y2, x, i=3, j=1)
-    uz_z = jacobian(y2, x, i=3, j=2)
+    # uz_x = jacobian(y2, x, i=3, j=0)
+    # uz_y = jacobian(y2, x, i=3, j=1)
+    # uz_z = jacobian(y2, x, i=3, j=2)
     
-    p_x = jacobian(y2, x, i=4, j=0)
-    p_y = jacobian(y2, x, i=4, j=1)
-    p_z = jacobian(y2, x, i=4, j=2)
+    # p_x = jacobian(y2, x, i=4, j=0)
+    # p_y = jacobian(y2, x, i=4, j=1)
+    # p_z = jacobian(y2, x, i=4, j=2)
+
+    ux_x, ux_y, ux_z = jacobian(y2, x, i=1).transpose()
+    uy_x, uy_y, uy_z = jacobian(y2, x, i=2).transpose()
+    uz_x, uz_y, uz_z = jacobian(y2, x, i=3).transpose()
+    p_x, p_y, p_z = jacobian(y2, x, i=4).transpose()
 
     ux_t = (y2[..., 1] - y1[..., 1]).unsqueeze(1)
     uy_t = (y2[..., 2] - y1[..., 2]).unsqueeze(1)
