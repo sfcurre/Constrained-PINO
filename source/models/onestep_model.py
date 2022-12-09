@@ -29,17 +29,14 @@ class OneStepModel(DynamicModel):
             output = self.model(locations, features, adj)
             
             print('31:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-            loss_train = self.get_loss(locations, features, targets[0], output, mask)
-            
+            # loss_train = self.get_loss(locations, features, targets[0], output, mask)
+            loss_train = mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
             print('34:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             loss_train.backward()
             
             print('37:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             self.optimizer.step()            
             self.optimizer.zero_grad()
-
-            if torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated() > 0.25:
-                torch.cuda.empty_cache()
 
 
         # Evaluate validation set performance separately,
