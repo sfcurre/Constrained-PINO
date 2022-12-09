@@ -150,7 +150,7 @@ def pde_IFD3d(x, y1, y2, mask):
     
     residual = torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) + torch.abs(eq4)
     loss = residual * mask
-    return loss
+    return torch.mean(loss)
 
 #=======================================================================
 
