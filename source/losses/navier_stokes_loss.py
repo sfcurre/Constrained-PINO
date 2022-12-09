@@ -4,115 +4,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import deepxde as dde
-from pytorch_memlab import profile
 
-class TestLoss(nn.Module):
-    def __init__(self):
-        super(TestLoss, self).__init__()
- 
-    def forward(self, locations, features, outputs):
-        residual = outputs - features
-        loss = F.mse_loss(residual, torch.ones_like(residual))
-        return loss
+### Conservation Equations
+#============================================================
 
-class NavierStokesLoss2D(nn.Module):
-    def __init__(self, nu, continuity_weight=1, momentum_weight=1):
-        self.nu_constant = nu
-        self.continuity_weight = continuity_weight
-        self.momentum_weight = momentum_weight
-        super(NavierStokesLoss2D, self).__init__()
- 
-    def continuity_loss(self, locations, features):
-        du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
-        dv_dy = dde.grad.jacobian(features, locations, i=2, j=1)
+def cons_mass(y1, y2, mask):
+    h_t  = (y2[..., 4] - y1[..., 4]).unsqueeze(1)
+    return torch.sum(torch.abs(h_t) * mask)
 
-        residual = du_dx + dv_dy
-        return residual
+def cons_energy(y1, y2, mask, gamma):
+    h1 = y1[..., 0].unsqueeze(1)  # rho
+    ux1 = y1[..., 1].unsqueeze(1)  # vx
+    uy1 = y1[..., 2].unsqueeze(1)  # vy
+    uz1 = y1[..., 3].unsqueeze(1)  # vz
+    p1 = y1[..., 4].unsqueeze(1)  # p
+    
+    h2 = y2[..., 0].unsqueeze(1)  # rho
+    ux2 = y2[..., 1].unsqueeze(1)  # vx
+    uy2 = y2[..., 2].unsqueeze(1)  # vy
+    uz2 = y2[..., 3].unsqueeze(1)  # vz
+    p2 = y2[..., 4].unsqueeze(1)  # p
+    
+    E1 = p1/(gamma - 1.) + 0.5 * h1 * (ux1**2 + uy1**2 + uz1**2)
+    E2 = p2/(gamma - 1.) + 0.5 * h2 * (ux2**2 + uy2**2 + uz2**2)
+    return torch.sum(torch.abs(E1 - E2) * mask)
 
-    def momentum_loss(self, locations, features, outputs, index):
-        di_dx = dde.grad.jacobian(outputs, locations, i=index, j=0)
-        di_dy = dde.grad.jacobian(outputs, locations, i=index, j=1)
-        
-        di_dxx = dde.grad.hessian(outputs, locations, component=index, i=0, j=0)
-        di_dyy = dde.grad.hessian(outputs, locations, component=index, i=1, j=1)
-
-        dp_di = dde.grad.jacobian(outputs, locations, i=0, j=index-1)
-        di_dt = (outputs[..., index] - features[..., index]).unsqueeze(-1) 
-
-        u_o = outputs[..., 1].unsqueeze(-1)
-        v_o = outputs[..., 2].unsqueeze(-1)
-        r_o = outputs[..., -1].unsqueeze(-1)
-
-        residual = (di_dt + u_o * di_dx + v_o * di_dy + 
-                    dp_di / r_o - self.nu_constant * (di_dxx + di_dyy))
-        return residual
-
-    def forward(self, locations, features, outputs, mask):
-        continuity = self.continuity_loss(locations, outputs)
-        momentum_x = self.momentum_loss(locations, features, outputs, 1)
-        momentum_y = self.momentum_loss(locations, features, outputs, 2)
-
-        residual = (self.continuity_weight * continuity +
-                self.momentum_weight * (momentum_x + momentum_y))
-
-        loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
-
-        return loss
-
-
-class NavierStokesLoss3D(nn.Module):
-    def __init__(self, nu, continuity_weight=1, momentum_weight=1):
-        self.nu_constant = nu
-        self.continuity_weight = continuity_weight
-        self.momentum_weight = momentum_weight
-        super(NavierStokesLoss3D, self).__init__()
- 
-    @profile
-    def continuity_loss(self, locations, features):
-        du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
-        dv_dy = dde.grad.jacobian(features, locations, i=2, j=1)
-        dw_dz = dde.grad.jacobian(features, locations, i=3, j=2)
-
-        residual = du_dx + dv_dy + dw_dz
-        return residual
-
-    @profile
-    def momentum_loss(self, locations, features, outputs, index):
-        di_dx = dde.grad.jacobian(outputs, locations, i=index, j=0)
-        di_dy = dde.grad.jacobian(outputs, locations, i=index, j=1)
-        di_dz = dde.grad.jacobian(outputs, locations, i=index, j=2)
-        
-        di_dxx = dde.grad.hessian(outputs, locations, component=index, i=0, j=0)
-        di_dyy = dde.grad.hessian(outputs, locations, component=index, i=1, j=1)
-        di_dzz = dde.grad.hessian(outputs, locations, component=index, i=2, j=2)
-
-        dp_di = dde.grad.jacobian(outputs, locations, i=0, j=index-1)
-        di_dt = (outputs[..., index] - features[..., index]).unsqueeze(-1) 
-
-        u_o = outputs[..., 1].unsqueeze(-1)
-        v_o = outputs[..., 2].unsqueeze(-1)
-        w_o = outputs[..., 3].unsqueeze(-1)
-        r_o = outputs[..., -1].unsqueeze(-1)
-
-        residual = (di_dt + u_o * di_dx + v_o * di_dy + w_o * di_dz +
-                    dp_di / r_o - self.nu_constant * (di_dxx + di_dyy + di_dzz))
-        return residual
-
-    @profile
-    def forward(self, locations, features, outputs, mask):
-        continuity = self.continuity_loss(locations, outputs)
-        momentum_x = self.momentum_loss(locations, features, outputs, 1)
-        momentum_y = self.momentum_loss(locations, features, outputs, 2)
-        momentum_z = self.momentum_loss(locations, features, outputs, 3)
-
-        residual = (self.continuity_weight * continuity +
-                self.momentum_weight * (momentum_x + momentum_y + momentum_z))
-
-        loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
-
-        return loss
-
-# @profile
+### PDEs
+#============================================================
 def pde_IFD3d(x, y1, y2, mask):
     h = y2[..., 0].unsqueeze(1)  # rho
     ux = y2[..., 1].unsqueeze(1)  # vx

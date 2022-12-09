@@ -102,7 +102,7 @@ class DynamicModel:
         total_loss = 0
         for output, target in zip(outputs, targets):
             if mask is not None:
-                total_loss += torch.sum(((output.cpu() - target.cpu()) * mask) ** 2) / torch.sum(mask)
+                total_loss += torch.sum(((output.cpu() - target.cpu()) * mask.cpu()) ** 2) / torch.sum(mask.cpu())
             else:
                 total_loss += F.mse_loss(output, target)
         return total_loss

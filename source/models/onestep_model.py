@@ -53,5 +53,6 @@ class OneStepModel(DynamicModel):
             mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
         else:
             mse_loss = F.mse_loss(outputs, targets)
+            mask = 1
         pde_loss = self.pde_loss(locations, features, outputs, mask)
         return mse_loss + pde_loss
