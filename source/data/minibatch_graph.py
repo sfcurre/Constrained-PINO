@@ -63,10 +63,10 @@ class MiniBatchGraph(PeriodicGraph):
         # targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         # locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
         # mask = torch.from_numpy(mask.astype(np.float32))
-        features = torch.Tensor(features.astype(np.float32))
-        targets = torch.Tensor(targets.astype(np.float32))
-        locations = torch.Tensor(locations.astype(np.float32))
-        mask = torch.Tensor(mask.astype(np.float32))
+        features = torch.Tensor(features.astype(np.float32), requires_grad=True)
+        targets = torch.Tensor(targets.astype(np.float32), requires_grad=True)
+        locations = torch.Tensor(locations.astype(np.float32), requires_grad=True)
+        mask = torch.Tensor(mask.astype(np.float32), requires_grad=True)
 
         #Leak here?!?
         print('68:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
