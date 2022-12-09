@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import deepxde as dde
-from pytorch_memlab import profile
+# from pytorch_memlab import profile
 
 class TestLoss(nn.Module):
     def __init__(self):
@@ -67,7 +67,7 @@ class NavierStokesLoss3D(nn.Module):
         self.momentum_weight = momentum_weight
         super(NavierStokesLoss3D, self).__init__()
  
-    @profile
+    # @profile
     def continuity_loss(self, locations, features):
         du_dx = dde.grad.jacobian(features, locations, i=1, j=0)
         dv_dy = dde.grad.jacobian(features, locations, i=2, j=1)
@@ -76,7 +76,7 @@ class NavierStokesLoss3D(nn.Module):
         residual = du_dx + dv_dy + dw_dz
         return residual
 
-    @profile
+    # @profile
     def momentum_loss(self, locations, features, outputs, index):
         di_dx = dde.grad.jacobian(outputs, locations, i=index, j=0)
         di_dy = dde.grad.jacobian(outputs, locations, i=index, j=1)
@@ -98,7 +98,7 @@ class NavierStokesLoss3D(nn.Module):
                     dp_di / r_o - self.nu_constant * (di_dxx + di_dyy + di_dzz))
         return residual
 
-    @profile
+    # @profile
     def forward(self, locations, features, outputs, mask):
         continuity = self.continuity_loss(locations, outputs)
         momentum_x = self.momentum_loss(locations, features, outputs, 1)
