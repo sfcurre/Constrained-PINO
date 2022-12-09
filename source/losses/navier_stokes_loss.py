@@ -150,7 +150,7 @@ def pde_IFD3d(x, y1, y2, mask):
     print('150:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     residual = torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) + torch.abs(eq4)
     loss = residual * mask
-    return loss
+    return torch.mean(loss)
 
 #=======================================================================
 
