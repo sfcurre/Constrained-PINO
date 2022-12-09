@@ -10,9 +10,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+import deepxde as dde
 
 from .dynamic_model import DynamicModel
-import deepxde as dde
 
 class OneStepModel(DynamicModel):
     def __init__(self, *args, **kwargs):
@@ -23,19 +23,12 @@ class OneStepModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets, mask in self.dataloader:
-            print('25:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             self.optimizer.zero_grad()
             
-            print('28:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             output = self.model(locations, features, adj)
-            
-            print('31:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             loss_train = self.get_loss(locations, features, targets[0], output, mask)
-            # loss_train = mse_loss = torch.sum(((output - targets[0]) * mask) ** 2) / torch.sum(mask)
-            print('34:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             loss_train.backward()
             
-            print('37:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             self.optimizer.step()            
             self.optimizer.zero_grad()
             dde.grad.clear()

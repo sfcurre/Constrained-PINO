@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
+import deepxde as dde
 
 from .dynamic_model import DynamicModel
 
@@ -35,6 +36,7 @@ class BrokenAutoRegressiveModel(DynamicModel):
             
             loss_train.backward()
             self.optimizer.step()
+            dde.grad.clear()
 
 
         # Evaluate validation set performance separately,
