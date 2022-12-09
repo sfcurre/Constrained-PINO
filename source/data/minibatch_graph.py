@@ -58,14 +58,14 @@ class MiniBatchGraph(PeriodicGraph):
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
         locations = locations.reshape((-1, locations.shape[-1]))
         mask = mask.reshape((-1, 1))
-
+        print('61:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
         mask = torch.from_numpy(mask.astype(np.float32))
 
         #Leak here?!?
-
+        print('68:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         adj = self.mini_adj
         if self.use_cuda:
             adj = (adj[0].to(device='cuda'), adj[1].to(device='cuda'))
@@ -73,7 +73,7 @@ class MiniBatchGraph(PeriodicGraph):
             features = features.to(device='cuda')
             targets = targets.to(device='cuda')
             mask = mask.to(device='cuda')
-
+        print('76:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
         return adj, locations, features, targets, mask
 
     def __getitem__(self, index):

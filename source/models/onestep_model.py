@@ -35,13 +35,9 @@ class OneStepModel(DynamicModel):
             loss_train.backward()
             
             print('37:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-            self.optimizer.step()
-            
-            print('40:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
+            self.optimizer.step()            
             self.optimizer.zero_grad()
 
-            print('43:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-            
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
