@@ -148,7 +148,7 @@ def pde_IFD3d(x, y1, y2, mask):
     eq3 = h * (uy_t + ux * uy_x + uy * uy_y + uz * uy_z) - p_y
     eq4 = h * (uz_t + ux * uz_x + uy * uz_y + uz * uz_z) - p_z
     
-    residual = eq1**2 + eq2**2 + eq3**2 + eq4**2
+    residual = torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) + torch.abs(eq4)
     loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
     return loss
 
