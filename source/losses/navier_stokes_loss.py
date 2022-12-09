@@ -145,10 +145,10 @@ def pde_IFD3d(x, y1, y2, mask):
     # p_y = jacobian(y2, x, i=4, j=1)
     # p_z = jacobian(y2, x, i=4, j=2)
 
-    ux_x, ux_y, ux_z = jacobian(y2, x, i=1)
-    uy_x, uy_y, uy_z = jacobian(y2, x, i=2)
-    uz_x, uz_y, uz_z = jacobian(y2, x, i=3)
-    p_x, p_y, p_z = jacobian(y2, x, i=4)
+    ux_x, ux_y, ux_z = jacobian(y2, x, i=1).unbind(axis=-1)
+    uy_x, uy_y, uy_z = jacobian(y2, x, i=2).unbind(axis=-1)
+    uz_x, uz_y, uz_z = jacobian(y2, x, i=3).unbind(axis=-1)
+    p_x, p_y, p_z = jacobian(y2, x, i=4).unbind(axis=-1)
 
     ux_t = (y2[..., 1] - y1[..., 1]).unsqueeze(1)
     uy_t = (y2[..., 2] - y1[..., 2]).unsqueeze(1)
