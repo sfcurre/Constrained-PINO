@@ -20,7 +20,7 @@ class MiniBatchGraph(PeriodicGraph):
         self.locations = self.trig_grid.reshape((-1, self.trig_grid.shape[-1]))
         self.mini_adj = self.build_minibatch_adj_matrix()
         self.adj = self.build_adj_matrix()
-
+        
         self.train = self.solution[:int(.8 * len(self.solution))]
         self.test = self.solution[int(.8 * len(self.solution)):]
         self.super_batch_shape = self.get_super_batch_shape()
@@ -59,16 +59,26 @@ class MiniBatchGraph(PeriodicGraph):
         locations = locations.reshape((-1, locations.shape[-1]))
         mask = mask.reshape((-1, 1))
         print('61:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-        features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
-        targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
-        locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
-        mask = torch.from_numpy(mask.astype(np.float32))
+        # features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
+        # targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
+        # locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
+        # mask = torch.from_numpy(mask.astype(np.float32))
+        features = torch.Tensor(features.astype(np.float32))
+        targets = torch.Tensor(targets.astype(np.float32))
+        locations = torch.Tensor(locations.astype(np.float32))
+        mask = torch.Tensor(mask.astype(np.float32))
 
         #Leak here?!?
         print('68:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-       
+        adj = self.mini_adj
+        if self.use_cuda:
+            adj = (adj[0].cuda(), adj[1].cuda())
+            locations = locations.cuda()
+            features = features.cuda()
+            targets = targets.cuda()
+            mask = mask.cuda()
         print('76:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
-        return self.mini_adj, locations, features, targets, mask
+        return adj, locations, features, targets, mask
 
     def __getitem__(self, index):
         if self.is_training:
