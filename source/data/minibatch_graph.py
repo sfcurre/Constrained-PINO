@@ -64,13 +64,15 @@ class MiniBatchGraph(PeriodicGraph):
         locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
         mask = torch.from_numpy(mask.astype(np.float32))
 
+        #Leak here?!?
+
         adj = self.mini_adj
         if self.use_cuda:
-            adj = (adj[0].cuda(), adj[1].cuda())
-            locations = locations.cuda()
-            features = features.cuda()
-            targets = targets.cuda()
-            mask = mask.cuda()
+            adj = (adj[0].to(device='cuda'), adj[1].to(device='cuda'))
+            locations = locations.to(device='cuda')
+            features = features.to(device='cuda')
+            targets = targets.to(device='cuda')
+            mask = mask.to(device='cuda')
 
         return adj, locations, features, targets, mask
 

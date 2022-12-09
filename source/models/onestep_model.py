@@ -22,14 +22,20 @@ class OneStepModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets, mask in self.dataloader:
+            print('25:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             self.optimizer.zero_grad()
             
+            print('28:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             output = self.model(locations, features, adj)
+            
+            print('31:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             loss_train = self.get_loss(locations, features, targets[0], output, mask)
             
+            print('34:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             loss_train.backward()
             self.optimizer.step()
-
+            print('37:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
+            
 
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.

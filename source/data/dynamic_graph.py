@@ -43,10 +43,10 @@ class DynamicGraph(Dataset):
 
         adj = self.adj
         if self.use_cuda:
-            adj = (adj[0].cuda(), adj[1].cuda())
-            locations = locations.cuda()
-            features = features.cuda()
-            targets = targets.cuda()
+            adj = (adj[0].to(device='cuda'), adj[1].to(device='cuda'))
+            locations = locations.to(device='cuda')
+            features = features.to(device='cuda')
+            targets = targets.to(device='cuda')
 
         return adj, locations, features, targets, mask
 
