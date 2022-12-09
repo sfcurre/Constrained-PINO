@@ -119,7 +119,7 @@ def pde_IFD3d(x, y1, y2, mask):
     uy = y2[..., 2].unsqueeze(1)  # vy
     uz = y2[..., 3].unsqueeze(1)  # vz
     # p = y2[..., 4].unsqueeze(1)  # p
-    
+    print('122:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     # non conservative form
     ux_x = dde.grad.jacobian(y2, x, i=1, j=0)
     ux_y = dde.grad.jacobian(y2, x, i=1, j=1)
@@ -136,20 +136,20 @@ def pde_IFD3d(x, y1, y2, mask):
     p_x = dde.grad.jacobian(y2, x, i=4, j=0)
     p_y = dde.grad.jacobian(y2, x, i=4, j=1)
     p_z = dde.grad.jacobian(y2, x, i=4, j=2)
-
+    print('139:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     ux_t = (y2[..., 1] - y1[..., 1]).unsqueeze(1)
     uy_t = (y2[..., 2] - y1[..., 2]).unsqueeze(1)
     uz_t = (y2[..., 3] - y1[..., 3]).unsqueeze(1)
     # p_t  = (y2[..., 4] - y1[..., 4]).unsqueeze(1)
-    
+    print('144:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     # assume nu = 0
     eq1 = ux_x + uy_y + uz_z                
     eq2 = h * (ux_t + ux * ux_x + uy * ux_y + uz * ux_z) - p_x
     eq3 = h * (uy_t + ux * uy_x + uy * uy_y + uz * uy_z) - p_y
     eq4 = h * (uz_t + ux * uz_x + uy * uz_y + uz * uz_z) - p_z
-    
+    print('150:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     residual = torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) + torch.abs(eq4)
-    loss = F.mse_loss(residual * mask, torch.zeros_like(residual))
+    loss = residual * mask
     return loss
 
 #=======================================================================
