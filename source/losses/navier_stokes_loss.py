@@ -6,6 +6,14 @@ import torch.nn.functional as F
 import deepxde as dde
 # from pytorch_memlab import profile
 
+def jacobian(y, x, i, j=None):
+    dim_x, dim_y = x.shape[1], y.shape[1]
+    y = y[:, i : i + 1] if dim_y > 1 else y
+    J_i = torch.autograd.grad(y, x, grad_outputs=torch.ones_like(y), create_graph=True)[0]
+    if j is not None and dim_x > 1:
+        return J_i[:, j : j + 1]
+    return J_i
+
 class TestLoss(nn.Module):
     def __init__(self):
         super(TestLoss, self).__init__()
@@ -121,21 +129,21 @@ def pde_IFD3d(x, y1, y2, mask):
     # p = y2[..., 4].unsqueeze(1)  # p
     print('122:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     # non conservative form
-    ux_x = dde.grad.jacobian(y2, x, i=1, j=0)
-    ux_y = dde.grad.jacobian(y2, x, i=1, j=1)
-    ux_z = dde.grad.jacobian(y2, x, i=1, j=2)
+    ux_x = jacobian(y2, x, i=1, j=0)
+    ux_y = jacobian(y2, x, i=1, j=1)
+    ux_z = jacobian(y2, x, i=1, j=2)
     
-    uy_x = dde.grad.jacobian(y2, x, i=2, j=0)
-    uy_y = dde.grad.jacobian(y2, x, i=2, j=1)
-    uy_z = dde.grad.jacobian(y2, x, i=2, j=2)
+    uy_x = jacobian(y2, x, i=2, j=0)
+    uy_y = jacobian(y2, x, i=2, j=1)
+    uy_z = jacobian(y2, x, i=2, j=2)
     
-    uz_x = dde.grad.jacobian(y2, x, i=3, j=0)
-    uz_y = dde.grad.jacobian(y2, x, i=3, j=1)
-    uz_z = dde.grad.jacobian(y2, x, i=3, j=2)
+    uz_x = jacobian(y2, x, i=3, j=0)
+    uz_y = jacobian(y2, x, i=3, j=1)
+    uz_z = jacobian(y2, x, i=3, j=2)
     
-    p_x = dde.grad.jacobian(y2, x, i=4, j=0)
-    p_y = dde.grad.jacobian(y2, x, i=4, j=1)
-    p_z = dde.grad.jacobian(y2, x, i=4, j=2)
+    p_x = jacobian(y2, x, i=4, j=0)
+    p_y = jacobian(y2, x, i=4, j=1)
+    p_z = jacobian(y2, x, i=4, j=2)
     print('139:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
     ux_t = (y2[..., 1] - y1[..., 1]).unsqueeze(1)
     uy_t = (y2[..., 2] - y1[..., 2]).unsqueeze(1)
