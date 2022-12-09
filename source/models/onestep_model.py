@@ -22,6 +22,13 @@ class OneStepModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         for adj, locations, features, targets, mask in self.dataloader:
+            if self.use_cuda:
+                adj = (adj[0].cuda(), adj[1].cuda())
+                locations = locations.cuda()
+                features = features.cuda()
+                targets = targets.cuda()
+                mask = mask.cuda()
+            
             print('25:', torch.cuda.memory_allocated() / torch.cuda.max_memory_allocated())
             self.optimizer.zero_grad()
             
