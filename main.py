@@ -129,18 +129,6 @@ def main():
     if not args.no_train:
         train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
 
-    # if not args.no_train:
-    #     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-    #                  record_shapes=True, profile_memory=True, use_cuda=True) as prof:
-    #         with record_function("model_training"):
-    #             train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
-
-    #     with open(f'{args.name}_profile.txt', 'w') as fp:
-    #         print(prof.key_averages(), file=fp)
-
-    #     prof.export_chrome_trace(f"{args.name}_trace.json")
-
-    #TODO: fix here
     dynamic_model.model.eval()
     with torch.no_grad():
         dynamic_data.training()
