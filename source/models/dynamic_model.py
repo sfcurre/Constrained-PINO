@@ -92,7 +92,7 @@ class DynamicModel:
         #LOOK AT THIS
         test_losses = []
         self.model.eval()
-        for adj, locations, features, targets in self.dataloader:
+        for adj, locations, features, targets, _ in self.dataloader:
             outputs = self.predict(locations, features, adj, timesteps=len(targets))
             loss_test = self.get_test_loss(targets, outputs)
             test_losses.append(loss_test.data.item())

@@ -72,17 +72,19 @@ def main():
     # animate_density(np.tile(true_yslice[..., 0], (1, 1, 1)), f'Ty{i}')
     # animate_density(np.tile(true_zslice[..., 0], (1, 1, 1)), f'Tz{i}')
     
-    full_out = np.load('full_predictions_npy.npy').reshape((1000, 63, 63, 63, -1))
-    test_out = np.load('test_predictions_npy.npy').reshape((200, 63, 63, 63, -1))
+    name='DeepSpGAT-PushForward'
+
+    full_out = np.load(f'out/predictions/{name}_full.npy').reshape((1000, 63, 63, 63, -1))
+    test_out = np.load(f'out/predictions/{name}_test.npy').reshape((200, 63, 63, 63, -1))
 
     i = 16
     full_xslice = full_out[:, i, ...]
     full_yslice = full_out[:, :, i, ...]
     full_zslice = full_out[:, :, :, i, ...]
 
-    animate_density(full_xslice[..., 0], 'x16')
-    animate_density(full_yslice[..., 0], 'y16')
-    animate_density(full_zslice[..., 0], 'z16')
+    animate_density(full_xslice[..., 0], f'{name}_x16')
+    animate_density(full_yslice[..., 0], f'{name}_y16')
+    animate_density(full_zslice[..., 0], f'{name}_z16')
 
 if __name__ == '__main__':
     main()
