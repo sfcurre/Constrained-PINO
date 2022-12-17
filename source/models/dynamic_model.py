@@ -104,7 +104,7 @@ class DynamicModel:
             if mask is not None:
                 total_loss += torch.sum(((output.cpu() - target.cpu()) * mask.cpu()) ** 2) / torch.sum(mask.cpu())
             else:
-                total_loss += F.mse_loss(output, target)
+                total_loss += F.mse_loss(output.cpu(), target.cpu())
         return total_loss
 
     def load_model(self, pkl_file):
