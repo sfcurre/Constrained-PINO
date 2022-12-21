@@ -2,6 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from tqdm import tqdm
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--name', type=str)
+    parser.add_argument('--run-true', action='store_true')
+    return parser.parse_args()
 
 def curl(vfield, dim=2):
     grads = np.gradient(vfield, axis=(0, 1))
@@ -60,31 +67,31 @@ def animate_vorticity(velocities, name):
 
 
 def main():
+    args = parse_args()
 
-    # true_data = np.load('TGV/ijk_snapshots/ijkmvmv_sol.npy')[:, :63, :63, :63]
+    if args.run_true:
+        true_data = np.load('TGV/ijk_snapshots/ijkmvmv_sol.npy')[:, :63, :63, :63]
+        
+        i = 16
+        true_xslice = true_data[:, i, ...]
+        true_yslice = true_data[:, :, i, ...]
+        true_zslice = true_data[:, :, :, i, ...]
+
+        animate_density(np.tile(true_xslice[..., 0], (1, 1, 1)), f'Tx{i}')
+        animate_density(np.tile(true_yslice[..., 0], (1, 1, 1)), f'Ty{i}')
+        animate_density(np.tile(true_zslice[..., 0], (1, 1, 1)), f'Tz{i}')
     
-    # i = 16
-    # true_xslice = true_data[:, i, ...]
-    # true_yslice = true_data[:, :, i, ...]
-    # true_zslice = true_data[:, :, :, i, ...]
-
-    # animate_density(np.tile(true_xslice[..., 0], (1, 1, 1)), f'Tx{i}')
-    # animate_density(np.tile(true_yslice[..., 0], (1, 1, 1)), f'Ty{i}')
-    # animate_density(np.tile(true_zslice[..., 0], (1, 1, 1)), f'Tz{i}')
-    
-    name='DeepSpGAT-PushForward'
-
-    full_out = np.load(f'out/predictions/{name}_full.npy').reshape((1000, 63, 63, 63, -1))
-    test_out = np.load(f'out/predictions/{name}_test.npy').reshape((200, 63, 63, 63, -1))
+    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((1000, 63, 63, 63, -1))
+    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((200, 63, 63, 63, -1))
 
     i = 16
     full_xslice = full_out[:, i, ...]
     full_yslice = full_out[:, :, i, ...]
     full_zslice = full_out[:, :, :, i, ...]
 
-    animate_density(full_xslice[..., 0], f'{name}_x16')
-    animate_density(full_yslice[..., 0], f'{name}_y16')
-    animate_density(full_zslice[..., 0], f'{name}_z16')
+    animate_density(full_xslice[..., 0], f'{args.name}_x16')
+    animate_density(full_yslice[..., 0], f'{args.name}_y16')
+    animate_density(full_zslice[..., 0], f'{args.name}_z16')
 
 if __name__ == '__main__':
     main()
