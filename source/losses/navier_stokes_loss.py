@@ -70,7 +70,7 @@ def pde_IFD3d(x, y1, y2, mask):
     loss = residual * mask
     return torch.mean(loss)
 
-def pde_CFD3d(x, y1, y2, mask, gamma=0):
+def pde_CFD3d(x, y1, y2, mask, gamma=1.4):
     #CONTINUE HERE
     h1 = y1[..., 0].unsqueeze(1)  # rho
     ux1 = y1[..., 1].unsqueeze(1)  # vx
