@@ -115,7 +115,7 @@ def main():
                         weight_decay=args.weight_decay)
 
     # Train Model
-    pde_loss = pde_IFD3d
+    pde_loss = pde_CFD3d
     if args.model_type == 'OneStep':
         dynamic_model = OneStepModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
     elif args.model_type == 'AutoRegressive':
