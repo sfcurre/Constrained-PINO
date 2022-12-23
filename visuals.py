@@ -37,8 +37,8 @@ def animate_density(p_mat, name):
     vmin = p_mat.min()
 
     def update(n=0):
-        #pl = ax.imshow(p_mat[n], cmap='jet', animated=True, vmin=vmin, vmax=vmax, origin='lower')
-        pl = ax.imshow(p_mat[n], cmap='jet', animated=True, origin='lower')
+        pl = ax.imshow(p_mat[n], cmap='jet', animated=True, vmin=vmin, vmax=vmax, origin='lower')
+        #pl = ax.imshow(p_mat[n], cmap='jet', animated=True, origin='lower')
         return pl,
 
     plt.title('Fluid Density')
