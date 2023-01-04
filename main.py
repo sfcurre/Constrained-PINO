@@ -60,6 +60,7 @@ def parse_args():
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
                                         default='PushForward', help='Type of training model.')
+    parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -115,7 +116,10 @@ def main():
                         weight_decay=args.weight_decay)
 
     # Train Model
-    pde_loss = pde_CFD3d
+    def pde_loss(*args, **kwargs):
+        loss = pde_CFD3d(*args, **kwargs)
+        return loss * args.pde_weight
+
     if args.model_type == 'OneStep':
         dynamic_model = OneStepModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
     elif args.model_type == 'AutoRegressive':
