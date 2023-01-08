@@ -116,8 +116,8 @@ def main():
                         weight_decay=args.weight_decay)
 
     # Train Model
-    def pde_loss(*args, **kwargs):
-        loss = pde_CFD3d(*args, **kwargs)
+    def pde_loss(*fargs, **kwargs):
+        loss = pde_CFD3d(*fargs, **kwargs)
         return loss * args.pde_weight
 
     if args.model_type == 'OneStep':
