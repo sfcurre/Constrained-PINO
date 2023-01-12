@@ -31,7 +31,7 @@ class DynamicModel:
         best = epochs + 1
         best_epoch = 0
         for epoch in tqdm(range(epochs)):
-            loss_values.append(self.train_step(epoch), report_interval)
+            loss_values.append(self.train_step(epoch, report_interval))
 
             torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
             if loss_values[-1] < best:
