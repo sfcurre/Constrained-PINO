@@ -27,6 +27,7 @@ class PIGNN(nn.Module):
 
     # @profile
     def forward(self, locations, features, adj):
+        adj = (adj[0][0], adj[1][0])
         if self.periodic:
             x = self.wave_transform(locations, concat_to=features)
         else:
