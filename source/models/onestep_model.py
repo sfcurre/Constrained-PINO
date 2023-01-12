@@ -18,11 +18,11 @@ class OneStepModel(DynamicModel):
     def __init__(self, *args, **kwargs):
         super(OneStepModel, self).__init__(*args, **kwargs)
 
-    def train_step(self, epoch):
-        t = time.time()
+    def train_step(self, epoch, report_interval):
+        self.t_start = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for adj, locations, features, targets, mask in self.dataloader:
+        for i, (adj, locations, features, targets, mask) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
             
             output = self.model(locations, features, adj)
@@ -33,20 +33,11 @@ class OneStepModel(DynamicModel):
             self.optimizer.zero_grad()
             dde.grad.clear()
 
+            if (i + 1) % report_interval == 0:
+                self.report(locations, features, targets, mask, loss_train, epoch)
+        
+        return self.report(locations, features, targets, mask, loss_train, epoch)
 
-        # Evaluate validation set performance separately,
-        # deactivates dropout during validation run.
-
-        self.model.eval()
-        outputs = self.predict(locations, features, adj, timesteps=len(targets))
-
-        loss_val = self.get_test_loss(targets, outputs, mask)
-        print('Epoch: {:04d}'.format(epoch+1),
-            'loss_train: {:.4f}'.format(loss_train.data.item()),
-            'loss_val: {:.4f}'.format(loss_val.data.item()),
-            'time: {:.4f}s'.format(time.time() - t))
-
-        return loss_val.data.item()
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
         if mask is not None:

@@ -28,7 +28,7 @@ class MiniBatchGraph(PeriodicGraph):
 
     def build_minibatch_adj_matrix(self):
         #edgelist should be the same for both source and target
-        window = self.width + 2 * self.depth
+        window = self.width + 2 * self.depth + (self.timesteps - 1)
         edges = self.construct_edgelist(window, window, window, periodic=False)
         return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
                              normalization='sym')
@@ -43,7 +43,7 @@ class MiniBatchGraph(PeriodicGraph):
         locations = np.roll(self.trig_grid, (xshift, yshift, zshift), axis=(0, 1, 2))
 
         #select window
-        size = self.width + 2*self.depth
+        size = self.width + 2 * self.depth + (self.timesteps - 1)
         features = features[:size, :size, :size]
         targets = targets[:, :size, :size, :size]
         locations = locations[:size, :size, :size]

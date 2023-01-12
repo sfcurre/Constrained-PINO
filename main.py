@@ -27,7 +27,7 @@ from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
 from source.losses.navier_stokes_loss import pde_CFD3d
-from source.nn_models import DeepSpGAT
+from source.nn_models import DeepSpGAT, PIGNN
 
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
@@ -102,14 +102,21 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    model = DeepSpGAT(nfeat=dynamic_data.nfeats,
+    # model = DeepSpGAT(nfeat=dynamic_data.nfeats,
+    #             ndims=dynamic_data.ndims,
+    #             nhid=args.hidden,
+    #             natt=args.layers,
+    #             nclass=dynamic_data.nfeats,
+    #             dropout=args.dropout,
+    #             nheads=args.nb_heads,
+    #             alpha=args.alpha,
+    #             periodic=args.periodic_bc)
+    model = PIGNN(nfeat=dynamic_data.nfeats,
                 ndims=dynamic_data.ndims,
                 nhid=args.hidden,
-                natt=args.layers,
+                nlayers=args.layers,
                 nclass=dynamic_data.nfeats,
                 dropout=args.dropout,
-                nheads=args.nb_heads,
-                alpha=args.alpha,
                 periodic=args.periodic_bc)
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 

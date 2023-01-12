@@ -23,7 +23,7 @@ class DynamicModel:
         if self.use_cuda:
             model.cuda()
     
-    def train(self, epochs, patience):
+    def train(self, epochs, patience, report_interval=100):
         # Train model
         t_total = time.time()
         loss_values = []
@@ -31,7 +31,7 @@ class DynamicModel:
         best = epochs + 1
         best_epoch = 0
         for epoch in tqdm(range(epochs)):
-            loss_values.append(self.train_step(epoch))
+            loss_values.append(self.train_step(epoch), report_interval)
 
             torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
             if loss_values[-1] < best:
@@ -69,6 +69,19 @@ class DynamicModel:
         # Testing
         test_losses = self.compute_test()
         return loss_values, test_losses
+
+    def report(adj, locations, features, targets, mask, loss_train, epoch):
+        self.model.eval()
+        outputs = self.predict(locations, features, adj, timesteps=len(targets))
+
+        loss_val = self.get_test_loss(targets, outputs, mask)
+        print('Epoch: {:04d}'.format(epoch+1),
+            'loss_train: {:.4f}'.format(loss_train.data.item()),
+            'loss_val: {:.4f}'.format(loss_val.data.item()),
+            'time: {:.4f}s'.format(time.time() - self.t_start))
+
+        torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
+        return loss_val.data.item()
 
     def train_step(self, epoch):
         raise NotImplementedError()

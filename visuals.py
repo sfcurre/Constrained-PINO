@@ -20,13 +20,13 @@ def velocity_field(qdata, dim = 2):
     return vfield
 
 def density_plot(p):
-    plot = plt.matshow(p, cmap='Spectral', vmin=0)
+    plot = plt.matshow(p, cmap='Spectral_r', vmin=0)
     return plot
 
 def vorticity_plot(x, y, Fx, Fy):
     c = curl(x, y, Fx, Fy)
     v = np.abs(c).max()
-    plot = plt.matshow(c, cmap='Spectral', vmin=-v, vmax=v)
+    plot = plt.matshow(c, cmap='Spectral_r', vmin=-v, vmax=v)
     return plot
 
 def animate_density(p_mat, name):

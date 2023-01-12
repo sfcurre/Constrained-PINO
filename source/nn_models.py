@@ -6,7 +6,44 @@ from .layers.fourier import SpectralConv2d_fast
 from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
-# Code collected from https://github.com/Diego999/pyGAT
+class PIGNN(nn.Module):
+    def __init__(self, nfeat, ndims, nhid, nlayers, nclass, dropout, periodic=True):
+        super(PIGNN, self).__init__()
+        self.dropout = dropout
+        self.periodic = True
+
+        if self.periodic:
+            self.wave_transform = WaveTransform()
+            ndims *= 2
+        
+        self.linear_in = tgnn.Linear(nfeat + ndims, nhid)
+
+        self.gcns = []
+        for i in range(nlayers):
+            gcn = tgnn.GraphConv(nhid, nhid)
+            self.gcns.append(gcn)
+
+        self.linear_out = tgnn.Linear(nhid, nclass)
+
+    # @profile
+    def forward(self, locations, features, adj):
+        if self.periodic:
+            x = self.wave_transform(locations, concat_to=features)
+        else:
+            x = torch.cat([locations, features], dim=-1)
+        x = F.dropout(x, self.dropout, training=self.training)
+        
+        x = self.linear_in(x)
+        x = torch.relu(x)
+        x = F.dropout(x, self.dropout, training=self.training)
+        for gcn in self.gcns:
+            x = gcn(x)
+            x = torch.relu(x)
+            x = F.dropout(x, self.dropout, training=self.training)
+        
+        x = self.linear_out(x)
+        return x
+
 
 class SpGAT(nn.Module):
     def __init__(self, nfeat, ndims, nhid, nclass, dropout, alpha, nheads):
