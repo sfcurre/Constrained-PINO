@@ -34,9 +34,9 @@ class OneStepModel(DynamicModel):
             dde.grad.clear()
 
             if (i + 1) % report_interval == 0:
-                self.report(locations, features, targets, mask, loss_train, epoch)
+                self.report(adj, locations, features, targets, mask, loss_train, epoch)
         
-        return self.report(locations, features, targets, mask, loss_train, epoch)
+        return self.report(adj, locations, features, targets, mask, loss_train, epoch)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
