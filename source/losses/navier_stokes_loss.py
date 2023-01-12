@@ -32,6 +32,11 @@ def cons_energy(y1, y2, mask, gamma):
 ### PDEs
 #============================================================
 def pde_IFD3d(x, y1, y2, mask):
+    x = torch.reshape(x, (-1, x.shape[-1]))
+    y1 = torch.reshape(y1, (-1, y1.shape[-1]))
+    y2 = torch.reshape(y2, (-1, y2.shape[-1]))
+    mask = torch.reshape(mask, (-1, mask.shape[-1]))
+
     h = y2[..., 0].unsqueeze(1)  # rho
     ux = y2[..., 1].unsqueeze(1)  # vx
     uy = y2[..., 2].unsqueeze(1)  # vy
