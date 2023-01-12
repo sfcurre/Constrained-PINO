@@ -37,7 +37,7 @@ class PIGNN(nn.Module):
         x = torch.relu(x)
         x = F.dropout(x, self.dropout, training=self.training)
         for gcn in self.gcns:
-            x = gcn(x, adj)
+            x = gcn(x, *adj)
             x = torch.relu(x)
             x = F.dropout(x, self.dropout, training=self.training)
         
