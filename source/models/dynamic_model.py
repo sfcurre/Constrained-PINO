@@ -70,7 +70,7 @@ class DynamicModel:
         test_losses = self.compute_test()
         return loss_values, test_losses
 
-    def report(adj, locations, features, targets, mask, loss_train, epoch):
+    def report(self, adj, locations, features, targets, mask, loss_train, epoch):
         self.model.eval()
         outputs = self.predict(locations, features, adj, timesteps=len(targets))
 
