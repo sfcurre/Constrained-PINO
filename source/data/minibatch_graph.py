@@ -64,14 +64,6 @@ class MiniBatchGraph(PeriodicGraph):
         locations = torch.from_numpy(locations.astype(np.float32)).requires_grad_()
         mask = torch.from_numpy(mask.astype(np.float32)).requires_grad_()
         
-        # MEMORY FAILS FASTER WITH THIS
-        # features = torch.tensor(features.astype(np.float32), requires_grad=True)
-        # targets = torch.tensor(targets.astype(np.float32), requires_grad=True)
-        # locations = torch.tensor(locations.astype(np.float32), requires_grad=True)
-        # mask = torch.tensor(mask.astype(np.float32), requires_grad=True)
-
-        #Leak here?!?
-
         adj = self.mini_adj
         if self.use_cuda:
             adj = (adj[0].cuda(), adj[1].cuda())

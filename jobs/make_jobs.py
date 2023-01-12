@@ -64,7 +64,7 @@ def main():
                                   #heads=4,
                                   timesteps=1,
                                   minibatch=3,
-                                  bs=4,
+                                  #bs=4,
                                   pde_weight=0.1,
                                   modeltype='OneStep'))
         write_bash(fp, *make_call('DeepSpGAT-OneStep-1_0',
@@ -77,7 +77,7 @@ def main():
                                   #heads=4,
                                   timesteps=1,
                                   minibatch=3,
-                                  bs=4,
+                                  #bs=4,
                                   pde_weight=1.0,
                                   modeltype='OneStep'))
         write_bash(fp, *make_call('DeepSpGAT-OneStep-0_01',
@@ -90,7 +90,7 @@ def main():
                                   #heads=4,
                                   timesteps=1,
                                   minibatch=3,
-                                  bs=4,
+                                  #bs=4,
                                   pde_weight=0.01,
                                   modeltype='OneStep'))
         write_bash(fp, *make_call('DeepSpGAT-PushForward',
@@ -103,7 +103,7 @@ def main():
                                   #heads=4,
                                   timesteps=2,
                                   minibatch=3,
-                                  bs=4,
+                                  #bs=4,
                                   pde_weight=0.1,
                                   modeltype='PushForward'))
         write_bash(fp, *make_call('DeepSpGAT-AutoRegressive',
@@ -116,7 +116,7 @@ def main():
                                   #heads=4,
                                   timesteps=3,
                                   minibatch=3,
-                                  bs=4,
+                                  #bs=4,
                                   pde_weight=0.1,
                                   modeltype='AutoRegressive'))
 
