@@ -29,7 +29,7 @@ class PDEBenchGraph(DynamicGraph):
         
         # Define path to files
         root_path = os.path.abspath(saved_folder + filename)
-        assert filename[-2:] != 'h5' and filename[-4:] != 'hdf5', 'HDF5 data is assumed!!'
+        assert filename[-2:] != 'h5', 'HDF5 data is assumed!!'
         
         with h5py.File(root_path, 'r') as f:
             keys = list(f.keys())
