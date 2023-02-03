@@ -8,9 +8,10 @@ from torch.utils.data import Dataset
 # MINIBATCH EVERYTHING with collate_fn
 
 class DynamicGraph(Dataset):
-    def __init__(self, grid, solution, timesteps=1, use_cuda=False):
+    def __init__(self, grid, solution, num_channels, timesteps=1, use_cuda=False):
         self.grid = grid
         self.solution = solution
+        self.num_channels = num_channels
         self.timesteps = timesteps
         self.use_cuda = use_cuda
         self.nfeats = self.solution.shape[-1]
@@ -21,6 +22,7 @@ class DynamicGraph(Dataset):
         
         self.train = self.solution[:int(.8 * len(self.solution))]
         self.test = self.solution[int(.8 * len(self.solution)):]
+        self.num_batches = self.train[0].shape[-1] // self.num_channels
         self.is_training = True
 
     def build_adj_matrix(self):
@@ -29,9 +31,12 @@ class DynamicGraph(Dataset):
         return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
                              normalization='sym')
         
-    def sample_graph(self, flow_features, t, tdif=1):
-        features, targets = flow_features[t], flow_features[t+1: t+tdif+1]
-        
+    def sample_graph(self, flow_features, index, tdif=1):
+        t = index // self.num_batches
+        c = index % t
+        features = flow_features[t][..., c: c + self.num_channels]
+        targets = flow_features[t+1: t+tdif+1][..., c: c + self.num_channels]
+
         #shape into feature matrics
         features = features.reshape((-1, features.shape[-1]))
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
@@ -64,9 +69,9 @@ class DynamicGraph(Dataset):
 
     def __len__(self):
         if self.is_training:
-            return len(self.train) - self.timesteps
+            return (len(self.train) - self.timesteps) * self.num_batches
         else:
-            return len(self.test) - self.timesteps
+            return (len(self.test) - self.timesteps) * self.num_batches
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):

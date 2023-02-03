@@ -6,9 +6,10 @@ from torch_geometric.utils import get_laplacian
 from .dynamic_graph import DynamicGraph
 
 class PeriodicGraph(DynamicGraph):
-    def __init__(self, grid, solution, timesteps=1, use_cuda=False):
+    def __init__(self, grid, solution, num_channels, timesteps=1, use_cuda=False):
         self.grid = grid
         self.solution = solution
+        self.num_channels = num_channels
         self.timesteps = timesteps
         self.use_cuda = use_cuda
         self.nfeats = self.solution.shape[-1]

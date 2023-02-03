@@ -26,7 +26,7 @@ from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph, Min
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
-from source.losses.navier_stokes_loss import pde_CFD3d
+from source.losses.navier_stokes_loss import pde_CFD3d, pde_CFD2d
 from source.nn_models import DeepSpGAT, PIGNN
 
 # Example call:

@@ -13,8 +13,8 @@ from .minibatch_graph import MiniBatchGraph
 
 class PDEBenchGraph(DynamicGraph):
     def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
-        grid, solution = self.read_input_directory(*args, **kwargs)
-        super(PDEBenchGraph, self).__init__(grid, solution, timesteps=timesteps, use_cuda=use_cuda)
+        grid, solution, num_channels = self.read_input_directory(*args, **kwargs)
+        super(PDEBenchGraph, self).__init__(grid, solution, num_channels, timesteps=timesteps, use_cuda=use_cuda)
 
     def read_input_directory(self, filename,
                                    saved_folder='./',
@@ -181,17 +181,20 @@ class PDEBenchGraph(DynamicGraph):
 
         while len(self.data.shape) < 5:
             self.data = np.expand_dims(self.data, axis=2)
-        self.data = self.data.transpose((-2, 0, 1, 2, -1))
+        self.data = self.data.transpose((-2, 1, 2, 0, -1)) #t, x, y, batch, ch
+        num_channels = self.data.shape[-1]
+        self.data.reshape(self.data.shape[:-2] + (-1,))
 
-        return self.grid, self.data
+        return self.grid, self.data, num_channels
 
 class PeriodicPDEBenchGraph(PeriodicGraph):
     def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
-        grid, solution = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
-        super(PeriodicPDEBenchGraph, self).__init__(grid, solution, timesteps=timesteps, use_cuda=use_cuda)
+        grid, solution, num_channels = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
+        super(PeriodicPDEBenchGraph, self).__init__(grid, solution, num_channels,
+                                                    timesteps=timesteps, use_cuda=use_cuda)
 
 class MiniBatchPDEBenchGraph(MiniBatchGraph):
     def __init__(self, width, depth, *args, timesteps=1, use_cuda=False, **kwargs):
-        grid, solution = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
-        super(MiniBatchPDEBenchGraph, self).__init__(grid, solution, width, depth,
+        grid, solution, num_channels = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
+        super(MiniBatchPDEBenchGraph, self).__init__(grid, solution, num_channels, width, depth,
                                                      timesteps=timesteps, use_cuda=use_cuda)
