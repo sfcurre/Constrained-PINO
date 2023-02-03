@@ -53,7 +53,7 @@ class MiniBatchGraph(PeriodicGraph):
              self.depth:self.depth + self.width,
              self.depth:self.depth + self.width] = 0
 
-        #shape into feature matrics
+        #shape into feature matrices
         features = features.reshape((-1, features.shape[-1]))
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
         locations = locations.reshape((-1, locations.shape[-1]))
