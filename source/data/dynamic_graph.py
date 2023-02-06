@@ -33,7 +33,7 @@ class DynamicGraph(Dataset):
         
     def sample_graph(self, flow_features, index, tdif=1):
         t = index // self.num_batches
-        c = index % t
+        c = (index % self.num_batches) * self.num_channels
         features = flow_features[t][..., c: c + self.num_channels]
         targets = flow_features[t+1: t+tdif+1][..., c: c + self.num_channels]
 

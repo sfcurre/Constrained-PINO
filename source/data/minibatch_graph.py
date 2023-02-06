@@ -36,6 +36,7 @@ class MiniBatchGraph(PeriodicGraph):
                              normalization='sym')
         
     def sample_minibatch(self, flow_features, t, x, y, z, c, tdif=1):
+        c *= self.num_channels
         features, targets = flow_features[t], flow_features[t+1: t+tdif+1]
 
         # roll features, targets, locations
