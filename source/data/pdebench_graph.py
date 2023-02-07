@@ -179,9 +179,9 @@ class PDEBenchGraph(DynamicGraph):
                     X, Y = np.meshgrid(x, y)
                     self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
 
-        while len(self.data.shape) < 5:
+        while len(self.data.shape) < 6:
             self.data = np.expand_dims(self.data, axis=2)
-        self.data = self.data.transpose((-2, 1, 2, 0, -1)) #t, x, y, batch, ch
+        self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, batch, ch
         num_channels = self.data.shape[-1]
         self.data.reshape(self.data.shape[:-2] + (-1,))
 
