@@ -4,6 +4,8 @@ from matplotlib import animation
 from tqdm import tqdm
 import argparse
 
+from source.data.pdebench_graph import PDEBenchGraph
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str)
@@ -82,7 +84,7 @@ def main():
         solution = solution.reshape((timesteps,) + data.grid.shape[:-1] + (data.num_channels,))
 
         animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
-        
+
 
 if __name__ == '__main__':
     main()
