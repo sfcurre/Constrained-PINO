@@ -19,8 +19,9 @@ class PeriodicGraph(DynamicGraph):
         self.locations = trig_grid.reshape((-1, trig_grid.shape[-1]))
         self.adj = self.build_adj_matrix()
         
-        self.train = self.solution[:int(.8 * len(self.solution))]
-        self.test = self.solution[int(.8 * len(self.solution)):]
+        self.train = self.solution[..., :int(.9 * self.solution.shape[-1])]
+        self.test = self.solution[..., int(.9 * self.solution.shape[-1]):]
+        self.num_batches = self.train[0].shape[-1] // self.num_channels
         self.is_training = True
 
     def periodicize_grid(self, grid):

@@ -77,16 +77,16 @@ def main():
         data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False)
         print(len(data.solution))        
 
-        i = 0
-        adj, locations, features, targets, mask = data[i]
+        for i in range(10):
+            adj, locations, features, targets, mask = data[i]
 
-        features = features.detach().numpy()
-        targets = [t.detach().numpy() for t in targets]
-        solution = np.concatenate([features[None, ...], targets], axis = 0)
-        print(solution.shape)
-        solution = solution.reshape((timesteps,) + data.grid.shape[:-1] + (data.num_channels,))
+            features = features.detach().numpy()
+            targets = [t.detach().numpy() for t in targets]
+            solution = np.concatenate([features[None, ...], targets], axis = 0)
+            print(solution.shape)
+            solution = solution.reshape((timesteps,) + data.grid.shape[:-1] + (data.num_channels,))
 
-        animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
+            animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
 
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((1000, 128, 128, 1, -1))
     test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((200, 128, 128, 1, -1))
