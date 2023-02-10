@@ -74,13 +74,17 @@ def main():
     
     if args.run_true:
         filename = "data/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"
-        timesteps = 100
+        timesteps = 16
         data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False)
-        
-        i = 0
-        adj, locations, features, targets, mask = dynamic_data[i]
+        print(len(data.solution))        
 
+        i = 0
+        adj, locations, features, targets, mask = data[i]
+
+        features = features.detach().numpy()
+        targets = [t.detach().numpy() for t in targets]
         solution = np.concatenate([features[None, ...], targets], axis = 0)
+        print(solution.shape)
         solution = solution.reshape((timesteps,) + data.grid.shape[:-1] + (data.num_channels,))
 
         animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')

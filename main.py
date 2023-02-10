@@ -124,7 +124,7 @@ def main():
 
     # Train Model
     def pde_loss(*fargs, **kwargs):
-        loss = pde_CFD3d(*fargs, **kwargs)
+        loss = pde_CFD2d(*fargs, **kwargs)
         return loss * args.pde_weight
 
     if args.model_type == 'OneStep':

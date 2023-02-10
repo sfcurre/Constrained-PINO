@@ -14,7 +14,7 @@ class DynamicGraph(Dataset):
         self.num_channels = num_channels
         self.timesteps = timesteps
         self.use_cuda = use_cuda
-        self.nfeats = self.solution.shape[-1]
+        self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
         
         self.locations = self.grid.reshape((-1, self.grid.shape[-1]))
@@ -75,6 +75,7 @@ class DynamicGraph(Dataset):
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):
+        print(xdim, ydim, zdim)
         mode = 'wrap' if periodic else 'clip'
         getnode = lambda x, y, z: np.ravel_multi_index((x, y, z), (xdim, ydim, zdim), mode=mode)
         edges = []
