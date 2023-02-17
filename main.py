@@ -48,7 +48,7 @@ def parse_args():
     parser.add_argument('--weight-decay', type=float, default=5e-4, help='Weight decay (L2 loss on parameters).')
     parser.add_argument('--hidden', type=int, default=8, help='Number of hidden units.')
     parser.add_argument('--layers', type=int, default=2, help='Number of layers in the neural network.')
-    parser.add_argument('--nb-heads', type=int, default=8, help='Number of head attentions.')
+    parser.add_argument('--nb-heads', type=int, default=4, help='Number of head attentions.')
     parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate (1 - keep probability).')
     parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
     parser.add_argument('--patience', type=int, default=100, help='Patience')
@@ -92,7 +92,7 @@ def main():
                 dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
                                                       args.layers, args.timesteps, use_cuda=args.cuda)
             else:
-                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
+                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda, reduced_batch=2)
         else:
             dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
 
@@ -102,22 +102,26 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    # model = DeepSpGAT(nfeat=dynamic_data.nfeats,
-    #             ndims=dynamic_data.ndims,
-    #             nhid=args.hidden,
-    #             natt=args.layers,
-    #             nclass=dynamic_data.nfeats,
-    #             dropout=args.dropout,
-    #             nheads=args.nb_heads,
-    #             alpha=args.alpha,
-    #             periodic=args.periodic_bc)
-    model = PIGNN(nfeat=dynamic_data.nfeats,
+    attn_model = DeepSpGAT(nfeat=dynamic_data.nfeats,
+                ndims=dynamic_data.ndims,
+                nhid=args.hidden,
+                natt=args.layers,
+                nclass=dynamic_data.nfeats,
+                dropout=args.dropout,
+                nheads=args.nb_heads,
+                alpha=args.alpha,
+                periodic=args.periodic_bc)
+    gcn_model = PIGNN(nfeat=dynamic_data.nfeats,
                 ndims=dynamic_data.ndims,
                 nhid=args.hidden,
                 nlayers=args.layers,
                 nclass=dynamic_data.nfeats,
                 dropout=args.dropout,
                 periodic=args.periodic_bc)
+    #model = attn_model
+    #del gcn_model
+    model = gcn_model
+    del attn_model
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
                         weight_decay=args.weight_decay)
@@ -144,12 +148,12 @@ def main():
     with torch.no_grad():
         dynamic_data.training()
         adj, locations, features, _, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, adj, timesteps=1000, numpy=True)
+        predictions = dynamic_model.predict(locations, features, adj, timesteps=30, numpy=True)
         np.save(f'out/predictions/{args.name}_full.npy', np.array(predictions))
 
         dynamic_data.testing()
         adj, locations, features, _, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, adj, timesteps=200, numpy=True)
+        predictions = dynamic_model.predict(locations, features, adj, timesteps=30, numpy=True)
         np.save(f'out/predictions/{args.name}_test.npy', np.array(predictions))
 
 if __name__ == '__main__':

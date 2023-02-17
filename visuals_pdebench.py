@@ -74,7 +74,7 @@ def main():
     if args.run_true:
         filename = "data/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"
         timesteps = 16
-        data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False)
+        data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False, reduce_batch=2)
         print(len(data.solution))        
 
         for i in range(10):
@@ -88,8 +88,8 @@ def main():
 
             animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
 
-    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((1000, 128, 128, 1, -1))
-    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((200, 128, 128, 1, -1))
+    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 128, 128, 1, -1))
+    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 128, 128, 1, -1))
 
     animate_density(full_out[..., 0, 0], f'{args.name}')
 

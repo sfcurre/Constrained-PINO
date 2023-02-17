@@ -12,7 +12,7 @@ class PeriodicGraph(DynamicGraph):
         self.num_channels = num_channels
         self.timesteps = timesteps
         self.use_cuda = use_cuda
-        self.nfeats = self.solution.shape[-1]
+        self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
         
         trig_grid = self.periodicize_grid(self.grid)
@@ -36,6 +36,7 @@ class PeriodicGraph(DynamicGraph):
 
         x, y, z = np.meshgrid(xcoords, ycoords, zcoords, indexing='ij')
         trig_grid = np.stack([x, y, z], axis = -1)
+        self.ndims = 3
         return trig_grid
 
     def build_adj_matrix(self):
