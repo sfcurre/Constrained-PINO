@@ -2,11 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.nn as tgnn
-from .layers.fourier import SpectralConv2d_fast
+from .layers.fourier import FNO2d
 from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
-from source.models.fourier import FNO2d
 
 class PIGNN(nn.Module):
     def __init__(self, nfeat, ndims, nhid, nlayers, nclass, dropout, periodic=True):
