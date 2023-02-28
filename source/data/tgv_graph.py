@@ -9,14 +9,15 @@ from .periodic_graph import PeriodicGraph
 from .minibatch_graph import MiniBatchGraph
 
 class TGVGraph(DynamicGraph):
-    def __init__(self, grd_path, solution_path, timesteps=1, use_cuda=False):
+    def __init__(self, grd_path, solution_path, timesteps=1, history=0, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = self.read_input_directory(grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
             np.save(solution_path + '_sol.npy', self.solution)
         else:
             self.grid, self.solution = np.load(grd_path), np.load(solution_path)
-        super(TGVGraph, self).__init__(self.grid, self.solution, 5, timesteps=timesteps, use_cuda=use_cuda)
+        super(TGVGraph, self).__init__(self.grid, self.solution, 5,
+                                       timesteps=timesteps, history=history, use_cuda=use_cuda)
 
     def read_input_directory(self, grd_path, solution_path):
         locations = self.read_grd_data(grd_path)
@@ -49,7 +50,7 @@ class TGVGraph(DynamicGraph):
         return q
 
 class PeriodicTGVGraph(PeriodicGraph):
-    def __init__(self, grd_path, solution_path, timesteps=1, use_cuda=False):
+    def __init__(self, grd_path, solution_path, timesteps=1, history=0, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = TGVGraph.read_input_directory(self, grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
@@ -57,7 +58,8 @@ class PeriodicTGVGraph(PeriodicGraph):
         else:
             self.grid, self.solution = np.load(grd_path), np.load(solution_path)
         self.grid, self.solution = self.cut_periodic(self.grid, self.solution)
-        super(PeriodicTGVGraph, self).__init__(self.grid, self.solution, 5, timesteps=timesteps, use_cuda=use_cuda)
+        super(PeriodicTGVGraph, self).__init__(self.grid, self.solution, 5, 
+                                               timesteps=timesteps, history=history, use_cuda=use_cuda)
 
     def cut_periodic(self, grid, solution):
         #cut features to ensure periodicity
@@ -79,7 +81,7 @@ class PeriodicTGVGraph(PeriodicGraph):
         return grid, solution
 
 class MiniBatchTGVGraph(MiniBatchGraph):
-    def __init__(self, grd_path, solution_path, width, depth, timesteps=1, use_cuda=False):
+    def __init__(self, grd_path, solution_path, width, depth, timesteps=1, history=0, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = TGVGraph.read_input_directory(self, grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
@@ -88,4 +90,4 @@ class MiniBatchTGVGraph(MiniBatchGraph):
             self.grid, self.solution = np.load(grd_path), np.load(solution_path)
         self.grid, self.solution = PeriodicTGVGraph.cut_periodic(self, self.grid, self.solution)
         super(MiniBatchTGVGraph, self).__init__(self.grid, self.solution, 5, width, depth,
-                                                timesteps=timesteps, use_cuda=use_cuda)
+                                                timesteps=timesteps, history=history, use_cuda=use_cuda)

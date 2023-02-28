@@ -12,9 +12,10 @@ from .periodic_graph import PeriodicGraph
 from .minibatch_graph import MiniBatchGraph
 
 class PDEBenchGraph(DynamicGraph):
-    def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
+    def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
         grid, solution, num_channels = self.read_input_directory(*args, **kwargs)
-        super(PDEBenchGraph, self).__init__(grid, solution, num_channels, timesteps=timesteps, use_cuda=use_cuda)
+        super(PDEBenchGraph, self).__init__(grid, solution, num_channels,
+                                            timesteps=timesteps, history=history, use_cuda=use_cuda)
 
     def read_input_directory(self, filename,
                                    saved_folder='',
@@ -193,13 +194,13 @@ class PDEBenchGraph(DynamicGraph):
         return self.grid, self.data, num_channels
 
 class PeriodicPDEBenchGraph(PeriodicGraph):
-    def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
+    def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
         grid, solution, num_channels = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
         super(PeriodicPDEBenchGraph, self).__init__(grid, solution, num_channels,
-                                                    timesteps=timesteps, use_cuda=use_cuda)
+                                                    timesteps=timesteps, history=history, use_cuda=use_cuda)
 
 class MiniBatchPDEBenchGraph(MiniBatchGraph):
-    def __init__(self, width, depth, *args, timesteps=1, use_cuda=False, **kwargs):
+    def __init__(self, width, depth, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
         grid, solution, num_channels = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
         super(MiniBatchPDEBenchGraph, self).__init__(grid, solution, num_channels, width, depth,
-                                                     timesteps=timesteps, use_cuda=use_cuda)
+                                                     timesteps=timesteps, history=history, use_cuda=use_cuda)

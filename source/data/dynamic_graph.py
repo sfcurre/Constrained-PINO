@@ -8,11 +8,12 @@ from torch.utils.data import Dataset
 # MINIBATCH EVERYTHING with collate_fn
 
 class DynamicGraph(Dataset):
-    def __init__(self, grid, solution, num_channels, timesteps=1, use_cuda=False):
+    def __init__(self, grid, solution, num_channels, timesteps=1, history=0, use_cuda=False):
         self.grid = grid
         self.solution = solution
         self.num_channels = num_channels
         self.timesteps = timesteps
+        self.history = history
         self.use_cuda = use_cuda
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
@@ -31,14 +32,14 @@ class DynamicGraph(Dataset):
         return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
                              normalization='sym')
         
-    def sample_graph(self, flow_features, index, tdif=1):
+    def sample_graph(self, flow_features, index, tdif=1, hist=0):
         t = index // self.num_batches
         c = (index % self.num_batches) * self.num_channels
-        features = flow_features[t][..., c: c + self.num_channels]
-        targets = flow_features[t+1: t+tdif+1][..., c: c + self.num_channels]
+        features = flow_features[t:t+hist][..., c: c + self.num_channels]
+        targets = flow_features[t+hist+1: t+hist+tdif+1][..., c: c + self.num_channels]
 
         #shape into feature matrics
-        features = features.reshape((-1, features.shape[-1]))
+        features = features.moveaxis(0, -2).reshape((-1, hist * features.shape[-1]))
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
 
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
@@ -63,15 +64,15 @@ class DynamicGraph(Dataset):
 
     def __getitem__(self, index):
         if self.is_training:
-            return self.sample_graph(self.train, index, tdif=self.timesteps)
+            return self.sample_graph(self.train, index, tdif=self.timesteps, hist=self.history)
         else:
-            return self.sample_graph(self.test, index, tdif=self.timesteps)
+            return self.sample_graph(self.test, index, tdif=self.timesteps, hist=self.history)
 
     def __len__(self):
         if self.is_training:
-            return (len(self.train) - self.timesteps) * self.num_batches
+            return (len(self.train) - self.timesteps - self.history) * self.num_batches
         else:
-            return (len(self.test) - self.timesteps) * self.num_batches
+            return (len(self.test) - self.timesteps - self.history) * self.num_batches
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):

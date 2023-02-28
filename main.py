@@ -27,9 +27,7 @@ from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
 from source.losses.navier_stokes_loss import pde_CFD3d, pde_CFD2d
-from source.nn_models import DeepSpGAT, PIGNN
-
-from PDEBench.pdebench.models.fno.fno import FNO2d
+from source.nn_models import DeepSpGAT, PIGNN, PIFNO2d
 
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
@@ -65,6 +63,7 @@ def parse_args():
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
     parser.add_argument('--use-grid', action='store_true', help='Flag indicating if the program should use grids instead of graphs.')
     parser.add_argument('--nn-arch', type=str, default='PIGNN', help='Which neural network architecture to use.')
+    parser.add_argument('--history', type=int, default=0, help='The number of historical timesteps to use as a history.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -85,21 +84,27 @@ def main():
         if args.periodic_bc:
             if args.mini_batch_width:
                 dynamic_data = MiniBatchTGVGraph(args.grd, args.sol, args.mini_batch_width,
-                                                 args.layers, args.timesteps, use_cuda=args.cuda)
+                                                 args.layers, args.timesteps,
+                                                 args.history, use_cuda=args.cuda)
             else:
-                dynamic_data = PeriodicTGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
+                dynamic_data = PeriodicTGVGraph(args.grd, args.sol, args.timesteps,
+                                                args.history, use_cuda=args.cuda)
         else:
-            dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps, use_cuda=args.cuda)
+            dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps,
+                                    args.history, use_cuda=args.cuda)
     elif args.pdebench:
         if args.periodic_bc:
             if args.mini_batch_width:
                 dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
-                                                      args.layers, args.timesteps, use_cuda=args.cuda)
+                                                      args.layers, args.timesteps,
+                                                      args.history, use_cuda=args.cuda)
             else:
-                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda,
+                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps,
+                                                     history=args.history, use_cuda=args.cuda,
                                                      reduced_resolution=4, reduced_batch=2)
         else:
-            dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
+            dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps,
+                                         history=args.history, use_cuda=args.cuda)
 
     if args.cuda:
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
@@ -118,7 +123,10 @@ def main():
                     alpha=args.alpha,
                     periodic=args.periodic_bc)
     elif args.nn_arch == 'FNO2d':
-        model = FNO2d(dynamic_data.nfeats)
+        model = PIFNO2d(ndims=dynamic_data.ndims,
+                        nclass=dynamic_data.nfeats,
+                        periodic=args.periodic,
+                        history=args.history)
     else:
         # args.nn_arch == 'PIGNN'
         model = PIGNN(nfeat=dynamic_data.nfeats,

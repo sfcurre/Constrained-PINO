@@ -6,6 +6,8 @@ from .layers.fourier import SpectralConv2d_fast
 from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
+from source.models.fourier import FNO2d
+
 class PIGNN(nn.Module):
     def __init__(self, nfeat, ndims, nhid, nlayers, nclass, dropout, periodic=True):
         super(PIGNN, self).__init__()
@@ -47,6 +49,27 @@ class PIGNN(nn.Module):
         x = self.linear_out(x)
         return x
 
+class PIFNO2d(nn.Module):
+    def __init__(self, ndims, nclass, periodic=True, history=10):
+        super(PIGNN, self).__init__()
+        self.ndims = ndims
+        self.nclass = nclass
+        self.periodic = True
+        self.history = history
+
+        if self.periodic:
+            self.wave_transform = WaveTransform()
+            self.ndims *= 2
+        
+        self.fno = FNO2d(self.nclass, self.ndims, initial_step=self.history)
+
+    # @profile
+    def forward(self, locations, features, adj):
+        if self.periodic:
+            locations = self.wave_transform(locations, concat_to=None)
+        
+        x = self.fno(features, locations)
+        return x
 
 class SpGAT(nn.Module):
     def __init__(self, nfeat, ndims, nhid, nclass, dropout, alpha, nheads):

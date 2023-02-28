@@ -6,13 +6,14 @@ from torch_geometric.utils import get_laplacian
 from .periodic_graph import PeriodicGraph
 
 class MiniBatchGraph(PeriodicGraph):
-    def __init__(self, grid, solution, width, depth, num_channels, timesteps=1, use_cuda=False):
+    def __init__(self, grid, solution, width, depth, num_channels, timesteps=1, history=0, use_cuda=False):
         self.grid = grid
         self.solution = solution
         self.width = width
         self.depth = depth
         self.num_channels = num_channels
         self.timesteps = timesteps
+        self.history = history
         self.use_cuda = use_cuda
         self.nfeats = self.solution.shape[-1]
         self.ndims = self.grid.shape[-1]
@@ -35,19 +36,19 @@ class MiniBatchGraph(PeriodicGraph):
         return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
                              normalization='sym')
         
-    def sample_minibatch(self, flow_features, t, x, y, z, c, tdif=1):
+    def sample_minibatch(self, flow_features, t, x, y, z, c, tdif=1, hist=0):
         c *= self.num_channels
-        features, targets = flow_features[t], flow_features[t+1: t+tdif+1]
+        features, targets = flow_features[t:t+hist], flow_features[t+hist+1: t+hist+tdif+1]
 
         # roll features, targets, locations
         xshift, yshift, zshift = self.depth - np.array([x, y, z])
-        features = np.roll(features, (xshift, yshift, zshift), axis=(0, 1, 2))
+        features = np.roll(features, (xshift, yshift, zshift), axis=(1, 2, 3))
         targets = np.roll(targets, (xshift, yshift, zshift), axis=(1, 2, 3))
         locations = np.roll(self.trig_grid, (xshift, yshift, zshift), axis=(0, 1, 2))
 
         #select window
         size = self.width + 2 * self.depth + (self.timesteps - 1)
-        features = features[:size, :size, :size, c: c + self.num_channels]
+        features = features[:, :size, :size, :size, c: c + self.num_channels]
         targets = targets[:, :size, :size, :size, c: c + self.num_channels]
         locations = locations[:size, :size, :size, c: c + self.num_channels]
         
@@ -57,7 +58,7 @@ class MiniBatchGraph(PeriodicGraph):
              self.depth:self.depth + self.width] = 0
 
         #shape into feature matrices
-        features = features.reshape((-1, features.shape[-1]))
+        features = features.moveaxis(0, -2).reshape((-1, hist * features.shape[-1]))
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
         locations = locations.reshape((-1, locations.shape[-1]))
         mask = mask.reshape((-1, 1))
@@ -81,9 +82,9 @@ class MiniBatchGraph(PeriodicGraph):
         if self.is_training:
             t, x, y, z, c = np.unravel_index(index, shape=self.super_batch_shape)
             x, y, z = x * self.width, y *self.width, z * self.width
-            return self.sample_minibatch(self.train, t, x, y, z, c, tdif=self.timesteps)
+            return self.sample_minibatch(self.train, t, x, y, z, c, tdif=self.timesteps, hist=self.history)
         else:
-            return self.sample_graph(self.test, index, tdif=self.timesteps)
+            return self.sample_graph(self.test, index, tdif=self.timesteps, hist=self.history)
 
     def __len__(self):
         if self.is_training:
@@ -92,7 +93,7 @@ class MiniBatchGraph(PeriodicGraph):
             return (len(self.test) - self.timesteps) * self.num_batches
 
     def get_super_batch_shape(self):
-        shape = [len(self.train) - self.timesteps]
+        shape = [len(self.train) - self.timesteps - self.history]
         for dim in range(3):
             shape.append(self.train[0].shape[dim] // self.width + 
                          bool(self.train[0].shape[dim] % self.width))
