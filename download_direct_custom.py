@@ -30,6 +30,8 @@ def parse_metadata(pde_names, file_names):
     Returns:
     pde_df : Filtered dataframe containing metadata of files to be downloaded
     """
+    pde_names = [n.lower() for n in pde_names]
+    file_names = [n.lower() for n in file_names]
 
     meta_df = pd.read_csv("download_metadata.csv")
 
@@ -76,10 +78,12 @@ def download_data(root_folder, pde_name, file_name):
     pde_df, file_df = parse_metadata(pde_name, file_name)
 
     # Iterate filtered dataframe and download the files
+    print(pde_df)
     for index, row in tqdm(pde_df.iterrows(), total=pde_df.shape[0]):
         file_path = os.path.join(root_folder, row["Path"])
         download_url(row["URL"], file_path, row["Filename"], md5=row["MD5"])
 
+    print(file_df)
     for index, row in tqdm(file_df.iterrows(), total=file_df.shape[0]):
         file_path = os.path.join(root_folder, row["Path"])
         download_url(row["URL"], file_path, row["Filename"], md5=row["MD5"])
@@ -101,12 +105,14 @@ if __name__ == "__main__":
     arg_parser.add_argument(
         "--pde_name",
         action="append",
+        default=[],
         help="Name of the PDE dataset to download. You can use this flag multiple times to download multiple datasets",
     )
 
     arg_parser.add_argument(
         "--file_name",
         action="append",
+        default=[],
         help="Name of the PDE file to download. You can use this flag multiple times to download multiple files",
     )
 

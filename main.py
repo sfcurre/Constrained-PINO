@@ -92,7 +92,8 @@ def main():
                 dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
                                                       args.layers, args.timesteps, use_cuda=args.cuda)
             else:
-                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda, reduced_batch=2)
+                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda,
+                                                     reduced_resolution=4, reduced_batch=2)
         else:
             dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
 

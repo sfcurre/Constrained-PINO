@@ -52,11 +52,13 @@ cd ~/Physics-Informed-GNNs
     return HEADER + call, name
 
 def main():
+    pdebench=("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
+              "2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5")
     with open('jobs/batch_jobs.sh', 'w') as fp:
         fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
+        
         write_bash(fp, *make_call('PDEBench2D-OneStep-0',
-                                  pdebench=("data/2D/CFD/2D_Train_Rand/"
-                                           "2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"),
+                                  pdebench=pdebench,
                                   e=20,
                                   lr=1e-4,
                                   layers=4,
@@ -65,8 +67,7 @@ def main():
                                   pde_weight=0.0,
                                   modeltype='OneStep'))
         write_bash(fp, *make_call('PDEBench2D-OneStep-1',
-                                  pdebench=("data/2D/CFD/2D_Train_Rand/"
-                                           "2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"),
+                                  pdebench=pdebench,
                                   e=20,
                                   lr=1e-5,
                                   layers=4,
@@ -74,19 +75,8 @@ def main():
                                   timesteps=1,
                                   pde_weight=0.0,
                                   modeltype='OneStep'))
-        write_bash(fp, *make_call('PDEBench2D-OneStep-2',
-                                  pdebench=("data/2D/CFD/2D_Train_Rand/"
-                                           "2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"),
-                                  e=20,
-                                  lr=1e-6,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=1,
-                                  pde_weight=0.0,
-                                  modeltype='OneStep'))
         write_bash(fp, *make_call('PDEBench2D-OneStep-3',
-                                  pdebench=("data/2D/CFD/2D_Train_Rand/"
-                                           "2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"),
+                                  pdebench=pdebench,
                                   e=20,
                                   lr=1e-4,
                                   layers=4,
@@ -95,8 +85,7 @@ def main():
                                   pde_weight=0.1,
                                   modeltype='OneStep'))
         write_bash(fp, *make_call('PDEBench2D-OneStep-4',
-                                  pdebench=("data/2D/CFD/2D_Train_Rand/"
-                                           "2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"),
+                                  pdebench=pdebench,
                                   e=20,
                                   lr=1e-5,
                                   layers=4,
@@ -104,16 +93,43 @@ def main():
                                   timesteps=1,
                                   pde_weight=0.1,
                                   modeltype='OneStep'))
-        write_bash(fp, *make_call('PDEBench2D-OneStep-5',
-                                  pdebench=("data/2D/CFD/2D_Train_Rand/"
-                                           "2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"),
+        
+        write_bash(fp, *make_call('PDEBench2D-PushForward-0',
+                                  pdebench=pdebench,
                                   e=20,
-                                  lr=1e-6,
+                                  lr=1e-4,
                                   layers=4,
                                   hdim=64,
-                                  timesteps=1,
+                                  timesteps=2,
+                                  pde_weight=0.0,
+                                  modeltype='PushForward'))
+        write_bash(fp, *make_call('PDEBench2D-PushForward-1',
+                                  pdebench=pdebench,
+                                  e=20,
+                                  lr=1e-5,
+                                  layers=4,
+                                  hdim=64,
+                                  timesteps=2,
+                                  pde_weight=0.0,
+                                  modeltype='PushForward'))
+        write_bash(fp, *make_call('PDEBench2D-PushForward-3',
+                                  pdebench=pdebench,
+                                  e=20,
+                                  lr=1e-4,
+                                  layers=4,
+                                  hdim=64,
+                                  timesteps=2,
                                   pde_weight=0.1,
-                                  modeltype='OneStep'))
+                                  modeltype='PushForward'))
+        write_bash(fp, *make_call('PDEBench2D-PushForward-4',
+                                  pdebench=pdebench,
+                                  e=20,
+                                  lr=1e-5,
+                                  layers=4,
+                                  hdim=64,
+                                  timesteps=2,
+                                  pde_weight=0.1,
+                                  modeltype='PushForward'))
         # write_bash(fp, *make_call('DeepSpGAT-OneStep-0_1',
         #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
         #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',

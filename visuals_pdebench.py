@@ -72,9 +72,9 @@ def main():
     args = parse_args()
 
     if args.run_true:
-        filename = "data/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"
-        timesteps = 16
-        data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False, reduce_batch=2)
+        filename = "/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"
+        timesteps = 100
+        data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False, reduced_batch=2, reduced_resolution=4)
         print(len(data.solution))        
 
         for i in range(10):
@@ -84,7 +84,7 @@ def main():
             targets = [t.detach().numpy() for t in targets]
             solution = np.concatenate([features[None, ...], targets], axis = 0)
             print(solution.shape)
-            solution = solution.reshape((timesteps,) + data.grid.shape[:-1] + (data.num_channels,))
+            solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
 
             animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
 

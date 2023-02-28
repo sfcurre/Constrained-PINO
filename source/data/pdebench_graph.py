@@ -17,7 +17,7 @@ class PDEBenchGraph(DynamicGraph):
         super(PDEBenchGraph, self).__init__(grid, solution, num_channels, timesteps=timesteps, use_cuda=use_cuda)
 
     def read_input_directory(self, filename,
-                                   saved_folder='./',
+                                   saved_folder='',
                                    reduced_resolution=1,
                                    reduced_resolution_t=1,
                                    reduced_batch=1,

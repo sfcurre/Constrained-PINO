@@ -48,7 +48,8 @@ class DynamicModel:
             for file in files:
                 epoch_nb = int(file.split('_')[-1].split('.')[0])
                 if epoch_nb < best_epoch:
-                    os.remove(file)
+                    pass
+                    #os.remove(file)
 
             with open(f'outfile_{self.name}.txt', 'a') as fp:
                 print(epoch, loss_values[-1], sep='\t', file=fp)
@@ -57,7 +58,8 @@ class DynamicModel:
         for file in files:
             epoch_nb = int(file.split('_')[-1].split('.')[0])
             if epoch_nb > best_epoch:
-                os.remove(file)
+                pass
+                #os.remove(file)
 
         print("Optimization Finished!")
         print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
