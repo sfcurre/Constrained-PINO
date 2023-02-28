@@ -29,6 +29,8 @@ from source.models.autoregressive_model import AutoRegressiveModel
 from source.losses.navier_stokes_loss import pde_CFD3d, pde_CFD2d
 from source.nn_models import DeepSpGAT, PIGNN
 
+from PDEBench.models.fno import FNO2d
+
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
 
@@ -61,6 +63,8 @@ def parse_args():
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
                                         default='PushForward', help='Type of training model.')
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
+    parser.add_argument('--use-grid', action='store_true', help='Flag indicating if the program should use grids instead of graphs.')
+    parser.add_argument('--nn-arch', type=str, default='PIGNN', help='Which neural network architecture to use.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -103,32 +107,36 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    attn_model = DeepSpGAT(nfeat=dynamic_data.nfeats,
-                ndims=dynamic_data.ndims,
-                nhid=args.hidden,
-                natt=args.layers,
-                nclass=dynamic_data.nfeats,
-                dropout=args.dropout,
-                nheads=args.nb_heads,
-                alpha=args.alpha,
-                periodic=args.periodic_bc)
-    gcn_model = PIGNN(nfeat=dynamic_data.nfeats,
-                ndims=dynamic_data.ndims,
-                nhid=args.hidden,
-                nlayers=args.layers,
-                nclass=dynamic_data.nfeats,
-                dropout=args.dropout,
-                periodic=args.periodic_bc)
-    #model = attn_model
-    #del gcn_model
-    model = gcn_model
-    del attn_model
+    if args.nn_arch == 'DeepSpGAT':
+        model = DeepSpGAT(nfeat=dynamic_data.nfeats,
+                    ndims=dynamic_data.ndims,
+                    nhid=args.hidden,
+                    natt=args.layers,
+                    nclass=dynamic_data.nfeats,
+                    dropout=args.dropout,
+                    nheads=args.nb_heads,
+                    alpha=args.alpha,
+                    periodic=args.periodic_bc)
+    elif args.nn_arch == 'FNO2d':
+        model = FNO2d(dynamic_data.nfeats)
+    else:
+        # args.nn_arch == 'PIGNN'
+        model = PIGNN(nfeat=dynamic_data.nfeats,
+                    ndims=dynamic_data.ndims,
+                    nhid=args.hidden,
+                    nlayers=args.layers,
+                    nclass=dynamic_data.nfeats,
+                    dropout=args.dropout,
+                    periodic=args.periodic_bc)
+    
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
                         weight_decay=args.weight_decay)
 
     # Train Model
     def pde_loss(*fargs, **kwargs):
+        if args.pde_weight == 0:
+            return 0
         loss = pde_CFD2d(*fargs, **kwargs)
         return loss * args.pde_weight
 

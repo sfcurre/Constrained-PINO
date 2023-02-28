@@ -8,7 +8,8 @@ def write_bash(fp, call, name):
 def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
-              periodic=True, minibatch=0, modeltype='PushForward', video=False):
+              periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
+              nn_arch='PIGNN', video=False):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN-{name}
 #SBATCH --time={time}
@@ -44,170 +45,42 @@ cd ~/Physics-Informed-GNNs
         call += f'    --periodic-bc \\\n'
         if minibatch:
             call += f'    --mini-batch-width {minibatch} \\\n'
+
+    if use_grid:
+        call += f'    --use-grid \\\n'
+
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
-    call += f'    --model-type {modeltype} --name {name}\n\n'
+    call += f'    --model-type {modeltype} --nn-arch{nn_arch} --name {name}\n\n'
 
     return HEADER + call, name
 
 def main():
     pdebench=("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
               "2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5")
+
+    grd='TGV/ijk_snapshots/ijkmvmv_grd.npy'
+    sol='TGV/ijk_snapshots/ijkmvmv_sol.npy'
+    
     with open('jobs/batch_jobs.sh', 'w') as fp:
         fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
         
-        write_bash(fp, *make_call('PDEBench2D-OneStep-0',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-4,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=1,
-                                  pde_weight=0.0,
-                                  modeltype='OneStep'))
-        write_bash(fp, *make_call('PDEBench2D-OneStep-1',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-5,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=1,
-                                  pde_weight=0.0,
-                                  modeltype='OneStep'))
-        write_bash(fp, *make_call('PDEBench2D-OneStep-3',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-4,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=1,
-                                  pde_weight=0.1,
-                                  modeltype='OneStep'))
-        write_bash(fp, *make_call('PDEBench2D-OneStep-4',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-5,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=1,
-                                  pde_weight=0.1,
-                                  modeltype='OneStep'))
-        
-        write_bash(fp, *make_call('PDEBench2D-PushForward-0',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-4,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=2,
-                                  pde_weight=0.0,
-                                  modeltype='PushForward'))
-        write_bash(fp, *make_call('PDEBench2D-PushForward-1',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-5,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=2,
-                                  pde_weight=0.0,
-                                  modeltype='PushForward'))
-        write_bash(fp, *make_call('PDEBench2D-PushForward-3',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-4,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=2,
-                                  pde_weight=0.1,
-                                  modeltype='PushForward'))
-        write_bash(fp, *make_call('PDEBench2D-PushForward-4',
-                                  pdebench=pdebench,
-                                  e=20,
-                                  lr=1e-5,
-                                  layers=4,
-                                  hdim=64,
-                                  timesteps=2,
-                                  pde_weight=0.1,
-                                  modeltype='PushForward'))
-        # write_bash(fp, *make_call('DeepSpGAT-OneStep-0_1',
-        #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
-        #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-        #                           e=20,
-        #                           lr=1e-4,
-        #                           layers=4,
-        #                           hdim=32,
-        #                           #heads=4,
-        #                           timesteps=1,
-        #                           minibatch=3,
-        #                           #bs=4,
-        #                           pde_weight=0.1,
-        #                           modeltype='OneStep'))
-        # write_bash(fp, *make_call('DeepSpGAT-OneStep-0_0',
-        #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
-        #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-        #                           e=20,
-        #                           lr=1e-4,
-        #                           layers=4,
-        #                           hdim=32,
-        #                           #heads=4,
-        #                           timesteps=1,
-        #                           minibatch=3,
-        #                           #bs=4,
-        #                           pde_weight=0,
-        #                           modeltype='OneStep'))
-        # write_bash(fp, *make_call('DeepSpGAT-OneStep-1_0',
-        #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
-        #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-        #                           e=20,
-        #                           lr=1e-4,
-        #                           layers=4,
-        #                           hdim=32,
-        #                           #heads=4,
-        #                           timesteps=1,
-        #                           minibatch=3,
-        #                           #bs=4,
-        #                           pde_weight=1.0,
-        #                           modeltype='OneStep'))
-        # write_bash(fp, *make_call('DeepSpGAT-OneStep-0_01',
-        #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
-        #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-        #                           e=20,
-        #                           lr=1e-4,
-        #                           layers=4,
-        #                           hdim=32,
-        #                           #heads=4,
-        #                           timesteps=1,
-        #                           minibatch=3,
-        #                           #bs=4,
-        #                           pde_weight=0.01,
-        #                           modeltype='OneStep'))
-        # write_bash(fp, *make_call('DeepSpGAT-PushForward',
-        #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
-        #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-        #                           e=20,
-        #                           lr=1e-4,
-        #                           layers=4,
-        #                           hdim=32,
-        #                           #heads=4,
-        #                           timesteps=2,
-        #                           minibatch=3,
-        #                           #bs=4,
-        #                           pde_weight=0.1,
-        #                           modeltype='PushForward'))
-        # write_bash(fp, *make_call('DeepSpGAT-AutoRegressive',
-        #                           grd='TGV/ijk_snapshots/ijkmvmv_grd.npy',
-        #                           sol='TGV/ijk_snapshots/ijkmvmv_sol.npy',
-        #                           e=20,
-        #                           lr=1e-4,
-        #                           layers=4,
-        #                           hdim=32,
-        #                           #heads=4,
-        #                           timesteps=3,
-        #                           minibatch=3,
-        #                           #bs=4,
-        #                           pde_weight=0.1,
-        #                           modeltype='AutoRegressive'))
+        for lr in [1e-4, 1e-5]:
+            for pde_weight in [0.0]:
+                for modeltype in ['OneStep', 'PushForward', 'AutoRegressive']:
+
+                    write_bash(fp, *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
+                                            pdebench=pdebench,
+                                            e=100,
+                                            lr=lr,
+                                            layers=4,
+                                            hdim=64,
+                                            timesteps=5,
+                                            pde_weight=pde_weight,
+                                            modeltype=modeltype,
+                                            nn_arch='FNO2d',
+                                            use_grid=True))
 
 if __name__ == '__main__':
     main()

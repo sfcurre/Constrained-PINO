@@ -125,3 +125,6 @@ class DynamicModel:
     def load_model(self, pkl_file):
         self.model.load_state_dict(torch.load(pkl_file))
 
+    def concat_timesteps(self, features, outputs):
+        t0 = features[..., outputs.shape[-1]:]
+        return torch.concat([t0, outputs], dim=-1)

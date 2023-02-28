@@ -45,10 +45,6 @@ class PIGNN(nn.Module):
             x = F.dropout(x, self.dropout, training=self.training)
         
         x = self.linear_out(x)
-        #x_out_total = torch.sum(x[:, 0])
-        #x_scaled = x[:, 0] * (x_in_total / x_out_total)
-        #x = torch.cat([x_scaled[..., None], x[:, 1:]], dim=-1)
-
         return x
 
 

@@ -26,7 +26,7 @@ class PushForwardModel(DynamicModel):
             self.optimizer.zero_grad()
 
             output_1 = self.model(locations, features, adj)
-            output_1 = output_1.detach()
+            output_1 = self.concat_timesteps(features, output_1.detach())
             
             output_2 = self.model(locations, output_1, adj)
             

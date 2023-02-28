@@ -33,7 +33,7 @@ class AutoRegressiveModel(DynamicModel):
                 self.optimizer.step()
                 dde.grad.clear()
 
-                features = output.detach()
+                features = self.concat_timesteps(features, output.detach())
 
             if (i + 1) % report_interval == 0:
                 self.report(adj, locations, features, targets, mask, loss_train, epoch)
