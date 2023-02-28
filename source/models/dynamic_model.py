@@ -96,7 +96,7 @@ class DynamicModel:
         outputs = []
         for i in range(timesteps):
             output = self.model(locations, features, adj)
-            features = output
+            features = self.concat_timesteps(features, output)
             output = output.detach().cpu()
             if numpy:
                 output = output.numpy()

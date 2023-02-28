@@ -29,7 +29,7 @@ from source.models.autoregressive_model import AutoRegressiveModel
 from source.losses.navier_stokes_loss import pde_CFD3d, pde_CFD2d
 from source.nn_models import DeepSpGAT, PIGNN
 
-from PDEBench.models.fno import FNO2d
+from PDEBench.pdebench.models.fno.fno import FNO2d
 
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep

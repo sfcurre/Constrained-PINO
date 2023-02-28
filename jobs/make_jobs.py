@@ -52,7 +52,7 @@ cd ~/Physics-Informed-GNNs
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
-    call += f'    --model-type {modeltype} --nn-arch{nn_arch} --name {name}\n\n'
+    call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}\n\n'
 
     return HEADER + call, name
 
