@@ -33,7 +33,7 @@ class DynamicGrid(Dataset):
         targets = flow_features[t+hist+1: t+hist+tdif+1][..., c: c + self.num_channels]
 
         #shape into feature matrics
-        features = features.moveaxis(0, -2).reshape(features.shape[:-2] + (-1,))
+        features = np.moveaxis(features, 0, -2).reshape(features.shape[:-2] + (-1,))
 
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
