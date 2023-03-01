@@ -50,7 +50,7 @@ class PIGNN(nn.Module):
 
 class PIFNO2d(nn.Module):
     def __init__(self, ndims, nclass, periodic=True, history=10):
-        super(PIGNN, self).__init__()
+        super(PIFNO2d, self).__init__()
         self.ndims = ndims
         self.nclass = nclass
         self.periodic = True
