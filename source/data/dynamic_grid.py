@@ -70,13 +70,13 @@ class DynamicGrid(Dataset):
 
 
 class PDEBenchGrid(DynamicGrid):
-    def __init__(self, *args, timesteps=1, use_cuda=False, **kwargs):
+    def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
         grid, solution, num_channels = PDEBenchGraph.read_input_directory(self, *args, **kwargs)
         super(PDEBenchGrid, self).__init__(grid, solution, num_channels,
-                                           timesteps=timesteps, use_cuda=use_cuda)
+                                           timesteps=timesteps, history=history, use_cuda=use_cuda)
 
 class TGVGrid(DynamicGrid):
-    def __init__(self, grd_path, solution_path, width, depth, timesteps=1, use_cuda=False):
+    def __init__(self, grd_path, solution_path, timesteps=1, history=0, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
             self.grid, self.solution = TGVGraph.read_input_directory(self, grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
@@ -85,4 +85,4 @@ class TGVGrid(DynamicGrid):
             self.grid, self.solution = np.load(grd_path), np.load(solution_path)
         self.grid, self.solution = PeriodicTGVGraph.cut_periodic(self, self.grid, self.solution)
         super(DynamicGrid, self).__init__(self.grid, self.solution, 5,
-                                          timesteps=timesteps, use_cuda=use_cuda)
+                                          timesteps=timesteps, history=history, use_cuda=use_cuda)

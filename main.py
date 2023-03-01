@@ -23,6 +23,7 @@ from source.data.dynamic_graph import DynamicGraph
 from source.data.periodic_graph import PeriodicGraph
 from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph, MiniBatchTGVGraph
 from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph, MiniBatchPDEBenchGraph
+from source.data.dynamic_grid import PDEBenchGrid, TGVGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
@@ -81,7 +82,10 @@ def main():
 
     # Load data
     if args.grd and args.sol:
-        if args.periodic_bc:
+        if args.use_grid:
+            dynamic_data = TGVGrid(args.grd, args.sol, args.timesteps,
+                                   args.history, use_cuda=args.cuda)
+        elif args.periodic_bc:
             if args.mini_batch_width:
                 dynamic_data = MiniBatchTGVGraph(args.grd, args.sol, args.mini_batch_width,
                                                  args.layers, args.timesteps,
@@ -93,7 +97,11 @@ def main():
             dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps,
                                     args.history, use_cuda=args.cuda)
     elif args.pdebench:
-        if args.periodic_bc:
+        if args.use_grid:
+            dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
+                                        history=args.history, use_cuda=args.cuda,
+                                        reduced_resolution=4, reduced_batch=2)
+        elif args.periodic_bc:
             if args.mini_batch_width:
                 dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
                                                       args.layers, args.timesteps,
