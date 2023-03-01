@@ -133,7 +133,7 @@ def main():
     elif args.nn_arch == 'FNO2d':
         model = PIFNO2d(ndims=dynamic_data.ndims,
                         nclass=dynamic_data.nfeats,
-                        periodic=args.periodic,
+                        periodic=args.periodic_bc,
                         history=args.history)
     else:
         # args.nn_arch == 'PIGNN'

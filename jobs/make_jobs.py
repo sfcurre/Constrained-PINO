@@ -80,7 +80,8 @@ def main():
                                             pde_weight=pde_weight,
                                             modeltype=modeltype,
                                             nn_arch='FNO2d',
-                                            use_grid=True))
+                                            use_grid=True,
+                                            history=10))
 
 if __name__ == '__main__':
     main()
