@@ -1,6 +1,6 @@
 # no packages
 
-def write_bash(fp, call, pred_call, name):
+def write_bash(fp, pred_fp, call, pred_call, name):
     with open(f'jobs/job_files/{name}.sh', 'w') as fp2:
         fp2.write(call)
 
@@ -8,6 +8,7 @@ def write_bash(fp, call, pred_call, name):
         fp2.write(pred_call)
     
     fp.write(f'sbatch {name}.sh\n')
+    pred_fp.write(f'sbatch {name}_pred.sh\n')
 
 def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
@@ -35,6 +36,28 @@ conda activate pignn
 
 cd ~/Physics-Informed-GNNs
 '''
+    PRED_HEADER = f'''#!/bin/bash
+#SBATCH --job-name=PIGNN_Pred-{name}
+#SBATCH --time=0:59:59
+#SBATCH --output="out/PIGNN_Pred-{name}-%j.out"
+#SBATCH --account=PAS2170
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=28
+#SBATCH --gpus-per-node=1
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+#Code to run main.py
+
+set -x
+set -e
+
+module load cuda
+source /usr/local/python/3.6-conda5.2/etc/profile.d/conda.sh
+conda activate pignn
+
+cd ~/Physics-Informed-GNNs
+'''
+    
     call = f'python main.py --epochs {e} --patience {patience} --lr {lr} --weight-decay {wd} \\\n'
     call += f'    --hidden {hdim} --layers {layers} --nb-heads {heads} --dropout {dropout} \\\n'
     call += f'    --alpha {alpha} --pde-weight {pde_weight} --timesteps {timesteps} --history {history} \\\n'
@@ -59,12 +82,12 @@ cd ~/Physics-Informed-GNNs
     call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}'
 
     pred_call = call + ' \\\n'
-    pred_call += f'    --no-train --load-pkl out/saved_models/{name}\n\n'
+    pred_call += f'    --no-train --load-pkl out/saved_models/{name}.pkl\n\n'
     pred_call += f'python visuals_pdebench.py --name {name}\n\n'
 
     call += '\n\n'
 
-    return HEADER + call, HEADER + pred_call, name
+    return HEADER + call, PRED_HEADER + pred_call, name
 
 def main():
     pdebench=("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
@@ -74,13 +97,15 @@ def main():
     sol='TGV/ijk_snapshots/ijkmvmv_sol.npy'
     
     with open('jobs/batch_jobs.sh', 'w') as fp:
-        fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
-        
-        for lr in [1e-4, 1e-5]:
-            for pde_weight in [0.0]:
-                for modeltype in ['OneStep', 'PushForward', 'AutoRegressive']:
-
-                    write_bash(fp, *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
+        with open('jobs/batch_preds.sh', 'w') as pred_fp:
+            fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
+            pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
+            
+            for lr in [1e-4, 1e-5]:
+                for pde_weight in [0.0]:
+                    for modeltype in ['OneStep', 'PushForward', 'AutoRegressive']:
+                        write_bash(fp, pred_fp, 
+                                   *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
                                             pdebench=pdebench,
                                             e=100,
                                             lr=lr,

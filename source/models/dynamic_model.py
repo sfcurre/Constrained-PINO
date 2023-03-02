@@ -38,35 +38,22 @@ class DynamicModel:
                 best = loss_values[-1]
                 best_epoch = epoch
                 bad_counter = 0
+                torch.save(self.model.state_dict(), f'out/saved_models/{self.name}.pkl')
             else:
                 bad_counter += 1
 
             if bad_counter == patience:
                 break
 
-            files = glob.glob(f'out/saved_models/{self.name}_*.pkl')
-            for file in files:
-                epoch_nb = int(file.split('_')[-1].split('.')[0])
-                if epoch_nb < best_epoch:
-                    pass
-                    #os.remove(file)
-
             with open(f'outfile_{self.name}.txt', 'a') as fp:
                 print(epoch, loss_values[-1], sep='\t', file=fp)
-
-        files = glob.glob(f'out/saved_models/{self.name}_*.pkl')
-        for file in files:
-            epoch_nb = int(file.split('_')[-1].split('.')[0])
-            if epoch_nb > best_epoch:
-                pass
-                #os.remove(file)
 
         print("Optimization Finished!")
         print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        self.load_model(f'out/saved_models/{self.name}_{best_epoch}.pkl')
+        self.load_model(f'out/saved_models/{self.name}.pkl')
 
         # Testing
         test_losses = self.compute_test()
