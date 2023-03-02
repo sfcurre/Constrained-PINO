@@ -1,15 +1,19 @@
 # no packages
 
-def write_bash(fp, call, name):
+def write_bash(fp, call, pred_call, name):
     with open(f'jobs/job_files/{name}.sh', 'w') as fp2:
         fp2.write(call)
+
+    with open(f'jobs/job_files/{name}_pred.sh', 'w') as fp2:
+        fp2.write(pred_call)
+    
     fp.write(f'sbatch {name}.sh\n')
 
 def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
-              nn_arch='PIGNN', history=0, video=False):
+              nn_arch='PIGNN', history=0):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN-{name}
 #SBATCH --time={time}
@@ -52,9 +56,15 @@ cd ~/Physics-Informed-GNNs
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
-    call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}\n\n'
+    call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}'
 
-    return HEADER + call, name
+    pred_call = call + ' \\\n'
+    pred_call += f'    --no-train --load-pkl out/saved_models/{name}\n\n'
+    pred_call += f'python visuals_pdebench.py --name {name}\n\n'
+
+    call += '\n\n'
+
+    return HEADER + call, HEADER + pred_call, name
 
 def main():
     pdebench=("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
