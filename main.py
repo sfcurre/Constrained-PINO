@@ -11,13 +11,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-# from torch.profiler import profile, record_function, ProfilerActivity
-# from pytorch_memlab import LineProfiler
-
-# from torch.utils.tensorboard import SummaryWriter
-
-# default `log_dir` is "runs" - we'll be more specific here
-# writer = SummaryWriter()
 
 from source.data.dynamic_graph import DynamicGraph
 from source.data.periodic_graph import PeriodicGraph
@@ -34,6 +27,9 @@ from source.nn_models import DeepSpGAT, PIGNN, PIFNO2d
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
 
 # torch.autograd.set_detect_anomaly(True)
+
+np.random.seed(1998)
+torch.manual_seed(1998)
 
 def parse_args():
     parser = argparse.ArgumentParser()
