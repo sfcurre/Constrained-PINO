@@ -96,7 +96,7 @@ def main():
         if args.use_grid:
             dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
                                         history=args.history, use_cuda=args.cuda,
-                                        reduced_resolution=4, reduced_batch=2)
+                                        reduced_resolution=2, reduced_batch=2)
         elif args.periodic_bc:
             if args.mini_batch_width:
                 dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
@@ -105,7 +105,7 @@ def main():
             else:
                 dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps,
                                                      history=args.history, use_cuda=args.cuda,
-                                                     reduced_resolution=4, reduced_batch=2)
+                                                     reduced_resolution=2, reduced_batch=2)
         else:
             dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps,
                                          history=args.history, use_cuda=args.cuda)

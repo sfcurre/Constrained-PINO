@@ -4,7 +4,7 @@ from matplotlib import animation
 from tqdm import tqdm
 import argparse
 
-from source.data.pdebench_graph import PDEBenchGraph
+from source.data.dynamic_grid import PDEBenchGrid
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -74,10 +74,10 @@ def main():
     if args.run_true:
         filename = "/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"
         timesteps = 100
-        data = PDEBenchGraph(filename, timesteps=timesteps, use_cuda=False, reduced_batch=2, reduced_resolution=4)
+        data = PDEBenchGrid(filename, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=2, reduced_resolution=2)
         print(len(data.solution))        
 
-        for i in range(10):
+        for i in range(1):
             adj, locations, features, targets, mask = data[i]
 
             features = features.detach().numpy()
@@ -88,8 +88,8 @@ def main():
 
             animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
 
-    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 128, 128, 1, -1))
-    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 128, 128, 1, -1))
+    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))
+    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 256, 256, 1, -1))
 
     animate_density(full_out[..., 0, 0], f'{args.name}')
 

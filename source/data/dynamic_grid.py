@@ -13,6 +13,8 @@ from .tgv_graph import TGVGraph
 class DynamicGrid(Dataset):
     def __init__(self, grid, solution, num_channels, timesteps=1, history=0, use_cuda=False):
         self.grid = grid
+        print(grid.shape)
+        print(solution.shape)
         self.solution = solution
         self.num_channels = num_channels
         self.timesteps = timesteps

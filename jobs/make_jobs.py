@@ -107,7 +107,7 @@ def main():
                         write_bash(fp, pred_fp, 
                                    *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
                                             pdebench=pdebench,
-                                            e=100,
+                                            e=1000,
                                             lr=lr,
                                             layers=4,
                                             hdim=64,

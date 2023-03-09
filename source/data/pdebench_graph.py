@@ -181,9 +181,9 @@ class PDEBenchGraph(DynamicGraph):
                     self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
 
         while len(self.grid.shape) < 4:
-            self.grid = np.expand_dims(self.grid, axis=2)
+            self.grid = np.expand_dims(self.grid, axis=-2)
         while len(self.data.shape) < 6:
-            self.data = np.expand_dims(self.data, axis=2)
+            self.data = np.expand_dims(self.data, axis=-3)
 
         self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, batch, ch
         self.data = (self.data - self.data.mean(axis=(0, 1, 2, 3, 4))) / self.data.std(axis=(0, 1, 2, 3, 4))

@@ -64,10 +64,18 @@ class PIFNO2d(nn.Module):
 
     # @profile
     def forward(self, locations, features, adj):
+        total_density = torch.sum(features[..., 0])
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
-        
-        x = self.fno(features, locations)
+
+        features = features[None, ..., 0, :]
+        locations = locations[None, ..., 0, :]
+        x = self.fno(features, locations)[0]
+
+        out_density = torch.sum(x[..., 0])
+        scaled_density = x[..., :1] * total_density / out_density
+        x = torch.concat([scaled_density, x[..., 1:]], dim=-1) 
+ 
         return x
 
 class SpGAT(nn.Module):
