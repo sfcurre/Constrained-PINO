@@ -46,7 +46,7 @@ def animate_density(p_mat, name):
     plt.title('Fluid Density')
     anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(p_mat)))], blit=True, interval=100)
     print('Saving mp4...')
-    anim.save(f'fluid_density_{name}.mp4', writer='ffmpeg')
+    anim.save(f'out/visuals/fluid_density_{name}.mp4', writer='ffmpeg')
 
 
 def animate_vorticity(velocities, name):
@@ -65,7 +65,7 @@ def animate_vorticity(velocities, name):
     plt.title('Fluid Vorticity')
     anim = animation.ArtistAnimation(fig, [update(n) for n in range(len(velocities))], blit=True, interval=100)
     print('Saving mp4...')
-    anim.save(f'fluid_vorticity_{name}.mp4', writer='ffmpeg')
+    anim.save(f'out/visuals/fluid_vorticity_{name}.mp4', writer='ffmpeg')
 
 
 def main():
