@@ -31,6 +31,27 @@ def vorticity_plot(x, y, Fx, Fy):
     plot = plt.matshow(c, cmap='Spectral_r', vmin=-v, vmax=v)
     return plot
 
+def animate_channels(mat, name):
+    fig, axes = plt.subplots(1, 4)
+
+    vmax = mat.max(axis=(0, 1, 2))
+    vmin = mat.min(axis=(0, 1, 2))
+
+    def update(n=0):
+        pls = []
+        for i in range(mat.shape[-1]):
+            pl = axes[i].imshow(p_mat[n, ..., i], cmap='jet', animated=True, vmin=vmin[i], vmax=vmax[i], origin='lower')
+            fig.colorbar(pl, ax=axes[i], location='bottom')
+            pls.append(pl)
+            #pl = ax.imshow(p_mat[n], cmap='jet', animated=True, origin='lower')
+        return pls
+
+    plt.title('Fluid Channels')
+    anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(p_mat)))], blit=True, interval=100)
+    print('Saving mp4...')
+    anim.save(f'out/visuals/fluid_density_{name}.mp4', writer='ffmpeg')
+
+
 def animate_density(p_mat, name):
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -86,12 +107,12 @@ def main():
             print(solution.shape)
             solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
 
-            animate_density(np.tile(solution[..., 0, 0], (1, 1, 1)), f'T2D{i}')
+            animate_channels(np.tile(solution[..., 0, :], (1, 1, 1)), f'T2D{i}')
 
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))
     test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 256, 256, 1, -1))
 
-    animate_density(full_out[..., 0, 0], f'{args.name}')
+    animate_channels(full_out[..., 0, :], f'{args.name}')
 
 
 if __name__ == '__main__':
