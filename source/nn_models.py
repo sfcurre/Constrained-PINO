@@ -65,10 +65,10 @@ class PIFNO2d(nn.Module):
     # @profile
     def forward(self, locations, features, adj):
         total_density = torch.sum(features[..., -4])
-        total_squared_vx = torch.sum(features[..., -3] ** 2)
-        total_squared_vy = torch.sum(features[..., -2] ** 2)
+        squared_vx = features[..., -3] ** 2
+        squared_vy = features[..., -2] ** 2
         total_pressure = torch.sum(features[..., -1])
-        total_energy = 0.5 * total_density * (total_squared_vx + total_squared_vy) + total_pressure
+        total_energy = torch.sum(0.5 * features[..., -4] * (squared_vx + squared_vy)) + total_pressure
 
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
@@ -78,20 +78,19 @@ class PIFNO2d(nn.Module):
         x = self.fno(features, locations)[0]
 
         out_density = torch.sum(x[..., 0])
-        scaled_density = x[..., :1] * total_density / out_density        
-        
-        out_squared_vx = torch.sum(x[..., 1]**2)
-        out_squared_vy = torch.sum(x[..., 2]**2)
-        out_pressure = torch.sum(x[..., 3])
-        out_energy = 0.5 * scaled_density * (out_squared_vx + out_squared_vy) + out_pressure
+        scaled_density = x[..., :1] * total_density / out_density
+        out_squared_vx = x[..., 1]**2
+        out_squared_vy = x[..., 2]**2
+        out_pressure_energy = torch.sum(x[..., 3])
+        out_kinetic_energy = torch.sum(0.5 * scaled_density * (out_squared_vx + out_squared_vy))
+        new_out_pressure_energy = total_energy - out_kinetic_energy
 
-        energy_ratio = total_energy / out_energy
+        energy_ratio = new_out_pressure_energy / out_pressure_energy
         scaled_pressure = x[..., 3:] * energy_ratio
-        scaled_vx = x[..., 1:2] * energy_ratio ** 0.5
-        scaled_vy = x[..., 2:3] * energy_ratio ** 0.5
         
-        x = torch.concat([scaled_density, scaled_vx, scaled_vy, scaled_pressure], dim=-1) 
- 
+        x = torch.concat([scaled_density, x[..., 1:3], scaled_pressure], dim=-1) 
+        #x = torch.concat([scaled_density, x[..., 1:]], dim=-1) 
+
         return x
 
 class SpGAT(nn.Module):

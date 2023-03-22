@@ -32,7 +32,7 @@ def vorticity_plot(x, y, Fx, Fy):
     return plot
 
 def animate_channels(mat, name):
-    fig, axes = plt.subplots(1, 4)
+    fig, axes = plt.subplots(1, 4, figsize=(16, 4))
 
     vmax = mat.max(axis=(0, 1, 2))
     vmin = mat.min(axis=(0, 1, 2))
@@ -40,14 +40,16 @@ def animate_channels(mat, name):
     def update(n=0):
         pls = []
         for i in range(mat.shape[-1]):
-            pl = axes[i].imshow(p_mat[n, ..., i], cmap='jet', animated=True, vmin=vmin[i], vmax=vmax[i], origin='lower')
-            fig.colorbar(pl, ax=axes[i], location='bottom')
+            pl = axes[i].imshow(mat[n, ..., i], cmap='jet', animated=True, vmin=vmin[i], vmax=vmax[i], origin='lower')
+            if n == 0:
+                fig.colorbar(pl, ax=axes[i], location='bottom')
+            
             pls.append(pl)
             #pl = ax.imshow(p_mat[n], cmap='jet', animated=True, origin='lower')
         return pls
 
-    plt.title('Fluid Channels')
-    anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(p_mat)))], blit=True, interval=100)
+    fig.suptitle('Fluid Channels (density, vx, vy, pressure)')
+    anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(mat)))], blit=True, interval=100)
     print('Saving mp4...')
     anim.save(f'out/visuals/fluid_density_{name}.mp4', writer='ffmpeg')
 
