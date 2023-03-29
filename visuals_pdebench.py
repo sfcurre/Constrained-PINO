@@ -108,8 +108,32 @@ def main():
             solution = np.concatenate([features[None, ...], targets], axis = 0)
             print(solution.shape)
             solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
+            solution = solution[..., 0, :]
 
-            animate_channels(np.tile(solution[..., 0, :], (1, 1, 1)), f'T2D{i}')
+            animate_channels(np.tile(solution, (1, 1, 1)), f'T2D{i}')
+
+            total_density = np.sum(solution[..., 0], axis = (1, 2))
+            squared_vx = solution[..., 1] ** 2
+            squared_vy = solution[..., 2] ** 2
+            total_pressure = np.sum(solution[..., 3], axis = (1, 2))
+            total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_vx + squared_vy), axis = (1, 2))
+            total_energy = total_kinetic + total_pressure
+
+            change_density = total_density[1:] = total_density[:-1]
+            change_pressure = total_pressure[1:] = total_pressure[:-1]
+            change_kinetic = total_kinetic[1:] = total_kinetic[:-1]
+            change_energy = total_energy[1:] = total_energy[:-1]
+
+            fig = plt.figure(figsize=(8,8))
+            x = np.arange(len(change_density))
+            plt.plot(x, change_density, label='$\Delta$ Density')
+            plt.plot(x, change_pressure, label='$\Delta$ Pressure')
+            plt.plot(x, change_kinetic, label='$\Delta$ Kinetic')
+            plt.plot(x, change_energy, label='$\Delta$ Energy')
+            plt.legend()
+            plt.xlabel('t')
+            plt.ylabel('$\Delta$')
+            plt.savefig('out/visuals/delta.png')
 
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))
     test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 256, 256, 1, -1))
