@@ -72,17 +72,17 @@ def pde_IFD3d(x, y1, y2, mask):
 
 
 def pde_CFD2d(x, y1, y2, mask, gamma=1.4):
-    h1 = y1[..., 0].unsqueeze(1)  # rho
-    ux1 = y1[..., 1].unsqueeze(1)  # vx
-    uy1 = y1[..., 2].unsqueeze(1)  # vy
-    p1 = y1[..., 3].unsqueeze(1)  # p
+    h1 = y1[..., -4].unsqueeze(1)  # rho
+    ux1 = y1[..., -3].unsqueeze(1)  # vx
+    uy1 = y1[..., -2].unsqueeze(1)  # vy
+    p1 = y1[..., -1].unsqueeze(1)  # p
     E1 = p1/(gamma - 1.) + 0.5 * h1 * (ux1**2 + uy1**2)
     E1 = E1.unsqueeze(1)
     
-    h2 = y2[..., 0].unsqueeze(1)  # rho
-    ux2 = y2[..., 1].unsqueeze(1)  # vx
-    uy2 = y2[..., 2].unsqueeze(1)  # vy
-    p2 = y2[..., 3].unsqueeze(1)  # p
+    h2 = y2[..., -4].unsqueeze(1)  # rho
+    ux2 = y2[..., -3].unsqueeze(1)  # vx
+    uy2 = y2[..., -2].unsqueeze(1)  # vy
+    p2 = y2[..., -1].unsqueeze(1)  # p
     E2 = p2/(gamma - 1.) + 0.5 * h2 * (ux2**2 + uy2**2)
     E2 = E2.unsqueeze(1)
     Fx = ux2 * (E2 + p2)
@@ -94,14 +94,14 @@ def pde_CFD2d(x, y1, y2, mask, gamma=1.4):
     hu_x = dde.grad.jacobian(h2 * ux2, x, i=0, j=0)
     hu_y = dde.grad.jacobian(h2 * uy2, x, i=0, j=1)
     
-    ux_x = dde.grad.jacobian(y2, x, i=1, j=0)
-    ux_y = dde.grad.jacobian(y2, x, i=1, j=1)
+    ux_x = dde.grad.jacobian(y2, x, i=-3, j=0)
+    ux_y = dde.grad.jacobian(y2, x, i=-3, j=1)
     
-    uy_x = dde.grad.jacobian(y2, x, i=2, j=0)
-    uy_y = dde.grad.jacobian(y2, x, i=2, j=1)
+    uy_x = dde.grad.jacobian(y2, x, i=-2, j=0)
+    uy_y = dde.grad.jacobian(y2, x, i=-2, j=1)
     
-    p_x = dde.grad.jacobian(y2, x, i=3, j=0)
-    p_y = dde.grad.jacobian(y2, x, i=3, j=1)
+    p_x = dde.grad.jacobian(y2, x, i=-1, j=0)
+    p_y = dde.grad.jacobian(y2, x, i=-1, j=1)
     
     Fx_x = dde.grad.jacobian(Fx, x, i=0, j=0)
     Fy_y = dde.grad.jacobian(Fy, x, i=0, j=1)
