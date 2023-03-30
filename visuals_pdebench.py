@@ -5,6 +5,7 @@ from tqdm import tqdm
 import argparse
 
 from source.data.dynamic_grid import PDEBenchGrid
+from source.losses.navier_stokes_loss import pde_CFD2d
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -124,6 +125,20 @@ def main():
             change_kinetic = total_kinetic[1:] = total_kinetic[:-1]
             change_energy = total_energy[1:] = total_energy[:-1]
 
+            y1, y2 = solution[:-1], solution[1:]
+            losses = []
+            for i in range(len(y1)):
+                losses.append(pde_CFD2d(locations, y1[i], y2[i], 1, individual=True))
+            fig = plt.figure(figsize=(8,8))
+            for i in range(4):
+                l = [loss[i].detach().numpy().mean() for loss in losses]
+                plt.plot(l, label=f'Eq {i+1}')
+            plt.legend()
+            plt.xlabel('t')
+            plt.ylabel('loss')
+            plt.savefig('out/visuals/loss.png')
+            del fig
+
             fig = plt.figure(figsize=(8,8))
             x = np.arange(len(change_density))
             plt.plot(x, change_density, label='$\Delta$ Density')
@@ -134,6 +149,7 @@ def main():
             plt.xlabel('t')
             plt.ylabel('$\Delta$')
             plt.savefig('out/visuals/delta.png')
+            del fig
 
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))
     test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 256, 256, 1, -1))

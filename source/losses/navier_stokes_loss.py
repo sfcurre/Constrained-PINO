@@ -71,7 +71,7 @@ def pde_IFD3d(x, y1, y2, mask):
     return torch.mean(loss)
 
 
-def pde_CFD2d(x, y1, y2, mask, gamma=1.4):
+def pde_CFD2d(x, y1, y2, mask, gamma=1.4, individual=False):
     h1 = y1[..., -4].unsqueeze(1)  # rho
     ux1 = y1[..., -3].unsqueeze(1)  # vx
     uy1 = y1[..., -2].unsqueeze(1)  # vy
@@ -115,6 +115,9 @@ def pde_CFD2d(x, y1, y2, mask, gamma=1.4):
     eq2 = h2 * (ux_t + ux2 * ux_x + uy2 * ux_y) - p_x
     eq3 = h2 * (uy_t + ux2 * uy_x + uy2 * uy_y) - p_y
     eq4 = E_t + Fx_x + Fy_y
+
+    if individual:
+        return torch.abs(eq1), torch.abs(eq2), torch.abs(eq3), torch.abs(eq4)
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3) + torch.abs(eq4))
