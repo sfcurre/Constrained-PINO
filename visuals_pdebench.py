@@ -4,6 +4,8 @@ from matplotlib import animation
 from tqdm import tqdm
 import argparse
 
+import torch
+
 from source.data.dynamic_grid import PDEBenchGrid
 from source.losses.navier_stokes_loss import pde_CFD2d
 
@@ -120,35 +122,21 @@ def main():
             total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_vx + squared_vy), axis = (1, 2))
             total_energy = total_kinetic + total_pressure
 
-            change_density = total_density[1:] = total_density[:-1]
-            change_pressure = total_pressure[1:] = total_pressure[:-1]
-            change_kinetic = total_kinetic[1:] = total_kinetic[:-1]
-            change_energy = total_energy[1:] = total_energy[:-1]
-
-            y1, y2 = solution[:-1], solution[1:]
-            losses = []
-            for i in range(len(y1)):
-                losses.append(pde_CFD2d(locations, y1[i], y2[i], 1, individual=True))
-            fig = plt.figure(figsize=(8,8))
-            for i in range(4):
-                l = [loss[i].detach().numpy().mean() for loss in losses]
-                plt.plot(l, label=f'Eq {i+1}')
-            plt.legend()
-            plt.xlabel('t')
-            plt.ylabel('loss')
-            plt.savefig('out/visuals/loss.png')
-            del fig
+            change_density = total_density[1:] - total_density[:-1]
+            change_pressure = total_pressure[1:] - total_pressure[:-1]
+            change_kinetic = total_kinetic[1:] - total_kinetic[:-1]
+            change_energy = total_energy[1:] - total_energy[:-1]
 
             fig = plt.figure(figsize=(8,8))
-            x = np.arange(len(change_density))
-            plt.plot(x, change_density, label='$\Delta$ Density')
-            plt.plot(x, change_pressure, label='$\Delta$ Pressure')
-            plt.plot(x, change_kinetic, label='$\Delta$ Kinetic')
-            plt.plot(x, change_energy, label='$\Delta$ Energy')
+            x = np.arange(len(total_density))
+            plt.plot(x, total_density, label='Density')
+            plt.plot(x, total_pressure, label='Pressure')
+            plt.plot(x, total_kinetic, label='Kinetic')
+            plt.plot(x, total_energy, label='Energy')
             plt.legend()
             plt.xlabel('t')
-            plt.ylabel('$\Delta$')
-            plt.savefig('out/visuals/delta.png')
+            plt.ylabel('Total')
+            plt.savefig('out/visuals/total.png')
             del fig
 
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))

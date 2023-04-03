@@ -39,7 +39,7 @@ class DynamicGraph(Dataset):
         targets = flow_features[t+hist+1: t+hist+tdif+1][..., c: c + self.num_channels]
 
         #shape into feature matrics
-        features = features.moveaxis(0, -2).reshape((-1, hist * features.shape[-1]))
+        features = np.moveaxis(features, 0, -2).reshape((-1, hist * features.shape[-1]))
         targets = targets.reshape((targets.shape[0], -1, targets.shape[-1]))
 
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()

@@ -28,8 +28,8 @@ from source.nn_models import DeepSpGAT, PIGNN, PIFNO2d
 
 # torch.autograd.set_detect_anomaly(True)
 
-np.random.seed(1998)
-torch.manual_seed(1998)
+# np.random.seed(1998)
+# torch.manual_seed(1998)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -105,7 +105,7 @@ def main():
             else:
                 dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps,
                                                      history=args.history, use_cuda=args.cuda,
-                                                     reduced_resolution=2, reduced_batch=2)
+                                                     reduced_resolution=4, reduced_batch=2)
         else:
             dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps,
                                          history=args.history, use_cuda=args.cuda)

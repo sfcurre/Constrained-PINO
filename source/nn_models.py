@@ -65,10 +65,7 @@ class PIFNO2d(nn.Module):
     # @profile
     def forward(self, locations, features, adj):
         total_density = torch.sum(features[..., -4])
-        squared_vx = features[..., -3] ** 2
-        squared_vy = features[..., -2] ** 2
         total_pressure = torch.sum(features[..., -1])
-        total_energy = torch.sum(0.5 * features[..., -4] * (squared_vx + squared_vy)) + total_pressure
 
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
@@ -79,14 +76,9 @@ class PIFNO2d(nn.Module):
 
         out_density = torch.sum(x[..., 0])
         scaled_density = x[..., :1] * total_density / out_density
-        out_squared_vx = x[..., 1]**2
-        out_squared_vy = x[..., 2]**2
-        out_pressure_energy = torch.sum(x[..., 3])
-        out_kinetic_energy = torch.sum(0.5 * scaled_density * (out_squared_vx + out_squared_vy))
-        new_out_pressure_energy = total_energy - out_kinetic_energy
 
-        energy_ratio = new_out_pressure_energy / out_pressure_energy
-        scaled_pressure = x[..., 3:] * energy_ratio
+        out_pressure = torch.sum(x[..., 3])        
+        scaled_pressure = x[..., 3:] * total_pressure / out_pressure
         
         x = torch.concat([scaled_density, x[..., 1:3], scaled_pressure], dim=-1) 
         #x = torch.concat([scaled_density, x[..., 1:]], dim=-1) 
