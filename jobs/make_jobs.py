@@ -38,7 +38,7 @@ cd ~/Physics-Informed-GNNs
 '''
     PRED_HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN_Pred-{name}
-#SBATCH --time=0:59:59
+#SBATCH --time=0:09:59
 #SBATCH --output="out/PIGNN_Pred-{name}-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
