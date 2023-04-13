@@ -1,3 +1,8 @@
+# Shell scripts and output files
+jobs/*.sh
+jobs/job_files/*.sh
+jobs/job_files/out/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

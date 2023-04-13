@@ -103,8 +103,12 @@ def main():
         data = PDEBenchGrid(filename, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=2, reduced_resolution=2)
         print(len(data.solution))        
 
-        for i in range(1):
-            adj, locations, features, targets, mask = data[i]
+        for i in range(2):
+            if i == 0:
+                data.training()
+            else:
+                data.testing()
+            adj, locations, features, targets, mask = data[0]
 
             features = features.detach().numpy()
             targets = [t.detach().numpy() for t in targets]
@@ -113,7 +117,7 @@ def main():
             solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
             solution = solution[..., 0, :]
 
-            animate_channels(np.tile(solution, (1, 1, 1)), f'T2D{i}')
+            animate_channels(np.tile(solution, (1, 1, 1)), f'T2D0_{"training" if i==0 else "testing"}')
 
             total_density = np.sum(solution[..., 0], axis = (1, 2))
             squared_vx = solution[..., 1] ** 2
@@ -136,13 +140,14 @@ def main():
             plt.legend()
             plt.xlabel('t')
             plt.ylabel('Total')
-            plt.savefig('out/visuals/total.png')
+            plt.savefig(f'out/visuals/total_{"training" if i==0 else "testing"}.png')
             del fig
 
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))
     test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 256, 256, 1, -1))
 
     animate_channels(full_out[..., 0, :], f'{args.name}')
+    animate_channels(test_out[..., 0, :], f'{args.name}_test')
 
 
 if __name__ == '__main__':

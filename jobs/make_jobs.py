@@ -90,8 +90,12 @@ cd ~/Physics-Informed-GNNs
     return HEADER + call, PRED_HEADER + pred_call, name
 
 def main():
-    pdebench=("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
-              "2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5")
+    pdebench=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
+               "2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
+               "2D_Rand")
+    pdebench_turb=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Turb/"
+                    "2d_cfd_turb_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
+                    "2D_Turb")
 
     grd='TGV/ijk_snapshots/ijkmvmv_grd.npy'
     sol='TGV/ijk_snapshots/ijkmvmv_sol.npy'
@@ -101,22 +105,36 @@ def main():
             fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
-            for lr in [1e-4, 1e-5]:
-                for pde_weight in [0.0]:
-                    for modeltype in ['OneStep', 'PushForward', 'AutoRegressive']:
-                        write_bash(fp, pred_fp, 
-                                   *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
-                                            pdebench=pdebench,
-                                            e=1000,
-                                            lr=lr,
-                                            layers=4,
-                                            hdim=64,
-                                            timesteps=5,
-                                            pde_weight=pde_weight,
-                                            modeltype=modeltype,
-                                            nn_arch='FNO2d',
-                                            use_grid=True,
-                                            history=10))
+            for pde, name in [pdebench, pdebench_turb]:
+                for lr in [1e-5]:#, 1e-6]:
+                    for pde_weight in [0.1, 0.01, 0.0]:
+                        for modeltype in ['AutoRegressive']:
+                            write_bash(fp, pred_fp, 
+                            *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
+                                        pdebench=pde,
+                                        e=1000,
+                                        lr=lr,
+                                        layers=4,
+                                        hdim=64,
+                                        timesteps=5,
+                                        pde_weight=pde_weight,
+                                        modeltype=modeltype,
+                                        nn_arch='FNO2d',
+                                        use_grid=True,
+                                        history=10))
+
+                        #write_bash(fp, pred_fp,           
+                        #           *make_call(f'PDEBench2D-PIGNN-{modeltype}-lr_{lr}-pde_{pde_weight}',
+                        #                    pdebench=pdebench,
+                        #                    e=1000,
+                        #                    lr=lr,
+                        #                    layers=4,
+                        #                    hdim=64,
+                        #                    timesteps=5,
+                        #                    pde_weight=pde_weight,
+                        #                    modeltype=modeltype,
+                        #                    nn_arch='PIGNN',
+                        #                    history=1))
 
 if __name__ == '__main__':
     main()
