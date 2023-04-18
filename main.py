@@ -28,8 +28,8 @@ from source.nn_models import DeepSpGAT, PIGNN, PIFNO2d
 
 # torch.autograd.set_detect_anomaly(True)
 
-# np.random.seed(1998)
-# torch.manual_seed(1998)
+np.random.seed(1998)
+torch.manual_seed(1998)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -126,8 +126,18 @@ def main():
                     nheads=args.nb_heads,
                     alpha=args.alpha,
                     periodic=args.periodic_bc)
+    elif args.nn_arch == 'FNO1d':
+        model = PIFNO1d(ndims=dynamic_data.ndims,
+                        nclass=dynamic_data.nfeats,
+                        periodic=args.periodic_bc,
+                        history=args.history)
     elif args.nn_arch == 'FNO2d':
         model = PIFNO2d(ndims=dynamic_data.ndims,
+                        nclass=dynamic_data.nfeats,
+                        periodic=args.periodic_bc,
+                        history=args.history)
+    elif args.nn_arch == 'FNO3d':
+        model = PIFNO3d(ndims=dynamic_data.ndims,
                         nclass=dynamic_data.nfeats,
                         periodic=args.periodic_bc,
                         history=args.history)

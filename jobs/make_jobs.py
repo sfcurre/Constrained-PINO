@@ -90,12 +90,23 @@ cd ~/Physics-Informed-GNNs
     return HEADER + call, PRED_HEADER + pred_call, name
 
 def main():
-    pdebench=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
-               "2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
-               "2D_Rand")
-    pdebench_turb=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Turb/"
-                    "2d_cfd_turb_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
-                    "2D_Turb")
+    pdebench_1d=(("/fs/scratch/PAS2170/pdebench/data/1D/CFD/Train/"
+                  "1d_cfd_rand_eta1.e-8_zeta1.e-8_periodic_train.hdf5"),
+                  "1D_Rand")
+    
+    pdebench_2d=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
+                  "2d_cfd_rand_m1.0_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
+                  "2D_Rand")
+    pdebench_2d_turb=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Turb/"
+                       "2d_cfd_turb_m1.0_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
+                       "2D_Turb")
+
+    pdebench_3d=(("/fs/scratch/PAS2170/pdebench/data/3D/CFD/Train/"
+                  "3d_cfd_rand_m1.0_eta1e-08_zeta1e-08_periodic_train.hdf5"),
+                  "3D_Rand")
+    pdebench_3d_turb=(("/fs/scratch/PAS2170/pdebench/data/3D/CFD/Train/"
+                       "3d_cfd_turb_m1.0_eta1e-08_zeta1e-08_periodic_train.hdf5"),
+                       "3D_Turb")
 
     grd='TGV/ijk_snapshots/ijkmvmv_grd.npy'
     sol='TGV/ijk_snapshots/ijkmvmv_sol.npy'
@@ -105,12 +116,13 @@ def main():
             fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
-            for pde, name in [pdebench, pdebench_turb]:
+            for pde, name in [pdebench_1d, pdebench_2d, pdebench_2d_turb,
+                              pdebench_3d, pdebench_3d_turb]:
                 for lr in [1e-5]:#, 1e-6]:
                     for pde_weight in [0.1, 0.01, 0.0]:
                         for modeltype in ['AutoRegressive']:
                             write_bash(fp, pred_fp, 
-                            *make_call(f'PDEBench2D-{modeltype}-lr_{lr}-pde_{pde_weight}',
+                            *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}',
                                         pdebench=pde,
                                         e=1000,
                                         lr=lr,
@@ -119,10 +131,10 @@ def main():
                                         timesteps=5,
                                         pde_weight=pde_weight,
                                         modeltype=modeltype,
-                                        nn_arch='FNO2d',
+                                        nn_arch=f'FNO{name[0]}d',
                                         use_grid=True,
                                         history=10))
-
+                        
                         #write_bash(fp, pred_fp,           
                         #           *make_call(f'PDEBench2D-PIGNN-{modeltype}-lr_{lr}-pde_{pde_weight}',
                         #                    pdebench=pdebench,

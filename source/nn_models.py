@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.nn as tgnn
-from .layers.fourier import FNO2d
+from .layers.fourier import FNO1d, FNO2d, FNO3d
 from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
@@ -48,6 +48,42 @@ class PIGNN(nn.Module):
         x = self.linear_out(x)
         return x
 
+class PIFNO1d(nn.Module):
+    def __init__(self, ndims, nclass, periodic=True, history=10):
+        super(PIFNO1d, self).__init__()
+        self.ndims = ndims
+        self.nclass = nclass
+        self.periodic = True
+        self.history = history
+
+        if self.periodic:
+            self.wave_transform = WaveTransform()
+            self.ndims *= 2
+        
+        self.fno = FNO1d(self.nclass, self.ndims, initial_step=self.history)
+
+    # @profile
+    def forward(self, locations, features, adj):
+        total_density = torch.sum(features[..., -3])
+        total_pressure = torch.sum(features[..., -1])
+
+        if self.periodic:
+            locations = self.wave_transform(locations, concat_to=None)
+
+        features = features[None, ..., 0, 0, :]
+        locations = locations[None, ..., 0, 0, :]
+        x = self.fno(features, locations)[0]
+
+        out_density = torch.sum(x[..., 0])
+        scaled_density = x[..., :1] * total_density / out_density
+
+        out_pressure = torch.sum(x[..., 3])        
+        scaled_pressure = x[..., 2:] * total_pressure / out_pressure
+        
+        x = torch.concat([scaled_density, x[..., 1:2], scaled_pressure], dim=-1) 
+
+        return x
+
 class PIFNO2d(nn.Module):
     def __init__(self, ndims, nclass, periodic=True, history=10):
         super(PIFNO2d, self).__init__()
@@ -81,7 +117,42 @@ class PIFNO2d(nn.Module):
         scaled_pressure = x[..., 3:] * total_pressure / out_pressure
         
         x = torch.concat([scaled_density, x[..., 1:3], scaled_pressure], dim=-1) 
-        #x = torch.concat([scaled_density, x[..., 1:]], dim=-1) 
+
+        return x
+
+class PIFNO3d(nn.Module):
+    def __init__(self, ndims, nclass, periodic=True, history=10):
+        super(PIFNO3d, self).__init__()
+        self.ndims = ndims
+        self.nclass = nclass
+        self.periodic = True
+        self.history = history
+
+        if self.periodic:
+            self.wave_transform = WaveTransform()
+            self.ndims *= 2
+        
+        self.fno = FNO3d(self.nclass, self.ndims, initial_step=self.history)
+
+    # @profile
+    def forward(self, locations, features, adj):
+        total_density = torch.sum(features[..., -5])
+        total_pressure = torch.sum(features[..., -1])
+
+        if self.periodic:
+            locations = self.wave_transform(locations, concat_to=None)
+
+        features = features[None, ...]
+        locations = locations[None, ...]
+        x = self.fno(features, locations)[0]
+
+        out_density = torch.sum(x[..., 0])
+        scaled_density = x[..., :1] * total_density / out_density
+
+        out_pressure = torch.sum(x[..., 3])        
+        scaled_pressure = x[..., 4:] * total_pressure / out_pressure
+        
+        x = torch.concat([scaled_density, x[..., 1:4], scaled_pressure], dim=-1) 
 
         return x
 
