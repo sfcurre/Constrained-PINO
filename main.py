@@ -183,14 +183,22 @@ def main():
 
     dynamic_model.model.eval()
     with torch.no_grad():
+        
+        if args.nn_arch == 'FNO1d':
+            timesteps = 90
+        if args.nn_arch == 'FNO2d':
+            timesteps = 11
+        if args.nn_arch == 'FNO2d':
+            timesteps = 11
+
         dynamic_data.training()
         adj, locations, features, _, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, adj, timesteps=30, numpy=True)
+        predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps, numpy=True)
         np.save(f'out/predictions/{args.name}_full.npy', np.array(predictions))
 
         dynamic_data.testing()
         adj, locations, features, _, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, adj, timesteps=30, numpy=True)
+        predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps, numpy=True)
         np.save(f'out/predictions/{args.name}_test.npy', np.array(predictions))
 
 if __name__ == '__main__':
