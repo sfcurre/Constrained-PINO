@@ -148,12 +148,18 @@ def main():
             solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
             solution = solution[10:, ..., 0, :]
 
-            if '2D' in args.run_true:
-                animate_channels(np.tile(solution, (1, 1, 1)), f'T2D0_{"training" if i==0 else "testing"}')
-            elif '1D' in args.run_true:
-                plot_1d(solution, f'T1D0_{"training" if i==0 else "testing"}')
+            name = f'GT_{"training" if i==0 else "testing"}'
 
-            plot_totals(solution, "training" if i==0 else "testing")
+            if '2D' in args.run_true:
+                name += '_2D'
+                animate_channels(np.tile(solution, (1, 1, 1)), name)
+            elif '1D' in args.run_true:
+                name += '_1D'
+                plot_1d(solution, name)
+            else: #3D
+                name += '_3D'
+
+            plot_totals(solution, name)
 
 if '2D' in args.name:
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 256, 256, 1, -1))
@@ -172,8 +178,6 @@ elif '1D' in args.name:
 else: #3D
     full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 64, 64, 64, -1))
     test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 64, 64, 64, -1))
-
-
 
 plot_totals(full_out, args.name)
 plot_totals(test_out, f'{args.name}_test')
