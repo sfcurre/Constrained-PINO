@@ -12,7 +12,7 @@ from source.losses.navier_stokes_loss import pde_CFD2d
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str)
-    parser.add_argument('--run-true', action='store_true')
+    parser.add_argument('--run-true', type=str, default='')
     return parser.parse_args()
 
 def curl(vfield, dim=2):
@@ -54,7 +54,7 @@ def animate_channels(mat, name):
     fig.suptitle('Fluid Channels (density, vx, vy, pressure)')
     anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(mat)))], blit=True, interval=100)
     print('Saving mp4...')
-    anim.save(f'out/visuals/fluid_density_{name}.mp4', writer='ffmpeg')
+    anim.save(f'out/visuals/fluid_channels_{name}.mp4', writer='ffmpeg')
 
 
 def animate_density(p_mat, name):
@@ -93,14 +93,45 @@ def animate_vorticity(velocities, name):
     print('Saving mp4...')
     anim.save(f'out/visuals/fluid_vorticity_{name}.mp4', writer='ffmpeg')
 
+def plot_totals(solution, name):
+    while len(solution.shape) < 5:
+        solution = np.expand_dims(solution, axis=-2)
+
+    total_density = np.sum(solution[..., 0], axis = (1, 2))
+    squared_velocity_sum = np.sum(solution[..., 1:-1] ** 2, axis=(1, 2, 3))
+    total_pressure = np.sum(solution[..., 3], axis = (1, 2, 3))
+    total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_vx + squared_vy), axis = (1, 2, 3))
+    total_energy = total_kinetic + total_pressure
+
+    fig = plt.figure(figsize=(8,8))
+    x = np.arange(len(total_density))
+    plt.plot(x, total_density, label='Density')
+    plt.plot(x, total_pressure, label='Pressure')
+    plt.plot(x, total_kinetic, label='Kinetic')
+    plt.plot(x, total_energy, label='Energy')
+    plt.legend()
+    plt.xlabel('t')
+    plt.ylabel('Total')
+    plt.savefig(f'out/visuals/totals_{name}.png')
+    del fig
+
+def plot_1d(data, name):
+    fig, axes = plt.subplots(1, 3, figsize=(16, 4))
+
+    axes[0].imshow(data.squeeze()[..., 0], cmap='jet', origin='lower')
+    axes[1].imshow(data.squeeze()[..., 1], cmap='jet', origin='lower')
+    axes[2].imshow(data.squeeze()[..., 2], cmap='jet', origin='lower')
+
+    plt.title('Fluid Channels (density, velocity, pressure)')
+    plt.savefig(f'out/visuals/fluid_channels_{name}.png')
+    del fig
 
 def main():
     args = parse_args()
 
     if args.run_true:
-        filename = "/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"
         timesteps = 100
-        data = PDEBenchGrid(filename, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=2, reduced_resolution=2)
+        data = PDEBenchGrid(args.run_true, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=2, reduced_resolution=2)
         print(len(data.solution))        
 
         for i in range(2):
@@ -115,39 +146,37 @@ def main():
             solution = np.concatenate([features[None, ...], targets], axis = 0)
             print(solution.shape)
             solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
-            solution = solution[..., 0, :]
+            solution = solution[10:, ..., 0, :]
 
-            animate_channels(np.tile(solution, (1, 1, 1)), f'T2D0_{"training" if i==0 else "testing"}')
+            if '2D' in args.run_true:
+                animate_channels(np.tile(solution, (1, 1, 1)), f'T2D0_{"training" if i==0 else "testing"}')
+            elif '1D' in args.run_true:
+                plot_1d(solution, f'T1D0_{"training" if i==0 else "testing"}')
 
-            total_density = np.sum(solution[..., 0], axis = (1, 2))
-            squared_vx = solution[..., 1] ** 2
-            squared_vy = solution[..., 2] ** 2
-            total_pressure = np.sum(solution[..., 3], axis = (1, 2))
-            total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_vx + squared_vy), axis = (1, 2))
-            total_energy = total_kinetic + total_pressure
+            plot_totals(solution, "training" if i==0 else "testing")
 
-            change_density = total_density[1:] - total_density[:-1]
-            change_pressure = total_pressure[1:] - total_pressure[:-1]
-            change_kinetic = total_kinetic[1:] - total_kinetic[:-1]
-            change_energy = total_energy[1:] - total_energy[:-1]
-
-            fig = plt.figure(figsize=(8,8))
-            x = np.arange(len(total_density))
-            plt.plot(x, total_density, label='Density')
-            plt.plot(x, total_pressure, label='Pressure')
-            plt.plot(x, total_kinetic, label='Kinetic')
-            plt.plot(x, total_energy, label='Energy')
-            plt.legend()
-            plt.xlabel('t')
-            plt.ylabel('Total')
-            plt.savefig(f'out/visuals/total_{"training" if i==0 else "testing"}.png')
-            del fig
-
-    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((30, 256, 256, 1, -1))
-    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((30, 256, 256, 1, -1))
+if '2D' in args.name:
+    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 256, 256, 1, -1))
+    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 256, 256, 1, -1))
 
     animate_channels(full_out[..., 0, :], f'{args.name}')
     animate_channels(test_out[..., 0, :], f'{args.name}_test')
+
+elif '1D' in args.name:
+    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((90, 512, 1, 1, -1))
+    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((90, 512, 1, 1, -1))
+
+    plot_1d(full_out, f'{args.name}')
+    plot_1d(test_out, f'{args.name}_test')
+
+else: #3D
+    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 64, 64, 64, -1))
+    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 64, 64, 64, -1))
+
+
+
+plot_totals(full_out, args.name)
+plot_totals(test_out, f'{args.name}_test')
 
 
 if __name__ == '__main__':
