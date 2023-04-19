@@ -20,8 +20,8 @@ from source.data.dynamic_grid import PDEBenchGrid, TGVGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
-from source.losses.navier_stokes_loss import pde_CFD3d, pde_CFD2d, pde_CFD2d_approx
-from source.nn_models import DeepSpGAT, PIGNN, PIFNO2d
+from source.losses.navier_stokes_loss import *
+from source.nn_models import *
 
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
@@ -160,7 +160,12 @@ def main():
         if args.pde_weight == 0:
             return 0
         #loss = pde_CFD2d(*fargs, **kwargs)
-        loss = pde_CFD2d_approx(*fargs, **kwargs)
+        if args.nn_arch == 'FNO1d':
+            loss = pde_CFD1d_approx(*fargs, **kwargs)
+        if args.nn_arch == 'FNO2d':
+            loss = pde_CFD2d_approx(*fargs, **kwargs)
+        if args.nn_arch == 'FNO3d':
+            loss = pde_CFD3d_approx(*fargs, **kwargs)
         return loss * args.pde_weight
 
     if args.model_type == 'OneStep':

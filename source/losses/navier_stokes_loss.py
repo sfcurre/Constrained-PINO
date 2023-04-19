@@ -60,12 +60,12 @@ def pde_CFD1d_approx(x, y1, y2, mask, gamma=1.4):
     
     # non conservative form
 
-    hu_x = torch.gradient(h2 * ux2, dim=0)
+    hu_x, = torch.gradient(h2 * ux2)
     
-    ux_x = torch.gradient(ux2, dim=0)
-    p_x = torch.gradient(p2, dim=0)
+    ux_x, = torch.gradient(ux2)
+    p_x, = torch.gradient(p2)
 
-    Fx_x = torch.gradient(Fx, dim=0)
+    Fx_x, = torch.gradient(Fx)
     
     h_t = h2 - h1
     ux_t = ux2 - ux1
@@ -151,15 +151,15 @@ def pde_CFD2d_approx(x, y1, y2, mask, gamma=1.4):
 
     # non conservative form
 
-    hu_x = torch.gradient(h2 * ux2, dim=0)
-    hu_y = torch.gradient(h2 * uy2, dim=1)
+    hu_x, _ = torch.gradient(h2 * ux2)
+    _, hu_y = torch.gradient(h2 * uy2)
 
     ux_x, ux_y = torch.gradient(ux2, dim=(0, 1))
     uy_x, uy_y = torch.gradient(uy2, dim=(0, 1))
     p_x, p_y = torch.gradient(p2, dim=(0, 1))
 
-    Fx_x = torch.gradient(Fx, dim=0)
-    Fy_y = torch.gradient(Fy, dim=1)
+    Fx_x, _ = torch.gradient(Fx)
+    _, Fy_y = torch.gradient(Fy)
     
     h_t = h2 - h1
     ux_t = ux2 - ux1
@@ -267,29 +267,18 @@ def pde_CFD3d_approx(x, y1, y2, mask, gamma=1.4):
     Fz = Fz.squeeze()
 
     # non conservative form
-    hu_x = dde.grad.jacobian(h2 * ux2, x, i=0, j=0)
-    hu_y = dde.grad.jacobian(h2 * uy2, x, i=0, j=1)
-    hu_z = dde.grad.jacobian(h2 * uz2, x, i=0, j=2)
+    hu_x, _, _ = torch.gradient(h2 * ux2)
+    _, hu_y, _ = torch.gradient(h2 * uy2)
+    _, _, hu_z = torch.gradient(h2 * uz2)
 
-    ux_x = dde.grad.jacobian(y2, x, i=1, j=0)
-    ux_y = dde.grad.jacobian(y2, x, i=1, j=1)
-    ux_z = dde.grad.jacobian(y2, x, i=1, j=2)
+    ux_x, ux_y, ux_z = torch.gradient(ux2, dim=(0, 1, 2))
+    uy_x, uy_y, uy_z = torch.gradient(uy2, dim=(0, 1, 2))
+    uz_x, uz_y, uz_z = torch.gradient(uz2, dim=(0, 1, 2))
+    p_x, p_y, p_z = torch.gradient(p2, dim=(0, 1, 2))
 
-    uy_x = dde.grad.jacobian(y2, x, i=2, j=0)
-    uy_y = dde.grad.jacobian(y2, x, i=2, j=1)
-    uy_z = dde.grad.jacobian(y2, x, i=2, j=2)
-
-    uz_x = dde.grad.jacobian(y2, x, i=3, j=0)
-    uz_y = dde.grad.jacobian(y2, x, i=3, j=1)
-    uz_z = dde.grad.jacobian(y2, x, i=3, j=2)
-
-    p_x = dde.grad.jacobian(y2, x, i=4, j=0)
-    p_y = dde.grad.jacobian(y2, x, i=4, j=1)
-    p_z = dde.grad.jacobian(y2, x, i=4, j=2)
-
-    Fx_x = dde.grad.jacobian(Fx, x, i=0, j=0)
-    Fy_y = dde.grad.jacobian(Fy, x, i=0, j=1)
-    Fz_z = dde.grad.jacobian(Fz, x, i=0, j=2)
+    Fx_x, _, _ = torch.gradient(Fx)
+    _, Fy_y, _ = torch.gradient(Fy)
+    _, _, Fz_z = torch.gradient(Fz)
     
     h_t = h2 - h1
     ux_t = ux2 - ux1

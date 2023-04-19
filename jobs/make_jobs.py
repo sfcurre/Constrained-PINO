@@ -101,10 +101,10 @@ def main():
                        "2d_cfd_turb_m1.0_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
                        "2D_Turb")
 
-    pdebench_3d=(("/fs/scratch/PAS2170/pdebench/data/3D/CFD/Train/"
+    pdebench_3d=(("/fs/scratch/PAS2170/pdebench/data/3D/Train/"
                   "3d_cfd_rand_m1.0_eta1e-08_zeta1e-08_periodic_train.hdf5"),
                   "3D_Rand")
-    pdebench_3d_turb=(("/fs/scratch/PAS2170/pdebench/data/3D/CFD/Train/"
+    pdebench_3d_turb=(("/fs/scratch/PAS2170/pdebench/data/3D/Train/"
                        "3d_cfd_turb_m1.0_eta1e-08_zeta1e-08_periodic_train.hdf5"),
                        "3D_Turb")
 

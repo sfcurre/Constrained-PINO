@@ -63,8 +63,7 @@ class PDEBenchGraph(DynamicGraph):
                     self.data[...,2] = _data   # batch, x, t, ch
 
                     self.grid = np.array(f["x-coordinate"], dtype=np.float32)
-                    self.grid = self.grid[::reduced_resolution].expand_dims(-1)
-                    print(self.data.shape)
+                    self.grid = self.grid[::reduced_resolution, None]
 
                 if len(idx_cfd)==4:  # 2D
                     self.data = np.zeros([idx_cfd[0]//reduced_batch,

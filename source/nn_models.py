@@ -77,7 +77,7 @@ class PIFNO1d(nn.Module):
         out_density = torch.sum(x[..., 0])
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., 3])        
+        out_pressure = torch.sum(x[..., 2])        
         scaled_pressure = x[..., 2:] * total_pressure / out_pressure
         
         x = torch.concat([scaled_density, x[..., 1:2], scaled_pressure], dim=-1) 
@@ -149,7 +149,7 @@ class PIFNO3d(nn.Module):
         out_density = torch.sum(x[..., 0])
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., 3])        
+        out_pressure = torch.sum(x[..., 4])        
         scaled_pressure = x[..., 4:] * total_pressure / out_pressure
         
         x = torch.concat([scaled_density, x[..., 1:4], scaled_pressure], dim=-1) 
