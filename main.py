@@ -1,5 +1,5 @@
 import os
-import glob
+import json
 import time
 import random
 import argparse
@@ -53,6 +53,7 @@ def parse_args():
     parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     parser.add_argument('--periodic-bc', action='store_true', default=False, help='Enable a periodic boundary condition.')
+    parser.add_argument('--scale-totals', action='store_true', default=False, help='Enable total scaling for density and pressure.')
     parser.add_argument('--mini-batch-width', type=int, default=0, help='Enable minibatch training with input width (requires periodic BC)')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
@@ -126,21 +127,12 @@ def main():
                     nheads=args.nb_heads,
                     alpha=args.alpha,
                     periodic=args.periodic_bc)
-    elif args.nn_arch == 'FNO1d':
-        model = PIFNO1d(ndims=dynamic_data.ndims,
-                        nclass=dynamic_data.nfeats,
-                        periodic=args.periodic_bc,
-                        history=args.history)
-    elif args.nn_arch == 'FNO2d':
-        model = PIFNO2d(ndims=dynamic_data.ndims,
-                        nclass=dynamic_data.nfeats,
-                        periodic=args.periodic_bc,
-                        history=args.history)
-    elif args.nn_arch == 'FNO3d':
-        model = PIFNO3d(ndims=dynamic_data.ndims,
-                        nclass=dynamic_data.nfeats,
-                        periodic=args.periodic_bc,
-                        history=args.history)
+    elif args.nn_arch == 'FNO':
+        model = PIFNO(ndims=dynamic_data.ndims,
+                      nclass=dynamic_data.nfeats,
+                      periodic=args.periodic_bc,
+                      scale=args.scale_totals,
+                      history=args.history)
     else:
         # args.nn_arch == 'PIGNN'
         model = PIGNN(nfeat=dynamic_data.nfeats,
@@ -160,11 +152,11 @@ def main():
         if args.pde_weight == 0:
             return 0
         #loss = pde_CFD2d(*fargs, **kwargs)
-        if args.nn_arch == 'FNO1d':
+        if dynamic_data.ndims == 1:
             loss = pde_CFD1d_approx(*fargs, **kwargs)
-        if args.nn_arch == 'FNO2d':
+        if dynamic_data.ndims == 2:
             loss = pde_CFD2d_approx(*fargs, **kwargs)
-        if args.nn_arch == 'FNO3d':
+        if dynamic_data.ndims == 3:
             loss = pde_CFD3d_approx(*fargs, **kwargs)
         return loss * args.pde_weight
 
@@ -184,11 +176,11 @@ def main():
     dynamic_model.model.eval()
     with torch.no_grad():
         
-        if args.nn_arch == 'FNO1d':
+        if dynamic_data.ndims == 1:
             timesteps = 90
-        if args.nn_arch == 'FNO2d':
+        if dynamic_data.ndims == 2:
             timesteps = 11
-        if args.nn_arch == 'FNO3d':
+        if dynamic_data.ndims == 3:
             timesteps = 11
 
         dynamic_data.training()
@@ -200,6 +192,45 @@ def main():
         adj, locations, features, _, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps, numpy=True)
         np.save(f'out/predictions/{args.name}_test.npy', np.array(predictions))
+
+        # get train and test metrics
+
+        dynamic_data.training()
+        loss_info = []
+        for adj, locations, features, targets, _ in dynamic_data:
+            t0 = time.time()
+            predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps)
+            t1 = time.time()
+            losses = []
+            for t, (output, target) in enumerate(zip(outputs, targets)): 
+                losses.append(F.mse_loss(output.cpu(), target.cpu()).item())
+
+            loss_info.append({
+                'pred_time': t1 - t0,
+                'losses': losses
+            })
+
+        with open(f'out/predictions/{args.name}_train_losses.json', 'w') as fp:
+            json.dump(loss_info, fp)            
+
+
+        dynamic_data.testing()
+        loss_info = []
+        for adj, locations, features, targets, _ in dynamic_data:
+            t0 = time.time()
+            predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps)
+            t1 = time.time()
+            losses = []
+            for t, (output, target) in enumerate(zip(outputs, targets)): 
+                losses.append(F.mse_loss(output.cpu(), target.cpu()).item())
+
+            loss_info.append({
+                'pred_time': t1 - t0,
+                'losses': losses
+            })
+
+        with open(f'out/predictions/{args.name}_test_losses.json', 'w') as fp:
+            json.dump(loss_info, fp)
 
 if __name__ == '__main__':
     main()

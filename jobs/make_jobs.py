@@ -14,7 +14,7 @@ def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
-              nn_arch='PIGNN', history=0):
+              nn_arch='PIGNN', history=0, scale_totals=True):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN-{name}
 #SBATCH --time={time}
@@ -75,6 +75,9 @@ cd ~/Physics-Informed-GNNs
 
     if use_grid:
         call += f'    --use-grid \\\n'
+    
+    if scale_totals:
+        call += f'    --scale-totals \\\n'
 
     if bs:
         call += f'    --batch-size {bs} \\\n'
@@ -123,7 +126,7 @@ def main():
                     for pde_weight in [0.1, 0.01, 0.0]:
                         for modeltype in ['AutoRegressive']:
                             write_bash(fp, pred_fp, 
-                            *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}',
+                            *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-scaled',
                                         pdebench=pde,
                                         e=1000,
                                         lr=lr,
@@ -132,10 +135,26 @@ def main():
                                         timesteps=5,
                                         pde_weight=pde_weight,
                                         modeltype=modeltype,
-                                        nn_arch=f'FNO{name[0]}d',
+                                        nn_arch=f'FNO',
                                         use_grid=True,
-                                        history=10))
-                        
+                                        history=10,
+                                        scale_totals=True))
+                            
+                            write_bash(fp, pred_fp, 
+                            *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-unscaled',
+                                        pdebench=pde,
+                                        e=1000,
+                                        lr=lr,
+                                        layers=4,
+                                        hdim=64,
+                                        timesteps=5,
+                                        pde_weight=pde_weight,
+                                        modeltype=modeltype,
+                                        nn_arch=f'FNO',
+                                        use_grid=True,
+                                        history=10,
+                                        scale_totals=False))
+
                         #write_bash(fp, pred_fp,           
                         #           *make_call(f'PDEBench2D-PIGNN-{modeltype}-lr_{lr}-pde_{pde_weight}',
                         #                    pdebench=pdebench,
