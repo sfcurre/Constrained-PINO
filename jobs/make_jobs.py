@@ -83,7 +83,8 @@ cd ~/Physics-Informed-GNNs
 
     pred_call = call + ' \\\n'
     pred_call += f'    --no-train --load-pkl out/saved_models/{name}.pkl\n\n'
-    pred_call += f'python visuals_pdebench.py --name {name}\n\n'
+    pred_call += f'python visuals_pdebench.py --name {name}\\\n'
+    pred_call += f'    --run-true {pdebench}\n\n'
 
     call += '\n\n'
 
@@ -116,8 +117,8 @@ def main():
             fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
-            for pde, name in [pdebench_1d, pdebench_2d, pdebench_2d_turb,
-                              pdebench_3d, pdebench_3d_turb]:
+            for pde, name in [pdebench_1d, pdebench_2d,# pdebench_2d_turb,
+                              pdebench_3d]:#, pdebench_3d_turb]:
                 for lr in [1e-5]:#, 1e-6]:
                     for pde_weight in [0.1, 0.01, 0.0]:
                         for modeltype in ['AutoRegressive']:

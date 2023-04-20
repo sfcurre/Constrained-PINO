@@ -54,7 +54,7 @@ def animate_channels(mat, name):
     fig.suptitle('Fluid Channels (density, vx, vy, pressure)')
     anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(mat)))], blit=True, interval=100)
     print('Saving mp4...')
-    anim.save(f'out/visuals/fluid_channels_{name}.mp4', writer='ffmpeg')
+    anim.save(f'out/visuals/{name}_channels.mp4', writer='ffmpeg')
 
 
 def animate_density(p_mat, name):
@@ -72,7 +72,7 @@ def animate_density(p_mat, name):
     plt.title('Fluid Density')
     anim = animation.ArtistAnimation(fig, [update(n) for n in tqdm(range(len(p_mat)))], blit=True, interval=100)
     print('Saving mp4...')
-    anim.save(f'out/visuals/fluid_density_{name}.mp4', writer='ffmpeg')
+    anim.save(f'out/visuals/{name}_density.mp4', writer='ffmpeg')
 
 
 def animate_vorticity(velocities, name):
@@ -91,16 +91,16 @@ def animate_vorticity(velocities, name):
     plt.title('Fluid Vorticity')
     anim = animation.ArtistAnimation(fig, [update(n) for n in range(len(velocities))], blit=True, interval=100)
     print('Saving mp4...')
-    anim.save(f'out/visuals/fluid_vorticity_{name}.mp4', writer='ffmpeg')
+    anim.save(f'out/visuals/{name}_vorticity.mp4', writer='ffmpeg')
 
 def plot_totals(solution, name):
     while len(solution.shape) < 5:
         solution = np.expand_dims(solution, axis=-2)
 
     total_density = np.sum(solution[..., 0], axis = (1, 2))
-    squared_velocity_sum = np.sum(solution[..., 1:-1] ** 2, axis=(1, 2, 3))
-    total_pressure = np.sum(solution[..., 3], axis = (1, 2, 3))
-    total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_vx + squared_vy), axis = (1, 2, 3))
+    squared_velocity_sum = np.sum(solution[..., 1:-1] ** 2, axis = -1)
+    total_pressure = np.sum(solution[..., -1], axis = (1, 2, 3))
+    total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_velocity_sum), axis = (1, 2, 3))
     total_energy = total_kinetic + total_pressure
 
     fig = plt.figure(figsize=(8,8))
@@ -112,18 +112,18 @@ def plot_totals(solution, name):
     plt.legend()
     plt.xlabel('t')
     plt.ylabel('Total')
-    plt.savefig(f'out/visuals/totals_{name}.png')
+    plt.savefig(f'out/visuals/{name}_totals.png')
     del fig
 
 def plot_1d(data, name):
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4))
+    fig, axes = plt.subplots(3, 1, figsize=(4, 6))
 
     axes[0].imshow(data.squeeze()[..., 0], cmap='jet', origin='lower')
     axes[1].imshow(data.squeeze()[..., 1], cmap='jet', origin='lower')
     axes[2].imshow(data.squeeze()[..., 2], cmap='jet', origin='lower')
 
-    plt.title('Fluid Channels (density, velocity, pressure)')
-    plt.savefig(f'out/visuals/fluid_channels_{name}.png')
+    fig.suptitle('Fluid Channels (density, velocity, pressure)')
+    plt.savefig(f'out/visuals/{name}_channels.png')
     del fig
 
 def main():
@@ -151,36 +151,42 @@ def main():
             name = f'GT_{"training" if i==0 else "testing"}'
 
             if '2D' in args.run_true:
-                name += '_2D'
+                name = '2D/' + name
                 animate_channels(np.tile(solution, (1, 1, 1)), name)
             elif '1D' in args.run_true:
-                name += '_1D'
+                name = '1D/' + name
                 plot_1d(solution, name)
             else: #3D
-                name += '_3D'
+                name += '3D/' + name
 
             plot_totals(solution, name)
 
-if '2D' in args.name:
-    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 256, 256, 1, -1))
-    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 256, 256, 1, -1))
+    if '2D' in args.name:
+        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 256, 256, 1, -1))
+        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 256, 256, 1, -1))
 
-    animate_channels(full_out[..., 0, :], f'{args.name}')
-    animate_channels(test_out[..., 0, :], f'{args.name}_test')
+        animate_channels(full_out[..., 0, :], f'2D/{args.name}')
+        animate_channels(test_out[..., 0, :], f'2D/{args.name}_test')
+        
+        plot_totals(full_out, f'2D/{args.name}')
+        plot_totals(test_out, f'2D/{args.name}_test')
 
-elif '1D' in args.name:
-    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((90, 512, 1, 1, -1))
-    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((90, 512, 1, 1, -1))
+    elif '1D' in args.name:
+        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((90, 512, 1, 1, -1))
+        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((90, 512, 1, 1, -1))
 
-    plot_1d(full_out, f'{args.name}')
-    plot_1d(test_out, f'{args.name}_test')
+        plot_1d(full_out, f'1D/{args.name}')
+        plot_1d(test_out, f'1D/{args.name}_test')
+        
+        plot_totals(full_out, f'1D/{args.name}')
+        plot_totals(test_out, f'1D/{args.name}_test')
 
-else: #3D
-    full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 64, 64, 64, -1))
-    test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 64, 64, 64, -1))
+    else: #3D
+        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 64, 64, 64, -1))
+        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 64, 64, 64, -1))
 
-plot_totals(full_out, args.name)
-plot_totals(test_out, f'{args.name}_test')
+        plot_totals(full_out, f'3D/{args.name}')
+        plot_totals(test_out, f'3D/{args.name}_test')
 
 
 if __name__ == '__main__':

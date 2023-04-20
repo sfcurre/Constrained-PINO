@@ -28,8 +28,8 @@ from source.nn_models import *
 
 # torch.autograd.set_detect_anomaly(True)
 
-np.random.seed(1998)
-torch.manual_seed(1998)
+# np.random.seed(1998)
+# torch.manual_seed(1998)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -188,7 +188,7 @@ def main():
             timesteps = 90
         if args.nn_arch == 'FNO2d':
             timesteps = 11
-        if args.nn_arch == 'FNO2d':
+        if args.nn_arch == 'FNO3d':
             timesteps = 11
 
         dynamic_data.training()
