@@ -32,11 +32,11 @@ class DynamicGraph(Dataset):
         return get_laplacian(torch.tensor(edges), torch.ones(edges.shape[1]),
                              normalization='sym')
         
-    def sample_graph(self, flow_features, index, tdif=1, hist=0):
+    def sample_graph(self, flow_features, index, tdif=1, hist=1):
         t = index // self.num_batches
         c = (index % self.num_batches) * self.num_channels
         features = flow_features[t:t+hist][..., c: c + self.num_channels]
-        targets = flow_features[t+hist+1: t+hist+tdif+1][..., c: c + self.num_channels]
+        targets = flow_features[t+hist: t+hist+tdif][..., c: c + self.num_channels]
 
         #shape into feature matrics
         features = np.moveaxis(features, 0, -2).reshape((-1, hist * features.shape[-1]))
@@ -70,9 +70,9 @@ class DynamicGraph(Dataset):
 
     def __len__(self):
         if self.is_training:
-            return (len(self.train) - self.timesteps - self.history) * self.num_batches
+            return (len(self.train) - self.timesteps - self.history + 1) * self.num_batches
         else:
-            return (len(self.test) - self.timesteps - self.history) * self.num_batches
+            return (len(self.test) - self.timesteps - self.history + 1) * self.num_batches
 
     @staticmethod
     def construct_edgelist(xdim, ydim, zdim, periodic=False):

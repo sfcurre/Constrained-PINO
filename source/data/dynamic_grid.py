@@ -28,11 +28,11 @@ class DynamicGrid(Dataset):
         self.num_batches = self.train[0].shape[-1] // self.num_channels
         self.is_training = True
     
-    def sample_grid(self, flow_features, index, tdif=1, hist=0):
+    def sample_grid(self, flow_features, index, tdif=1, hist=1):
         t = index // self.num_batches
         c = (index % self.num_batches) * self.num_channels
         features = flow_features[t: t+hist][..., c: c + self.num_channels]
-        targets = flow_features[t+hist+1: t+hist+tdif+1][..., c: c + self.num_channels]
+        targets = flow_features[t+hist: t+hist+tdif][..., c: c + self.num_channels]
 
         #shape into feature matrics
         features = np.moveaxis(features, 0, -2)
@@ -67,9 +67,9 @@ class DynamicGrid(Dataset):
 
     def __len__(self):
         if self.is_training:
-            return (len(self.train) - self.timesteps - self.history) * self.num_batches
+            return (len(self.train) - self.timesteps - self.history + 1) * self.num_batches
         else:
-            return (len(self.test) - self.timesteps - self.history) * self.num_batches
+            return (len(self.test) - self.timesteps - self.history + 1) * self.num_batches
 
 
 class PDEBenchGrid(DynamicGrid):
