@@ -22,11 +22,13 @@ class OneStepModel(DynamicModel):
         self.t_start = time.time()
         self.model.train()
         self.optimizer.zero_grad()
+        losses = []
         for i, (adj, locations, features, targets, mask) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
             
             output = self.model(locations, features, adj)
             loss_train = self.get_loss(locations, features, targets[0], output, mask)
+            losses.append(loss_train.cpu().item())
             loss_train.backward()
             
             self.optimizer.step()            
@@ -36,7 +38,7 @@ class OneStepModel(DynamicModel):
             if (i + 1) % report_interval == 0:
                 self.report(adj, locations, features, targets, mask, loss_train, epoch)
         
-        return self.report(adj, locations, features, targets, mask, loss_train, epoch)
+        return np.mean(losses)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):

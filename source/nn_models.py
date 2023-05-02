@@ -15,16 +15,17 @@ class PIFNO(nn.Module):
         self.scale = scale
         self.history = history
 
-        if self.ndims == 1:
-            self.fno = FNO1d(self.nclass, self.ndims, initial_step=self.history)
-        if self.ndims == 2:
-            self.fno = FNO2d(self.nclass, self.ndims, initial_step=self.history)
-        if self.ndims == 3:
-            self.fno = FNO3d(self.nclass, self.ndims, initial_step=self.history)
-
         if self.periodic:
             self.wave_transform = WaveTransform()
             self.ndims *= 2
+        
+        if ndims == 1:
+            self.fno = FNO1d(self.nclass, self.ndims, initial_step=self.history)
+        if ndims == 2:
+            self.fno = FNO2d(self.nclass, self.ndims, initial_step=self.history)
+        if ndims == 3:
+            self.fno = FNO3d(self.nclass, self.ndims, initial_step=self.history)
+
 
     def scale_totals(self, features, x):
         total_density = torch.sum(features[..., 0])

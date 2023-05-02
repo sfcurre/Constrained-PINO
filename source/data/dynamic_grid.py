@@ -25,7 +25,8 @@ class DynamicGrid(Dataset):
         
         self.train = self.solution[..., :int(.9 * self.solution.shape[-1])]
         self.test = self.solution[..., int(.9 * self.solution.shape[-1]):]
-        self.num_batches = self.train[0].shape[-1] // self.num_channels
+        self.num_batches = self.train.shape[-1] // self.num_channels
+        self.num_test_batches = self.test.shape[-1] // self.num_channels
         self.is_training = True
     
     def sample_grid(self, flow_features, index, tdif=1, hist=1):
@@ -69,7 +70,7 @@ class DynamicGrid(Dataset):
         if self.is_training:
             return (len(self.train) - self.timesteps - self.history + 1) * self.num_batches
         else:
-            return (len(self.test) - self.timesteps - self.history + 1) * self.num_batches
+            return (len(self.test) - self.timesteps - self.history + 1) * self.num_test_batches
 
 
 class PDEBenchGrid(DynamicGrid):

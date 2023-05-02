@@ -22,23 +22,26 @@ class AutoRegressiveModel(DynamicModel):
         self.t_start = time.time()
         self.model.train()
         self.optimizer.zero_grad()
+        losses = []
         for i, (adj, locations, features, targets, mask) in enumerate(self.dataloader):
             for ti_target in targets:
                 self.optimizer.zero_grad()
                 
                 output = self.model(locations, features, adj)
                 loss_train = self.get_loss(locations, features, ti_target, output, mask)
-                
+
                 loss_train.backward()
                 self.optimizer.step()
                 dde.grad.clear()
 
                 features = self.concat_timesteps(features, output.detach())
+            
+            losses.append(loss_train.cpu().item())                
 
             if (i + 1) % report_interval == 0:
                 self.report(adj, locations, features, targets, mask, loss_train, epoch)
         
-        return self.report(adj, locations, features, targets, mask, loss_train, epoch)
+        return np.mean(losses)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):

@@ -23,6 +23,8 @@ from source.models.autoregressive_model import AutoRegressiveModel
 from source.losses.navier_stokes_loss import *
 from source.nn_models import *
 
+from source.losses.metrics import metric_func
+
 # Example call:
 # python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
 
@@ -175,13 +177,14 @@ def main():
 
     dynamic_model.model.eval()
     with torch.no_grad():
-        
         if dynamic_data.ndims == 1:
-            timesteps = 90
+            timesteps = 91
         if dynamic_data.ndims == 2:
             timesteps = 11
         if dynamic_data.ndims == 3:
             timesteps = 11
+        
+        dynamic_data.timesteps = timesteps
 
         dynamic_data.training()
         adj, locations, features, _, _ = dynamic_data[0]
@@ -195,38 +198,43 @@ def main():
 
         # get train and test metrics
 
-        dynamic_data.training()
-        loss_info = []
-        for adj, locations, features, targets, _ in dynamic_data:
-            t0 = time.time()
-            predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps)
-            t1 = time.time()
-            losses = []
-            for t, (output, target) in enumerate(zip(outputs, targets)): 
-                losses.append(F.mse_loss(output.cpu(), target.cpu()).item())
-
-            loss_info.append({
-                'pred_time': t1 - t0,
-                'losses': losses
-            })
-
-        with open(f'out/predictions/{args.name}_train_losses.json', 'w') as fp:
-            json.dump(loss_info, fp)            
-
-
         dynamic_data.testing()
+        print(len(dynamic_data))
         loss_info = []
-        for adj, locations, features, targets, _ in dynamic_data:
+        for i in range(len(dynamic_data)):
+            adj, locations, features, targets, _ = dynamic_data[i]
+
             t0 = time.time()
             predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps)
             t1 = time.time()
-            losses = []
-            for t, (output, target) in enumerate(zip(outputs, targets)): 
-                losses.append(F.mse_loss(output.cpu(), target.cpu()).item())
+            rho_loss = []
+            vel_loss = []
+            prs_loss = []
+            for t, (output, target) in enumerate(zip(predictions, targets)):
+                output, target = output.cpu(), target.cpu() 
+                rho_loss.append(F.mse_loss(output[..., 0], target[..., 0]).item())
+                vel_loss.append(F.mse_loss(output[..., 1:-1], target[..., 1:-1]).item())
+                prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
+
+            # (batch, nx^i..., timesteps, nc)
+            pred = torch.stack(predictions, dim=-2).squeeze().unsqueeze(0)
+            targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
+
+            pred = pred.contiguous().reshape(pred.shape)
+            targets.contiguous().reshape(targets.shape)
+            err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, targets)
 
             loss_info.append({
                 'pred_time': t1 - t0,
-                'losses': losses
+                'density_loss': rho_loss,
+                'velocity_loss': vel_loss,
+                'pressure_loss': prs_loss,
+                'RMSE': err_RMSE.cpu().item(),
+                'nRMSE': err_nRMSE.cpu().item(),
+                'err_CSV': err_CSV.cpu().item(),
+                'err_Max': err_Max.cpu().item(),
+                'err_BD': err_BD.cpu().item(),
+                'err_F': err_F.cpu().mean().item()
             })
 
         with open(f'out/predictions/{args.name}_test_losses.json', 'w') as fp:

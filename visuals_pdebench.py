@@ -34,11 +34,13 @@ def vorticity_plot(x, y, Fx, Fy):
     plot = plt.matshow(c, cmap='Spectral_r', vmin=-v, vmax=v)
     return plot
 
-def animate_channels(mat, name):
+def animate_channels(mat, name, vmin=None, vmax=None):
     fig, axes = plt.subplots(1, 4, figsize=(16, 4))
 
-    vmax = mat.max(axis=(0, 1, 2))
-    vmin = mat.min(axis=(0, 1, 2))
+    if vmax is None:
+        vmax = mat.max(axis=(0, 1, 2))
+    if vmin is None:
+        vmin = mat.min(axis=(0, 1, 2))
 
     def update(n=0):
         pls = []
@@ -115,12 +117,18 @@ def plot_totals(solution, name):
     plt.savefig(f'out/visuals/{name}_totals.png')
     del fig
 
-def plot_1d(data, name):
+def plot_1d(data, name, vmin=None, vmax=None):
     fig, axes = plt.subplots(3, 1, figsize=(4, 6))
+    data = np.squeeze(data)    
 
-    axes[0].imshow(data.squeeze()[..., 0], cmap='jet', origin='lower')
-    axes[1].imshow(data.squeeze()[..., 1], cmap='jet', origin='lower')
-    axes[2].imshow(data.squeeze()[..., 2], cmap='jet', origin='lower')
+    if vmin is None:
+        vmin = np.min(data, axis=(0, 1))
+    if vmax is None:
+        vmax = np.max(data, axis=(0, 1))
+
+    for i in range(3):
+        pl = axes[i].imshow(data.squeeze()[..., i], cmap='jet', origin='lower', vmin=vmin[i], vmax=vmax[i])
+        fig.colorbar(pl, ax=axes[i], location='bottom')
 
     fig.suptitle('Fluid Channels (density, velocity, pressure)')
     plt.savefig(f'out/visuals/{name}_channels.png')
@@ -128,6 +136,8 @@ def plot_1d(data, name):
 
 def main():
     args = parse_args()
+
+    vmin, vmax = None, None
 
     if args.run_true:
         timesteps = 100
@@ -145,38 +155,47 @@ def main():
             targets = [t.detach().numpy() for t in targets]
             solution = np.concatenate([features[None, ...], targets], axis = 0)
             print(solution.shape)
-            solution = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
-            solution = solution[10:, ..., 0, :]
+            solution_all = solution.reshape((len(solution),) + data.grid.shape[:-1] + (data.num_channels,))
+            solution = solution_all[10:]
 
             name = f'GT_{"training" if i==0 else "testing"}'
 
+
             if '2D' in args.run_true:
                 name = '2D/' + name
-                animate_channels(np.tile(solution, (1, 1, 1)), name)
+                animate_channels(solution[..., 0, :], name)
             elif '1D' in args.run_true:
                 name = '1D/' + name
                 plot_1d(solution, name)
             else: #3D
-                name += '3D/' + name
-
+                name = '3D/' + name
+            
+            np.save(f'data/{name}.npy', solution_all[9:])
             plot_totals(solution, name)
+        
+            if i == 0:
+                vmin = np.min(solution, axis=tuple(range(len(solution.shape) - 1)))
+                vmax = np.max(solution, axis=tuple(range(len(solution.shape) - 1)))
+            else:
+                vmin_test = np.min(solution, axis=tuple(range(len(solution.shape) - 1)))
+                vmax_test = np.max(solution, axis=tuple(range(len(solution.shape) - 1)))
 
     if '2D' in args.name:
         full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 256, 256, 1, -1))
         test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 256, 256, 1, -1))
 
-        animate_channels(full_out[..., 0, :], f'2D/{args.name}')
-        animate_channels(test_out[..., 0, :], f'2D/{args.name}_test')
-        
+        animate_channels(full_out[..., 0, :], f'2D/{args.name}', vmin=vmin, vmax=vmax)
+        animate_channels(test_out[..., 0, :], f'2D/{args.name}_test', vmin=vmin_test, vmax=vmax_test)
+
         plot_totals(full_out, f'2D/{args.name}')
         plot_totals(test_out, f'2D/{args.name}_test')
 
     elif '1D' in args.name:
-        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((90, 512, 1, 1, -1))
-        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((90, 512, 1, 1, -1))
+        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((91, 512, 1, 1, -1))
+        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((91, 512, 1, 1, -1))
 
-        plot_1d(full_out, f'1D/{args.name}')
-        plot_1d(test_out, f'1D/{args.name}_test')
+        plot_1d(full_out, f'1D/{args.name}', vmin=vmin, vmax=vmax)
+        plot_1d(test_out, f'1D/{args.name}_test', vmin=vmin_test, vmax=vmax_test)
         
         plot_totals(full_out, f'1D/{args.name}')
         plot_totals(test_out, f'1D/{args.name}_test')
@@ -187,6 +206,9 @@ def main():
 
         plot_totals(full_out, f'3D/{args.name}')
         plot_totals(test_out, f'3D/{args.name}_test')
+
+        mag_velocity = np.sum(test_out[..., 1:-1]**2, axis=(1, 2, 3, 4))
+        np.save(mag_velocity, 'out/predictions/{args.name}_total_velocity.npy')
 
 
 if __name__ == '__main__':

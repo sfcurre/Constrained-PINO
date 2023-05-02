@@ -185,7 +185,8 @@ class PDEBenchGraph(DynamicGraph):
             self.data = np.expand_dims(self.data, axis=-3)
 
         self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, batch, ch
-        self.data = (self.data - self.data.mean(axis=(0, 1, 2, 3, 4))) / self.data.std(axis=(0, 1, 2, 3, 4))
+        #self.data = (self.data - self.data.mean(axis=(0, 1, 2, 3, 4))) / self.data.std(axis=(0, 1, 2, 3, 4))
+        self.data = self.data / np.abs(self.data).max(axis=(0, 1, 2, 3, 4))
         self.data = np.concatenate([self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]], axis=-1)
         
 

@@ -23,7 +23,7 @@ class DynamicModel:
         if self.use_cuda:
             model.cuda()
     
-    def train(self, epochs, patience, report_interval=100):
+    def train(self, epochs, patience, report_interval=1000):
         # Train model
         t_total = time.time()
         loss_values = []
@@ -33,7 +33,7 @@ class DynamicModel:
         for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch, report_interval))
 
-            torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
+            #torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
             if loss_values[-1] < best:
                 best = loss_values[-1]
                 best_epoch = epoch

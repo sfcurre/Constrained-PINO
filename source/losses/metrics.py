@@ -263,12 +263,12 @@ def metric_func(pred, target, if_mean=True, Lx=1., Ly=1., Lz=1., iLow=4, iHigh=1
     err_F[:,2] += torch.mean(_err_F[:,iHigh:], dim=1)  # high freq
 
     if if_mean:
-        return torch.mean(err_RMSE, dim=[0, -1]), \
-               torch.mean(err_nRMSE, dim=[0, -1]), \
-               torch.mean(err_CSV, dim=[0, -1]), \
-               torch.mean(err_Max, dim=[0, -1]), \
-               torch.mean(err_BD, dim=[0, -1]), \
-               torch.mean(err_F, dim=[0, -1])
+        return torch.mean(err_RMSE), \
+               torch.mean(err_nRMSE), \
+               torch.mean(err_CSV), \
+               torch.mean(err_Max), \
+               torch.mean(err_BD), \
+               torch.mean(err_F)
     else:
         return err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F
 
