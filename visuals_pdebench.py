@@ -105,12 +105,17 @@ def plot_totals(solution, name):
     total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_velocity_sum), axis = (1, 2, 3))
     total_energy = total_kinetic + total_pressure
 
+    total_pressure_squared = np.sum(solution[..., -1] ** 2, axis = (1, 2, 3))
+    total_ke_plus_p2 = total_kinetic + total_pressure_squared
+
     fig = plt.figure(figsize=(8,8))
     x = np.arange(len(total_density))
     plt.plot(x, total_density, label='Density')
     plt.plot(x, total_pressure, label='Pressure')
     plt.plot(x, total_kinetic, label='Kinetic')
     plt.plot(x, total_energy, label='Energy')
+    plt.plot(x, total_pressure_squared, label='Pressure^2')
+    plt.plot(x, total_ke_plus_p2, label='Kinetic + Pressure^2')
     plt.legend()
     plt.xlabel('t')
     plt.ylabel('Total')
