@@ -37,7 +37,11 @@ class PIFNO(nn.Module):
         out_pressure = torch.sum(x[..., -1])        
         scaled_pressure = x[..., -1:] * total_pressure / out_pressure
         
-        x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1) 
+        x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1)
+        #totals = torch.sum(features[..., :x.dim()], axis=tuple(range(features.dim()))[:-1])
+        #out_totals = torch.sum(x, axis=tuple(range(x.dim()))[:-1])
+        #x = x * totals / out_totals
+
         return x
 
     def forward(self, locations, features, adj):

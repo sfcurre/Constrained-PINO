@@ -99,23 +99,30 @@ def plot_totals(solution, name):
     while len(solution.shape) < 5:
         solution = np.expand_dims(solution, axis=-2)
 
-    total_density = np.sum(solution[..., 0], axis = (1, 2))
+    total_density = np.sum(solution[..., 0], axis = (1, 2, 3))
     squared_velocity_sum = np.sum(solution[..., 1:-1] ** 2, axis = -1)
+    total_vx = np.sum(solution[..., 1], axis=(1, 2, 3))
+    total_vy = np.sum(solution[..., 2], axis=(1, 2, 3))
     total_pressure = np.sum(solution[..., -1], axis = (1, 2, 3))
     total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_velocity_sum), axis = (1, 2, 3))
-    total_energy = total_kinetic + total_pressure
+    total_energy = 1.5 * total_kinetic + total_pressure
 
-    total_pressure_squared = np.sum(solution[..., -1] ** 2, axis = (1, 2, 3))
-    total_ke_plus_p2 = total_kinetic + total_pressure_squared
+    print(name)
+    print(total_density)
+    print(total_pressure)
+    print(total_vx)
+    print(total_vy)
+    print(total_kinetic)
 
     fig = plt.figure(figsize=(8,8))
     x = np.arange(len(total_density))
     plt.plot(x, total_density, label='Density')
     plt.plot(x, total_pressure, label='Pressure')
+    plt.plot(x, total_vx, label='Vx')
+    plt.plot(x, total_vy, label='Vy')
+    plt.plot(x, squared_velocity_sum.sum(axis=(1, 2, 3)), label='V2')
     plt.plot(x, total_kinetic, label='Kinetic')
     plt.plot(x, total_energy, label='Energy')
-    plt.plot(x, total_pressure_squared, label='Pressure^2')
-    plt.plot(x, total_ke_plus_p2, label='Kinetic + Pressure^2')
     plt.legend()
     plt.xlabel('t')
     plt.ylabel('Total')
@@ -146,14 +153,15 @@ def main():
 
     if args.run_true:
         timesteps = 100
-        data = PDEBenchGrid(args.run_true, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=2, reduced_resolution=2)
-        print(len(data.solution))        
+        data = PDEBenchGrid(args.run_true, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=8, reduced_resolution=1)
+        print(len(data.solution))
 
         for i in range(2):
             if i == 0:
                 data.training()
             else:
                 data.testing()
+            
             adj, locations, features, targets, mask = data[0]
 
             features = features.detach().numpy()
@@ -213,7 +221,7 @@ def main():
         plot_totals(test_out, f'3D/{args.name}_test')
 
         mag_velocity = np.sum(test_out[..., 1:-1]**2, axis=(1, 2, 3, 4))
-        np.save(mag_velocity, 'out/predictions/{args.name}_total_velocity.npy')
+        np.save(f'out/predictions/{args.name}_total_velocity.npy', mag_velocity)
 
 
 if __name__ == '__main__':
