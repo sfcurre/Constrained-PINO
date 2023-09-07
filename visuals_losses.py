@@ -42,21 +42,25 @@ def organize_info(fnames, terms):
                 mean, std = 0, None
                 for t in term:
                     mean += losses[t][0]
-                mean /= len(term)
 
             info = {"mean": mean, "std": std, "model": model}
             
-            label = ''
 
-            color = 'k'
+            if model == 'OneStep':
+                label = ''
+                colors = sns.color_palette()[1::2]
+            else:
+                label = 'AR '
+                colors = sns.color_palette()[0::2]
 
             if pde_weight.endswith('0.0'):
-                label = 'FNO '
-                color = 'tab:blue'
+                label += 'FNO '
+                color = colors[0]
+                
             elif pde_weight.endswith('0.01'):
-                label = 'PI-FNO '
-                color = 'tab:green'
-            
+                label += 'PI-FNO '
+                color = colors[1]
+                
             if scaling.startswith('un'):
                 label += '(unscaled)'
                 linestyle = '--'
@@ -73,7 +77,7 @@ def organize_info(fnames, terms):
     return all_info
 
 def construct_table(fnames, dimension='3D'):
-    metrics = ['RMSE', 'nRMSE', 'err_CSV', 'err_Max', 'err_BD', 'err_F']
+    metrics = ['RMSE', 'nRMSE', 'err_Max', 'err_CSV', 'err_BD', 'err_F']
     metric_grid = []
     indices = []
     for fname in fnames:
@@ -85,7 +89,8 @@ def construct_table(fnames, dimension='3D'):
         f_metrics = []
         for metric in metrics:
             mean, std = losses[metric]
-            f_metrics.append(mean)
+            met = f'{mean:.3f} $\\pm$ {std:.3f}'
+            f_metrics.append(met)
 
         if pde_weight.endswith('0.0'):
             label = 'FNO '
@@ -99,8 +104,8 @@ def construct_table(fnames, dimension='3D'):
 
         index = (model, label)
         metric_grid.append(f_metrics)
-        indices.append(index)
-    
+        indices.append(index) 
+
     index = pd.MultiIndex.from_tuples(indices, names=['Training', 'Model'])
     df = pd.DataFrame(metric_grid, index=index, columns=metrics)
     df = df.transpose()
@@ -111,7 +116,7 @@ def construct_table(fnames, dimension='3D'):
     columns = [(u, l) for u in upper for l in lower]
     columns = pd.MultiIndex.from_tuples(columns, names=['Training', 'Model'])
     df = pd.DataFrame(df, columns=columns)
-
+    df.index = ['RMSE', 'nRMSE', 'MaxError', 'cRMSE', 'bRMSE', 'fRMSE']
     return df
 
 #=========================================================
@@ -130,7 +135,7 @@ def main():
     for dimension in ['1D', '2D', '3D']:
         for term in terms:
             fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
+            
             for info in all_info[term][dimension]:
                 ax = axes[int(info['model'] == 'AutoRegressive')]
                 ax.plot(np.arange(len(info['mean'])),
@@ -138,6 +143,7 @@ def main():
                         color=info['color'],
                         linestyle=info['linestyle'],
                         label=info['label'])
+                
             
             axes[0].set_xlabel('Time', fontsize=16)
             axes[0].set_ylabel('MSE Loss', fontsize=16)
@@ -160,13 +166,42 @@ def main():
             plt.savefig(f'visuals/AR_losses/{dimension}_{term}.png', bbox_inches='tight')
             del fig
 
+        fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+        for i, term in enumerate([('density_loss', 'velocity_loss', 'pressure_loss'), 'velocity_loss']):
+            for info in all_info[term][dimension]:
+                ax = axes[i]
+                ax.plot(np.arange(len(info['mean'])),
+                        info['mean'],
+                        color=info['color'],
+                        linestyle=info['linestyle'],
+                        label=info['label'])
+            
+        axes[0].set_xlabel('Time', fontsize=16)
+        axes[0].set_ylabel('MSE Loss', fontsize=16)
+        axes[1].set_xlabel('Time', fontsize=16)
+        axes[1].set_ylabel('MSE Loss', fontsize=16)
+
+        axes[0].set_xlim(0, len(info['mean']) - 1)
+        # axes[0].set_ylim(0, limits[dimension])
+        axes[1].set_xlim(0, len(info['mean']) - 1)
+        # axes[1].set_ylim(0, limits[dimension])
+
+        axes[0].legend(loc='upper left')
+        # axes[1].legend(loc='upper left')
+        
+        axes[0].set_title('Combined Loss', fontsize=20)
+        axes[1].set_title('Velocity Loss', fontsize=20)
+
+        plt.savefig(f'visuals/AR_losses/{dimension}_combined_vs_velocity.png', bbox_inches='tight')
+        del fig
+
         print(f'\n{dimension}')
         df = construct_table(filenames, dimension)
         print(df)
         #save df as LaTeX
         for modtype in ['OneStep', 'AutoRegressive']:
             with open(f'visuals/latex_tables/{modtype}_{dimension}.txt', 'w') as fp:
-                latex = df[modtype].to_latex(buf = fp)
+                latex = df[modtype].to_latex(buf = fp, escape=False)
 
 
 if __name__ == '__main__':
