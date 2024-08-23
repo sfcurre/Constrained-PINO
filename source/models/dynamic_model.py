@@ -73,7 +73,8 @@ class DynamicModel:
         # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, metric_targets)
 
         loss_val = self.get_test_loss(targets, outputs, mask)
-        pde_loss_val = self.pde_loss(locations, features.cpu(), outputs[0].cpu(), mask.cpu())
+        pde_loss_val = self.pde_loss(locations.cpu(), features.cpu(), outputs[0].cpu(), 1)
+        else:
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.data.item()),
             'loss_val: {:.4f}'.format(loss_val.data.item()),
