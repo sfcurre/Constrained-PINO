@@ -48,7 +48,7 @@ class DynamicModel:
             if bad_counter == patience:
                 break
 
-            with open(f'outfile_{self.name}.txt', 'w') as fp:
+            with open(f'outfile_{self.name}.txt', 'a') as fp:
                 print(epoch, loss_values[-1], sep='\t', file=fp)
 
         print("Optimization Finished!")
