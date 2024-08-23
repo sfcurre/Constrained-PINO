@@ -64,6 +64,9 @@ def organize_info(fnames, terms):
             if scaling.startswith('un'):
                 label += '(unscaled)'
                 linestyle = '--'
+            elif 'ke' in scaling:
+                label += '(KE scaled)'
+                linestyle = ':'
             else:
                 label += '(scaled)'
                 linestyle = '-'
@@ -80,6 +83,7 @@ def construct_table(fnames, dimension='3D'):
     metrics = ['RMSE', 'nRMSE', 'err_Max', 'err_CSV', 'err_BD', 'err_F']
     metric_grid = []
     indices = []
+    ke = False
     for fname in fnames:
         dataset, model, lr, lr2, pde_weight, scaling = fname.split('-')
         if dimension not in dataset or lr2.endswith('6'):
@@ -99,6 +103,10 @@ def construct_table(fnames, dimension='3D'):
         
         if scaling.startswith('un'):
             label += '(unscaled)'
+        elif 'ke' in scaling:
+                continue
+                label += '(KE scaled)'
+                ke = True
         else:
             label += '(scaled)'
 
@@ -113,6 +121,8 @@ def construct_table(fnames, dimension='3D'):
     # reorder df
     upper = ['OneStep', 'AutoRegressive']
     lower = ['FNO (unscaled)', 'FNO (scaled)', 'PI-FNO (unscaled)', 'PI-FNO (scaled)']
+    if ke:
+        lower = ['FNO (unscaled)', 'FNO (scaled)', 'FNO (KE scaled)', 'PI-FNO (unscaled)', 'PI-FNO (scaled)', 'PI-FNO (KE scaled)']
     columns = [(u, l) for u in upper for l in lower]
     columns = pd.MultiIndex.from_tuples(columns, names=['Training', 'Model'])
     df = pd.DataFrame(df, columns=columns)
@@ -122,7 +132,7 @@ def construct_table(fnames, dimension='3D'):
 #=========================================================
 def main():
     
-    file_dir = 'out/predictions/'
+    file_dir = 'out/predictionsFullScale/'
     filenames = os.listdir(file_dir)
     filenames = [file_dir + f for f in filenames]
 
@@ -132,7 +142,7 @@ def main():
     all_info = organize_info(filenames, terms)
 
     limits = {'1D': 0.8, '2D': 0.8, '3D': 0.3}
-    for dimension in ['1D', '2D', '3D']:
+    for dimension in ['2D']: #['1D', '2D', '3D']:
         for term in terms:
             fig, axes = plt.subplots(1, 2, figsize=(12, 5))
             
@@ -193,11 +203,12 @@ def main():
         axes[1].set_title('Velocity Loss', fontsize=20)
 
         plt.savefig(f'visuals/AR_losses/{dimension}_combined_vs_velocity.png', bbox_inches='tight')
+        plt.show()
         del fig
 
         print(f'\n{dimension}')
         df = construct_table(filenames, dimension)
-        print(df)
+        print(df['AutoRegressive'])
         #save df as LaTeX
         for modtype in ['OneStep', 'AutoRegressive']:
             with open(f'visuals/latex_tables/{modtype}_{dimension}.txt', 'w') as fp:

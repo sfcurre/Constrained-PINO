@@ -38,20 +38,26 @@ def main():
             axis.append(0)
             labels.append('Ground Truth')
             vmin, vmax = arr[...,0].min(), arr[...,0].max()
+            # vmin, vmax = 0, arr[...,0].max()
             t0, arr = arr[0], arr[1:]
         elif 'unscaled' in fname:
             axis.append(2)
             labels.append('Unscaled')
+        elif 'ke' in fname or 'allscaled' in fname:
+            axis.append(3)
+            labels.append('Energy-Scaled')
         else:
             axis.append(1)
             labels.append('Scaled')
         arrays.append(arr)
         
-    fig, axes = plt.subplots(3, 6, figsize = (18, 12), layout='constrained',
+    fig, axes = plt.subplots(len(axis), 6, figsize = (18, 12), layout='constrained',
                             gridspec_kw=dict(width_ratios=[6,1,6,6,6,6], hspace=0, wspace=0.1))
     times = [1, 2, 5, 10]
 
-    for i in range(3): 
+    print(vmin, vmax)
+
+    for i in range(len(axis)):
         axes[i, 0].imshow(t0[...,0], cmap='jet', origin='lower', vmin=vmin, vmax=vmax)
         axes[i, 0].set_xticks([])
         axes[i, 0].set_yticks([])
@@ -61,6 +67,7 @@ def main():
     for i, t in enumerate(times):
         for j, label, arr in zip(axis, labels, arrays):
             ax = axes[j, i+2]
+            print(j, arr[t-1,...,0].sum())
             ax.imshow(arr[t-1,...,0], cmap='jet', origin='lower', vmin=vmin, vmax=vmax)
             ax.set_xticks([])
             ax.set_yticks([])
@@ -72,12 +79,12 @@ def main():
                 ax.set_ylabel(label, fontsize=24)
                 axes[j, i+1].remove()
     
-    axes[1, 0].axis('off')
-    axes[2, 0].axis('off')
-
+    for i in range(1, len(axis)):
+        axes[i, 0].axis('off')
+    
     fig.suptitle('Flow Density Progression for 2D CFD', fontsize=28)
     # plt.subplots_adjust(wspace=0.1, hspace=-0.25)
-    plt.savefig('visuals/2D_flow_progression.png', bbox_inches='tight')
+    plt.savefig('visuals/2D_flow_progression_allscaled.png', bbox_inches='tight')
     #plt.show()
 
 def main2():
@@ -93,6 +100,7 @@ def main2():
                 'FNO (scaled)': 2,
                 'PI-FNO (unscaled)': 3,
                 'PI-FNO (scaled)': 4,
+                'FNO (all-scaled)': 5
             }
 
     for mod in mods:
@@ -118,6 +126,8 @@ def main2():
                 
                 if scaling.startswith('un'):
                     label += '(unscaled)'
+                elif scaling.startswith('all'):
+                    label += '(all-scaled)'
                 else:
                     label += '(scaled)'
             
@@ -125,11 +135,11 @@ def main2():
             axis.append(axis_map[label])
             arrays.append(arr)
             
-        fig, axes = plt.subplots(5, 6, figsize = (18, 19), layout='constrained',
+        fig, axes = plt.subplots(len(axis), 6, figsize = (18, 19), layout='constrained',
                                 gridspec_kw=dict(width_ratios=[6,1,6,6,6,6], hspace=0, wspace=0.1))
         times = [1, 2, 5, 10]
 
-        for i in range(5):
+        for i in range(len(axis)):
             axes[i, 0].imshow(t0[...,0], cmap='jet', origin='lower', vmin=vmin, vmax=vmax)
             axes[i, 0].set_xticks([])
             axes[i, 0].set_yticks([])
@@ -150,7 +160,7 @@ def main2():
                     ax.set_ylabel(label, fontsize=24)
                     axes[j, i+1].remove()
         
-        for i in range(4):
+        for i in range(len(axis)-1):
             axes[i+1, 0].axis('off')
             
         fig.suptitle(f'Flow Density Progression for 2D CFD ({mod})', fontsize=28)

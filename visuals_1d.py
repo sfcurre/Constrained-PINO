@@ -28,7 +28,7 @@ def main():
             'out/output_for_visuals/1D/PDEBench_1D_Rand-AutoRegressive-lr_1e-05-pde_0.0-scaled_test.npy',
             'out/output_for_visuals/1D/PDEBench_1D_Rand-AutoRegressive-lr_1e-05-pde_0.0-unscaled_test.npy']
 
-    solutions = [np.load(f).reshape(-1, 512, 3) for f in files]
+    solutions = [np.load(f).reshape(-1, 1024, 3) for f in files]
     solutions[0] = solutions[0][1:]
 
     errors = [solutions[1] - solutions[0], np.abs(solutions[2] - solutions[0])]

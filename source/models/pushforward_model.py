@@ -49,4 +49,4 @@ class PushForwardModel(DynamicModel):
             mse_loss = F.mse_loss(outputs, targets)
             mask = 1
         pde_loss = self.pde_loss(locations, features, outputs, mask)
-        return mse_loss + pde_loss
+        return mse_loss + self.pde_weight * pde_loss

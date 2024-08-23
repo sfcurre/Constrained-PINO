@@ -12,10 +12,6 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from source.data.dynamic_graph import DynamicGraph
-from source.data.periodic_graph import PeriodicGraph
-from source.data.tgv_graph import TGVGraph, PeriodicTGVGraph, MiniBatchTGVGraph
-from source.data.pdebench_graph import PDEBenchGraph, PeriodicPDEBenchGraph, MiniBatchPDEBenchGraph
 from source.data.dynamic_grid import PDEBenchGrid, TGVGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
@@ -80,38 +76,9 @@ def main():
         torch.cuda.manual_seed(args.seed)
 
     # Load data
-    if args.grd and args.sol:
-        if args.use_grid:
-            dynamic_data = TGVGrid(args.grd, args.sol, args.timesteps,
-                                   args.history, use_cuda=args.cuda)
-        elif args.periodic_bc:
-            if args.mini_batch_width:
-                dynamic_data = MiniBatchTGVGraph(args.grd, args.sol, args.mini_batch_width,
-                                                 args.layers, args.timesteps,
-                                                 args.history, use_cuda=args.cuda)
-            else:
-                dynamic_data = PeriodicTGVGraph(args.grd, args.sol, args.timesteps,
-                                                args.history, use_cuda=args.cuda)
-        else:
-            dynamic_data = TGVGraph(args.grd, args.sol, args.timesteps,
-                                    args.history, use_cuda=args.cuda)
-    elif args.pdebench:
-        if args.use_grid:
-            dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
-                                        history=args.history, use_cuda=args.cuda,
-                                        reduced_resolution=2, reduced_batch=2)
-        elif args.periodic_bc:
-            if args.mini_batch_width:
-                dynamic_data = MiniBatchPDEBenchGraph(args.pdebench, args.mini_batch_width,
-                                                      args.layers, args.timesteps,
-                                                      args.history, use_cuda=args.cuda)
-            else:
-                dynamic_data = PeriodicPDEBenchGraph(args.pdebench, timesteps=args.timesteps,
-                                                     history=args.history, use_cuda=args.cuda,
-                                                     reduced_resolution=4, reduced_batch=2)
-        else:
-            dynamic_data = PDEBenchGraph(args.pdebench, timesteps=args.timesteps,
-                                         history=args.history, use_cuda=args.cuda)
+    dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
+                                history=args.history, use_cuda=args.cuda,
+                                reduced_resolution=2, reduced_batch=2)
 
     if args.cuda:
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
@@ -151,23 +118,20 @@ def main():
 
     # Train Model
     def pde_loss(*fargs, **kwargs):
-        if args.pde_weight == 0:
-            return 0
-        #loss = pde_CFD2d(*fargs, **kwargs)
         if dynamic_data.ndims == 1:
             loss = pde_CFD1d_approx(*fargs, **kwargs)
         if dynamic_data.ndims == 2:
             loss = pde_CFD2d_approx(*fargs, **kwargs)
         if dynamic_data.ndims == 3:
             loss = pde_CFD3d_approx(*fargs, **kwargs)
-        return loss * args.pde_weight
+        return loss
 
     if args.model_type == 'OneStep':
-        dynamic_model = OneStepModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
+        dynamic_model = OneStepModel(dataloader, model, optimizer, pde_loss, args.pde_weight, args.name, args.cuda)
     elif args.model_type == 'AutoRegressive':
-        dynamic_model = AutoRegressiveModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
+        dynamic_model = AutoRegressiveModel(dataloader, model, optimizer, pde_loss, args.pde_weight, args.name, args.cuda)
     else:
-        dynamic_model = PushForwardModel(dataloader, model, optimizer, pde_loss, args.name, args.cuda)
+        dynamic_model = PushForwardModel(dataloader, model, optimizer, pde_loss, args.pde_weight, args.name, args.cuda)
 
     if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)

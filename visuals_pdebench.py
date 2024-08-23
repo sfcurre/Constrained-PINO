@@ -105,7 +105,7 @@ def plot_totals(solution, name):
     total_vy = np.sum(solution[..., 2], axis=(1, 2, 3))
     total_pressure = np.sum(solution[..., -1], axis = (1, 2, 3))
     total_kinetic = np.sum(0.5 * solution[..., 0] * (squared_velocity_sum), axis = (1, 2, 3))
-    total_energy = 1.5 * total_kinetic + total_pressure
+    total_energy = total_kinetic + 1.5 * total_pressure
 
     print(name)
     print(total_density)
