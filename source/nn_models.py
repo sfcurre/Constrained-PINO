@@ -7,12 +7,13 @@ from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, ndims, nclass, periodic=True, scale=True, history=10):
+    def __init__(self, ndims, nclass, periodic=True, scale=True, scale_ke=False, history=10):
         super(PIFNO, self).__init__()
         self.ndims = ndims
         self.nclass = nclass
         self.periodic = periodic
         self.scale = scale
+        self.scale_ke = scale_ke
         self.history = history
 
         if self.periodic:
@@ -28,8 +29,13 @@ class PIFNO(nn.Module):
 
 
     def scale_totals(self, features, x):
-        total_density = torch.sum(features[..., 0])
+        total_density = torch.sum(features[..., -self.nclass])
         total_pressure = torch.sum(features[..., -1])
+        
+        if self.scale_ke:
+            total_kinetic_energy_budget = torch.sum(features[..., -self.nclass: -self.nclass + 1]
+                                                  * features[..., -self.nclass + 1:-1] ** 2)
+            #print(total_density, total_kinetic_energy_budget, total_pressure)
 
         out_density = torch.sum(x[..., 0])
         scaled_density = x[..., :1] * total_density / out_density
@@ -37,10 +43,18 @@ class PIFNO(nn.Module):
         out_pressure = torch.sum(x[..., -1])        
         scaled_pressure = x[..., -1:] * total_pressure / out_pressure
         
-        x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1)
-        #totals = torch.sum(features[..., :x.dim()], axis=tuple(range(features.dim()))[:-1])
-        #out_totals = torch.sum(x, axis=tuple(range(x.dim()))[:-1])
-        #x = x * totals / out_totals
+        if self.scale_ke:
+            kinetic_energy_budget = torch.sum(scaled_density * x[..., 1:-1] ** 2)
+            ke_ratio = total_kinetic_energy_budget / kinetic_energy_budget
+            # v2 = (vx^2 + vy^2 + vz^2) needs to be scaled by ke
+            # C*v2 = Cvx^2 + Cvy^2 + Cvz^2
+            # C*v2 = (root(C)vx)^2 + ...
+            scaled_velocity = x[..., 1:-1] * torch.sqrt(ke_ratio)
+            x = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
+                
+            #print(torch.sum(x[...,0]), torch.sum(x[..., :1] * x[..., 1:-1]**2), torch.sum(x[..., -1]))
+        else:
+            x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1)
 
         return x
 

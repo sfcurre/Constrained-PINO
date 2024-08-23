@@ -35,7 +35,7 @@ def vorticity_plot(x, y, Fx, Fy):
     return plot
 
 def animate_channels(mat, name, vmin=None, vmax=None):
-    fig, axes = plt.subplots(1, 4, figsize=(16, 4))
+    fig, axes = plt.subplots(1, mat.shape[-1], figsize=(16, 4))
 
     if vmax is None:
         vmax = mat.max(axis=(0, 1, 2))
@@ -153,7 +153,7 @@ def main():
 
     if args.run_true:
         timesteps = 100
-        data = PDEBenchGrid(args.run_true, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=8, reduced_resolution=1)
+        data = PDEBenchGrid(args.run_true, timesteps=timesteps, history=1, use_cuda=False, reduced_batch=2, reduced_resolution=1)
         print(len(data.solution))
 
         for i in range(2):

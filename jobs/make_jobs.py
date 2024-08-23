@@ -10,11 +10,11 @@ def write_bash(fp, pred_fp, call, pred_call, name):
     fp.write(f'sbatch {name}.sh\n')
     pred_fp.write(f'sbatch {name}_pred.sh\n')
 
-def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
+def make_call(name, time='11:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
-              nn_arch='PIGNN', history=0, scale_totals=True):
+              nn_arch='PIGNN', history=0, scale_totals=True, scale_ke=False):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN-{name}
 #SBATCH --time={time}
@@ -38,7 +38,7 @@ cd ~/Physics-Informed-GNNs
 '''
     PRED_HEADER = f'''#!/bin/bash
 #SBATCH --job-name=PIGNN_Pred-{name}
-#SBATCH --time=0:09:59
+#SBATCH --time=0:29:59
 #SBATCH --output="out/PIGNN_Pred-{name}-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
@@ -79,6 +79,9 @@ cd ~/Physics-Informed-GNNs
     if scale_totals:
         call += f'    --scale-totals \\\n'
 
+    if scale_ke:
+        call += f'    --scale-ke \\\n'
+
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
@@ -99,10 +102,10 @@ def main():
                   "1D_Rand")
     
     pdebench_2d=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Rand/"
-                  "2d_cfd_rand_m1.0_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
+                  "2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
                   "2D_Rand")
     pdebench_2d_turb=(("/fs/scratch/PAS2170/pdebench/data/2D/CFD/2D_Train_Turb/"
-                       "2d_cfd_turb_m1.0_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
+                       "2d_cfd_turb_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"),
                        "2D_Turb")
 
     pdebench_3d=(("/fs/scratch/PAS2170/pdebench/data/3D/Train/"
@@ -120,25 +123,26 @@ def main():
             fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
-            for pde, name in [pdebench_1d, pdebench_2d,# pdebench_2d_turb,
-                              pdebench_3d]:#, pdebench_3d_turb]:
-                for lr in [1e-5]:#, 1e-6]:
-                    for pde_weight in [0.1, 0.01, 0.0]:
-                        for modeltype in ['AutoRegressive']:
-                            write_bash(fp, pred_fp, 
-                            *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-scaled',
-                                        pdebench=pde,
-                                        e=1000,
-                                        lr=lr,
-                                        layers=4,
-                                        hdim=64,
-                                        timesteps=5,
-                                        pde_weight=pde_weight,
-                                        modeltype=modeltype,
-                                        nn_arch=f'FNO',
-                                        use_grid=True,
-                                        history=10,
-                                        scale_totals=True))
+            for pde, name in [pdebench_2d]:#, pdebench_1d, pdebench_3d]:
+                for lr in [1e-5]:
+                    for pde_weight in [0.01, 0.0]: #, 0.1]:
+                        for modeltype in ['OneStep', 'AutoRegressive']:
+                            for scale_ke in [True, False]:  
+                                write_bash(fp, pred_fp, 
+                                  *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-scaled' + ('_ke' if scale_ke else ''),
+                                              pdebench=pde,
+                                              e=1000,
+                                              lr=lr,
+                                              layers=4,
+                                              hdim=64,
+                                              timesteps=5,
+                                              pde_weight=pde_weight,
+                                              modeltype=modeltype,
+                                              nn_arch=f'FNO',
+                                              use_grid=True,
+                                              history=10,
+                                              scale_totals=True,
+                                              scale_ke=scale_ke))
                             
                             write_bash(fp, pred_fp, 
                             *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-unscaled',

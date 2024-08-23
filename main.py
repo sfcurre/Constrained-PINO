@@ -52,6 +52,7 @@ def parse_args():
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     parser.add_argument('--periodic-bc', action='store_true', default=False, help='Enable a periodic boundary condition.')
     parser.add_argument('--scale-totals', action='store_true', default=False, help='Enable total scaling for density and pressure.')
+    parser.add_argument('--scale-ke', action='store_true', default=False, help='Enable velocity scaling for kinetic energy.')
     parser.add_argument('--mini-batch-width', type=int, default=0, help='Enable minibatch training with input width (requires periodic BC)')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
@@ -79,6 +80,10 @@ def main():
     dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
                                 history=args.history, use_cuda=args.cuda,
                                 reduced_resolution=2, reduced_batch=2)
+  
+
+    np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[..., :100*dynamic_data.num_channels])
+    np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[..., :100*dynamic_data.num_channels])
 
     if args.cuda:
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
@@ -101,6 +106,7 @@ def main():
                       nclass=dynamic_data.nfeats,
                       periodic=args.periodic_bc,
                       scale=args.scale_totals,
+                      scale_ke=args.scale_ke,
                       history=args.history)
     else:
         # args.nn_arch == 'PIGNN'
