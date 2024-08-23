@@ -67,13 +67,13 @@ class DynamicModel:
         outputs = self.predict(locations, features, adj, timesteps=len(targets))
 
         # pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
-        # targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
+        # metric_targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
 
         # pred = pred.contiguous().reshape(pred.shape)
-        # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(outputs, targets)
+        # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, metric_targets)
 
         loss_val = self.get_test_loss(targets, outputs, mask)
-        pde_loss_val = self.pde_loss(locations, features, outputs, mask)
+        pde_loss_val = self.pde_loss(locations, features, outputs[0], mask)
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.data.item()),
             'loss_val: {:.4f}'.format(loss_val.data.item()),

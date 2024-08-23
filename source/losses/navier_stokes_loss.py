@@ -244,19 +244,19 @@ def pde_CFD3d(x, y1, y2, mask, gamma=1.4):
 
 
 def pde_CFD3d_approx(x, y1, y2, mask, gamma=1.4):
-    h1 = y1[..., 0].squeeze()  # rho
-    ux1 = y1[..., 1].squeeze()  # vx
-    uy1 = y1[..., 2].squeeze()  # vy
-    uz1 = y1[..., 3].squeeze()  # vz
-    p1 = y1[..., 4].squeeze()  # p
+    h1 = y1[..., -5].squeeze()  # rho
+    ux1 = y1[..., -4].squeeze()  # vx
+    uy1 = y1[..., -3].squeeze()  # vy
+    uz1 = y1[..., -2].squeeze()  # vz
+    p1 = y1[..., -1].squeeze()  # p
     E1 = p1/(gamma - 1.) + 0.5 * h1 * (ux1**2 + uy1**2 + uz1**2)
     E1 = E1.squeeze()
     
-    h2 = y2[..., 0].squeeze()  # rho
-    ux2 = y2[..., 1].squeeze()  # vx
-    uy2 = y2[..., 2].squeeze()  # vy
-    uz2 = y2[..., 3].squeeze()  # vz
-    p2 = y2[..., 4].squeeze()  # p
+    h2 = y2[..., -5].squeeze()  # rho
+    ux2 = y2[..., -4].squeeze()  # vx
+    uy2 = y2[..., -3].squeeze()  # vy
+    uz2 = y2[..., -2].squeeze()  # vz
+    p2 = y2[..., -1].squeeze()  # p
     E2 = p2/(gamma - 1.) + 0.5 * h2 * (ux2**2 + uy2**2 + uz2**2)
     E2 = E2.squeeze()
     Fx = ux2 * (E2 + p2)
