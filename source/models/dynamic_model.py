@@ -66,11 +66,11 @@ class DynamicModel:
         self.model.eval()
         outputs = self.predict(locations, features, adj, timesteps=len(targets))
 
-        pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
-        targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
+        # pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
+        # targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
 
-        pred = pred.contiguous().reshape(pred.shape)
-        err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(outputs, targets)
+        # pred = pred.contiguous().reshape(pred.shape)
+        # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(outputs, targets)
 
         loss_val = self.get_test_loss(targets, outputs, mask)
         pde_loss_val = self.pde_loss(locations, features, outputs, mask)
@@ -79,12 +79,13 @@ class DynamicModel:
             'loss_val: {:.4f}'.format(loss_val.data.item()),
             'pde_loss_val: {:.4f}'.format(pde_loss_val.data.item()),
             'time: {:.4f}'.format(time.time() - self.t_start),
-            'RMSE: {:.4f}'.format(err_RMSE.cpu().item()),
-            'nRMSE: {:.4f}'.format(err_nRMSE.cpu().item()),
-            'err_CSV: {:.4f}'.format(err_CSV.cpu().item()),
-            'err_Max: {:.4f}'.format(err_Max.cpu().item()),
-            'err_BD: {:.4f}'.format(err_BD.cpu().item()),
-            'err_F: {:.4f}'.format(err_F.cpu().mean().item()), sep=',')
+            # 'RMSE: {:.4f}'.format(err_RMSE.cpu().item()),
+            # 'nRMSE: {:.4f}'.format(err_nRMSE.cpu().item()),
+            # 'err_CSV: {:.4f}'.format(err_CSV.cpu().item()),
+            # 'err_Max: {:.4f}'.format(err_Max.cpu().item()),
+            # 'err_BD: {:.4f}'.format(err_BD.cpu().item()),
+            # 'err_F: {:.4f}'.format(err_F.cpu().mean().item()),
+            sep=',')
 
         torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
         return loss_val.data.item()
