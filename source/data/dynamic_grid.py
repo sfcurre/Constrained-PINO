@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-import glob
+import glob, os, h5py
+import math as mt
 import torch
 from torch_geometric.utils import get_laplacian, coalesce
 from torch.utils.data import Dataset
@@ -261,7 +262,7 @@ class PDEBenchGrid(DynamicGrid):
 class TGVGrid(DynamicGrid):
     def __init__(self, grd_path, solution_path, timesteps=1, history=0, use_cuda=False):
         if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
-            self.grid, self.solution = TGVGraph.read_input_directory(self, grd_path, solution_path)
+            self.grid, self.solution = self.read_input_directory(self, grd_path, solution_path)
             np.save(grd_path.replace('.', '_') + '.npy', self.grid)
             np.save(solution_path + '_sol.npy', self.solution)
         else:
@@ -269,6 +270,19 @@ class TGVGrid(DynamicGrid):
         self.grid, self.solution = self.cut_periodic(self.grid, self.solution)
         super(DynamicGrid, self).__init__(self.grid, self.solution, 5,
                                           timesteps=timesteps, history=history, use_cuda=use_cuda)
+        
+    def read_input_directory(self, grd_path, solution_path):
+        locations = self.read_grd_data(grd_path)
+
+        flow_features = []
+        for i in range(1001):
+            if i != 0:
+                i *= 100
+            filename = solution_path + f'{i}'
+            flow_features.append(self.read_solution_data(filename))
+        features = np.stack(flow_features, axis = 0)
+
+        return locations, features
 
     def cut_periodic(self, grid, solution):
         #cut features to ensure periodicity
