@@ -247,13 +247,11 @@ class PDEBenchGrid(DynamicGrid):
         #self.data = (self.data - self.data.mean(axis=(0, 1, 2, 3, 4))) / self.data.std(axis=(0, 1, 2, 3, 4))
         #self.data = self.data / self.data.std(axis=(0, 1, 2, 3, 4))
 
-        self.density, self.velocity, self.pressure = self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]
-        self.density = self.density / self.density.std()
-        self.velocity = self.velocity / self.velocity.std()
-        self.pressure = self.pressure / self.pressure.std()
-            
-        self.data = np.concatenate([self.density, self.velocity, self.pressure], axis=-1)
-        
+        self.data[..., 0:1] = self.data[..., 0:1] / self.data[..., 0:1].std()
+        self.data[..., 2:] = self.data[..., 2:] / self.data[..., 2:].std()
+        self.data[..., 1:2] = self.data[..., 1:2] / self.data[..., 1:2].std()
+
+        self.data = np.concatenate([self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]], axis=-1)       
 
         num_channels = self.data.shape[-1]
         self.data = self.data.reshape(self.data.shape[:-2] + (-1,))
