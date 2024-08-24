@@ -74,7 +74,6 @@ class DynamicModel:
 
         loss_val = self.get_test_loss(targets, outputs, mask)
         pde_loss_val = self.pde_loss(locations.cpu(), features.cpu(), outputs[0].cpu(), 1)
-        else:
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.data.item()),
             'loss_val: {:.4f}'.format(loss_val.data.item()),
