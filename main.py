@@ -50,16 +50,14 @@ def parse_args():
     parser.add_argument('--timesteps', type=int, default=5, help='Number of timesteps to train over.')
     parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
-    parser.add_argument('--periodic-bc', action='store_true', default=False, help='Enable a periodic boundary condition.')
-    parser.add_argument('--scale-totals', action='store_true', default=False, help='Enable total scaling for density and pressure.')
-    parser.add_argument('--scale-ke', action='store_true', default=False, help='Enable velocity scaling for kinetic energy.')
-    parser.add_argument('--mini-batch-width', type=int, default=0, help='Enable minibatch training with input width (requires periodic BC)')
+    parser.add_argument('--scale-mass', action='store_true', default=False, help='Enable mass scaling for density and pressure.')
+    parser.add_argument('--scale-momentum', action='store_true', default=False, help='Enable velocity scaling for momenutm.')
+    parser.add_argument('--scale-energy', action='store_true', default=False, help='Enable velocity scaling for kinetic energy.')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
                                         default='PushForward', help='Type of training model.')
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
-    parser.add_argument('--use-grid', action='store_true', help='Flag indicating if the program should use grids instead of graphs.')
-    parser.add_argument('--nn-arch', type=str, default='PIGNN', help='Which neural network architecture to use.')
+    parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
     parser.add_argument('--history', type=int, default=0, help='The number of historical timesteps to use as a history.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -91,32 +89,22 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    if args.nn_arch == 'DeepSpGAT':
-        model = DeepSpGAT(nfeat=dynamic_data.nfeats,
-                    ndims=dynamic_data.ndims,
-                    nhid=args.hidden,
-                    natt=args.layers,
-                    nclass=dynamic_data.nfeats,
-                    dropout=args.dropout,
-                    nheads=args.nb_heads,
-                    alpha=args.alpha,
-                    periodic=args.periodic_bc)
-    elif args.nn_arch == 'FNO':
+    if args.nn_arch == 'FNO_grad':
+        model = PIFNO_grad(ndims=dynamic_data.ndims,
+                      nclass=dynamic_data.nfeats,
+                      periodic=args.periodic_bc,
+                      scale_mass=args.scale_mass,
+                      scale_momentum=args.scale_momentum,
+                      scale_energy=args.scale_energy,
+                      history=args.history)
+    else:
         model = PIFNO(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
                       periodic=args.periodic_bc,
-                      scale=args.scale_totals,
-                      scale_ke=args.scale_ke,
+                      scale_mass=args.scale_mass,
+                      scale_momentum=args.scale_momentum,
+                      scale_energy=args.scale_energy,
                       history=args.history)
-    else:
-        # args.nn_arch == 'PIGNN'
-        model = PIGNN(nfeat=dynamic_data.nfeats,
-                    ndims=dynamic_data.ndims,
-                    nhid=args.hidden,
-                    nlayers=args.layers,
-                    nclass=dynamic_data.nfeats,
-                    dropout=args.dropout,
-                    periodic=args.periodic_bc)
     
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
@@ -143,6 +131,10 @@ def main():
         dynamic_model.load_model(args.load_pkl)
 
     if not args.no_train:
+        if os.path.exists(f'out/reports/outfile_{args.name}.txt'):
+            os.remove(f'out/reports/outfile_{args.name}.txt')
+        if os.path.exists(f'out/reports/report_{args.name}.txt'):
+            os.remove(f'out/reports/report_{args.name}.txt')
         train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
 
     dynamic_model.model.eval()

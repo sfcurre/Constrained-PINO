@@ -14,7 +14,7 @@ def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
-              nn_arch='PIGNN', history=0, scale_totals=True, scale_ke=False):
+              nn_arch='FNO', history=0, scale_mass=True, scale_momentum=False, scale_energy=False):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name={name}
 #SBATCH --time={time}
@@ -63,11 +63,14 @@ cd ~/Physics-Informed-GNNs
     call += f'    --alpha {alpha} --pde-weight {pde_weight} --timesteps {timesteps} --history {history} \\\n'
     call += f'    --pdebench {pdebench} \\\n'
 
-    if scale_totals:
-        call += f'    --scale-totals \\\n'
+    if scale_mass:
+        call += f'    --scale-mass \\\n'
 
-    if scale_ke:
-        call += f'    --scale-ke \\\n'
+    if scale_momentum:
+        call += f'    --scale-momentum \\\n'
+
+    if scale_energy:
+        call += f'    --scale-energy \\\n'
 
     if bs:
         call += f'    --batch-size {bs} \\\n'
@@ -104,6 +107,10 @@ def main():
 
     grd='TGV/ijk_snapshots/ijkmvmv_grd.npy'
     sol='TGV/ijk_snapshots/ijkmvmv_sol.npy'
+
+    scaling_settings = {'mass': {'scale_mass': True, 'scale_momentum': False, 'scale_energy': False},
+                        'momentum': {'scale_mass': True, 'scale_momentum': True, 'scale_energy': False},
+                        'energy': {'scale_mass': True, 'scale_momentum': False, 'scale_energy': True}}
     
     with open('jobs/batch_jobs.sh', 'w') as fp:
         with open('jobs/batch_preds.sh', 'w') as pred_fp:
@@ -112,26 +119,26 @@ def main():
             
             for pde, name in [pdebench_2d]:#, pdebench_1d, pdebench_3d]:
                 for lr in [1e-5]:
-                    for pde_weight in [0.01, 0.0]: #, 0.1]:
-                        for modeltype in ['OneStep', 'AutoRegressive']:
-                            for scale_ke in [True, False]:  
-                                write_bash(fp, pred_fp, 
-                                  *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-scaled' + ('_ke' if scale_ke else ''),
-                                              pdebench=pde,
-                                              e=1000,
-                                              lr=lr,
-                                              layers=4,
-                                              hdim=64,
-                                              timesteps=5,
-                                              pde_weight=pde_weight,
-                                              modeltype=modeltype,
-                                              nn_arch=f'FNO',
-                                              history=10,
-                                              scale_totals=True,
-                                              scale_ke=scale_ke))
+                    for pde_weight in [0.0]: #, 0.01 #, 0.1]:
+                        for modeltype in ['AutoRegressive']: #, OneStep]:
+                            for scaling in ['mass', 'momentum']:#, 'energy']:
+                                for arch in ['FNO, FNO_grad']:  
+                                    write_bash(fp, pred_fp, 
+                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-scaled_{scaling}'),
+                                                pdebench=pde,
+                                                e=1000,
+                                                lr=lr,
+                                                layers=4,
+                                                hdim=64,
+                                                timesteps=5,
+                                                pde_weight=pde_weight,
+                                                modeltype=modeltype,
+                                                nn_arch=arch,
+                                                history=10,
+                                                **scaling_settings[scaling])
                             
                             write_bash(fp, pred_fp, 
-                            *make_call(f'PDEBench_{name}-{modeltype}-lr_{lr}-pde_{pde_weight}-unscaled',
+                            *make_call(f'PDEBench_{name}-{arch}-{modeltype}-unscaled',
                                         pdebench=pde,
                                         e=1000,
                                         lr=lr,
@@ -140,9 +147,9 @@ def main():
                                         timesteps=5,
                                         pde_weight=pde_weight,
                                         modeltype=modeltype,
-                                        nn_arch=f'FNO',
+                                        nn_arch=arch,
                                         history=10,
-                                        scale_totals=False))
+                                        scale_mass=False))
 
 if __name__ == '__main__':
     main()

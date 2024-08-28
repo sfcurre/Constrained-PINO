@@ -48,7 +48,7 @@ class DynamicModel:
             if bad_counter == patience:
                 break
 
-            with open(f'outfile_{self.name}.txt', 'a') as fp:
+            with open(f'out/reports/outfile_{self.name}.txt', 'a') as fp:
                 print(epoch, loss_values[-1], sep='\t', file=fp)
 
         print("Optimization Finished!")
@@ -74,7 +74,7 @@ class DynamicModel:
 
         loss_val = self.get_test_loss(targets, outputs, mask)
         pde_loss_val = self.pde_loss(locations.cpu(), features.cpu(), outputs[0].cpu(), 1)
-        with open(f'report_{self.name}.txt', 'a') as fp:
+        with open(f'out/reports/report_{self.name}.txt', 'a') as fp:
             print('Epoch: {:04d}'.format(epoch+1),
                 'loss_train: {:.4f}'.format(loss_train.data.item()),
                 'loss_val: {:.4f}'.format(loss_val.data.item()),
