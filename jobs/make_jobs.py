@@ -124,7 +124,7 @@ def main():
                             for scaling in ['mass', 'momentum']:#, 'energy']:
                                 for arch in ['FNO, FNO_grad']:  
                                     write_bash(fp, pred_fp, 
-                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-scaled_{scaling}'),
+                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-scaled_{scaling}',
                                                 pdebench=pde,
                                                 e=1000,
                                                 lr=lr,
@@ -135,7 +135,7 @@ def main():
                                                 modeltype=modeltype,
                                                 nn_arch=arch,
                                                 history=10,
-                                                **scaling_settings[scaling])
+                                                **scaling_settings[scaling]))
                             
                             write_bash(fp, pred_fp, 
                             *make_call(f'PDEBench_{name}-{arch}-{modeltype}-unscaled',
