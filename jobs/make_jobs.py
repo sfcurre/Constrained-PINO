@@ -122,7 +122,7 @@ def main():
                     for pde_weight in [0.0]: #, 0.01 #, 0.1]:
                         for modeltype in ['AutoRegressive']: #, OneStep]:
                             for scaling in ['mass', 'momentum']:#, 'energy']:
-                                for arch in ['FNO, FNO_grad']:  
+                                for arch in ['FNO', 'FNO_grad']:  
                                     write_bash(fp, pred_fp, 
                                     *make_call(f'PDEBench_{name}-{arch}-{modeltype}-scaled_{scaling}',
                                                 pdebench=pde,
