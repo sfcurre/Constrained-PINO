@@ -79,7 +79,7 @@ def main():
     # Load data
     dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
                                 history=args.history, use_cuda=args.cuda,
-                                reduced_resolution=2, reduced_batch=2)
+                                reduced_resolution=1, reduced_batch=2)
   
 
     np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[..., :100*dynamic_data.num_channels])

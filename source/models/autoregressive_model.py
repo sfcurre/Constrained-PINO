@@ -38,9 +38,10 @@ class AutoRegressiveModel(DynamicModel):
             
             losses.append(loss_train.cpu().item())                
 
-            if (i + 1) % report_interval == 0:
-                self.report(adj, locations, features, targets, mask, loss_train, epoch)
+            # if (i + 1) % report_interval == 0:
+            self.report(adj, locations, features, targets, mask, loss_train, epoch)
         
+        #self.report(adj, locations, features, targets, mask, loss_train, epoch)
         return np.mean(losses)
 
 
