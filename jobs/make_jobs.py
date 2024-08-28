@@ -10,15 +10,15 @@ def write_bash(fp, pred_fp, call, pred_call, name):
     fp.write(f'sbatch {name}.sh\n')
     pred_fp.write(f'sbatch {name}_pred.sh\n')
 
-def make_call(name, time='11:59:59', grd=None, sol=None, pdebench=None,
+def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
               nn_arch='PIGNN', history=0, scale_totals=True, scale_ke=False):
     HEADER = f'''#!/bin/bash
-#SBATCH --job-name=PIGNN-{name}
+#SBATCH --job-name={name}
 #SBATCH --time={time}
-#SBATCH --output="out/PIGNN-{name}-%j.out"
+#SBATCH --output="out/{name}-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=28
@@ -37,9 +37,9 @@ conda activate pignn
 cd ~/Physics-Informed-GNNs
 '''
     PRED_HEADER = f'''#!/bin/bash
-#SBATCH --job-name=PIGNN_Pred-{name}
+#SBATCH --job-name=Pred-{name}
 #SBATCH --time=0:29:59
-#SBATCH --output="out/PIGNN_Pred-{name}-%j.out"
+#SBATCH --output="out/Pred-{name}-%j.out"
 #SBATCH --account=PAS2170
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=28
@@ -61,21 +61,8 @@ cd ~/Physics-Informed-GNNs
     call = f'python main.py --epochs {e} --patience {patience} --lr {lr} --weight-decay {wd} \\\n'
     call += f'    --hidden {hdim} --layers {layers} --nb-heads {heads} --dropout {dropout} \\\n'
     call += f'    --alpha {alpha} --pde-weight {pde_weight} --timesteps {timesteps} --history {history} \\\n'
-    if grd and sol:
-        call += f'    --grd {grd} --sol {sol} \\\n'
-    elif pdebench:
-        call += f'    --pdebench {pdebench} \\\n'
-    else:
-        raise ValueError(f"Must define data files (grd and sol or pdebench) for {name}")
+    call += f'    --pdebench {pdebench} \\\n'
 
-    if periodic:
-        call += f'    --periodic-bc \\\n'
-        if minibatch:
-            call += f'    --mini-batch-width {minibatch} \\\n'
-
-    if use_grid:
-        call += f'    --use-grid \\\n'
-    
     if scale_totals:
         call += f'    --scale-totals \\\n'
 
@@ -139,7 +126,6 @@ def main():
                                               pde_weight=pde_weight,
                                               modeltype=modeltype,
                                               nn_arch=f'FNO',
-                                              use_grid=True,
                                               history=10,
                                               scale_totals=True,
                                               scale_ke=scale_ke))
@@ -155,22 +141,8 @@ def main():
                                         pde_weight=pde_weight,
                                         modeltype=modeltype,
                                         nn_arch=f'FNO',
-                                        use_grid=True,
                                         history=10,
                                         scale_totals=False))
-
-                        #write_bash(fp, pred_fp,           
-                        #           *make_call(f'PDEBench2D-PIGNN-{modeltype}-lr_{lr}-pde_{pde_weight}',
-                        #                    pdebench=pdebench,
-                        #                    e=1000,
-                        #                    lr=lr,
-                        #                    layers=4,
-                        #                    hdim=64,
-                        #                    timesteps=5,
-                        #                    pde_weight=pde_weight,
-                        #                    modeltype=modeltype,
-                        #                    nn_arch='PIGNN',
-                        #                    history=1))
 
 if __name__ == '__main__':
     main()
