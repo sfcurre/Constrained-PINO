@@ -72,6 +72,9 @@ cd ~/Physics-Informed-GNNs
     if scale_energy:
         call += f'    --scale-energy \\\n'
 
+    if periodic:
+        call += f'    --periodic \\\n'
+
     if bs:
         call += f'    --batch-size {bs} \\\n'
 

@@ -49,6 +49,7 @@ def parse_args():
     parser.add_argument('--patience', type=int, default=100, help='Patience')
     parser.add_argument('--timesteps', type=int, default=5, help='Number of timesteps to train over.')
     parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
+    parser.add_argument('--periodic', action='store_true', default=False, help='Enable periodic boundary conditions.')
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     parser.add_argument('--scale-mass', action='store_true', default=False, help='Enable mass scaling for density and pressure.')
     parser.add_argument('--scale-momentum', action='store_true', default=False, help='Enable velocity scaling for momenutm.')
@@ -92,7 +93,7 @@ def main():
     if args.nn_arch == 'FNO_grad':
         model = PIFNO_grad(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
-                      periodic=args.periodic_bc,
+                      periodic=args.periodic,
                       scale_mass=args.scale_mass,
                       scale_momentum=args.scale_momentum,
                       scale_energy=args.scale_energy,
@@ -100,7 +101,7 @@ def main():
     else:
         model = PIFNO(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
-                      periodic=args.periodic_bc,
+                      periodic=args.periodic,
                       scale_mass=args.scale_mass,
                       scale_momentum=args.scale_momentum,
                       scale_energy=args.scale_energy,
