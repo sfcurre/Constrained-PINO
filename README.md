@@ -1,1 +1,1 @@
-# Physics-Informed-GNNs
+# Constrained Physics-Informed Neural Operators
