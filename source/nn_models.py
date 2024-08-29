@@ -64,7 +64,7 @@ class PIFNO(nn.Module):
 
         return x
 
-    def forward(self, locations, features, adj):
+    def forward(self, locations, features):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
@@ -102,7 +102,7 @@ class PIFNO_grad(PIFNO):
 
         return dx
     
-    def forward(self, locations, features, adj):
+    def forward(self, locations, features):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
