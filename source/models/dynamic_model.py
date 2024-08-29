@@ -127,7 +127,7 @@ class DynamicModel:
 
     def get_test_pde_loss(self, locations, features, outputs):
         total_loss = 0
-        for i in range(outputs):
+        for i in range(len(outputs)):
             if i == 0:
                 total_loss += self.pde_loss(locations.cpu(), features.cpu(), outputs[i].cpu())
             else:
