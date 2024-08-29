@@ -29,7 +29,7 @@ class PIFNO(nn.Module):
             self.fno = FNO3d(self.nclass, self.ndims, initial_step=self.history)
 
     def scale_totals(self, features, x):
-        spatial_dims = list(range(1, len(features.shape) - 1))
+        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
         total_density = torch.sum(features[..., -self.nclass], dim=spatial_dims)
         total_pressure = torch.sum(features[..., -1], dim=spatial_dims)
         
@@ -85,7 +85,7 @@ class PIFNO_grad(PIFNO):
         super(PIFNO_grad, self).__init__(*args, **kwargs)
         
     def scale_grads(self, features, dx):
-        spatial_dims = list(range(1, len(features.shape) - 1))
+        spatial_dims = list(range(1, len(features.shape) - 1)) #all but the last dim
 
         scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
         scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims)
