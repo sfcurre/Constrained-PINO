@@ -113,5 +113,5 @@ class PIFNO_grad(PIFNO):
         if self.scale_mass:
             dx = self.scale_grads(features, dx)
 
-        x = features[-self.nclass:] + dx
+        x = features[..., -self.nclass:] + dx
         return x

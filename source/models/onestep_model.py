@@ -23,11 +23,11 @@ class OneStepModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         losses = []
-        for i, (adj, locations, features, targets, mask) in enumerate(self.dataloader):
+        for i, (locations, features, targets) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
             
-            output = self.model(locations, features, adj)
-            loss_train = self.get_loss(locations, features, targets[0], output, mask)
+            output = self.model(locations, features)
+            loss_train = self.get_loss(locations, features, targets[0], output)
             losses.append(loss_train.cpu().item())
             loss_train.backward()
             
@@ -36,17 +36,13 @@ class OneStepModel(DynamicModel):
             dde.grad.clear()
 
             #if (i + 1) % report_interval == 0:
-            self.report(adj, locations, features, targets, mask, loss_train, epoch)
+            self.report(locations, features, targets, loss_train, epoch)
         
         #self.report(adj, locations, features, targets, mask, loss_train, epoch)    
         return np.mean(losses)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
-        if mask is not None:
-            mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
-        else:
-            mse_loss = F.mse_loss(outputs, targets)
-            mask = 1
-        pde_loss = self.pde_loss(locations, features, outputs, mask)
+        mse_loss = F.mse_loss(outputs, targets)
+        pde_loss = self.pde_loss(locations, features, outputs)
         return mse_loss + self.pde_weight * pde_loss

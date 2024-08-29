@@ -62,9 +62,9 @@ class DynamicModel:
         test_losses = self.compute_test()
         return loss_values, test_losses
 
-    def report(self, adj, locations, features, targets, mask, loss_train, epoch):
+    def report(self, locations, features, targets, loss_train, epoch):
         self.model.eval()
-        outputs = self.predict(locations, features, adj, timesteps=len(targets))
+        outputs = self.predict(locations, features, timesteps=len(targets))
 
         # pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
         # metric_targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
@@ -72,8 +72,8 @@ class DynamicModel:
         # pred = pred.contiguous().reshape(pred.shape)
         # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, metric_targets)
 
-        loss_val = self.get_test_loss(targets, outputs, mask)
-        pde_loss_val = self.pde_loss(locations.cpu(), features.cpu(), outputs[0].cpu(), 1)
+        loss_val = self.get_test_loss(targets, outputs)
+        pde_loss_val = self.get_test_pde_loss(locations, features, outputs)
         with open(f'out/reports/report_{self.name}.txt', 'a') as fp:
             print('Epoch: {:04d}'.format(epoch+1),
                 'loss_train: {:.4f}'.format(loss_train.data.item()),
@@ -94,14 +94,14 @@ class DynamicModel:
     def train_step(self, epoch):
         raise NotImplementedError()
 
-    def get_loss(self, locations, features, targets, outputs, mask):
+    def get_loss(self, locations, features, targets, outputs):
         raise NotImplementedError()
 
-    def predict(self, locations, features, adj, timesteps=1, numpy=False):
+    def predict(self, locations, features, timesteps=1, numpy=False):
         # add with torch.no_grad
         outputs = []
         for i in range(timesteps):
-            output = self.model(locations, features, adj)
+            output = self.model(locations, features)
             features = self.concat_timesteps(features, output)
             output = output.detach().cpu()
             if numpy:
@@ -119,13 +119,19 @@ class DynamicModel:
             test_losses.append(loss_test.data.item())
         return test_losses
 
-    def get_test_loss(self, targets, outputs, mask = None):
+    def get_test_loss(self, targets, outputs):
         total_loss = 0
         for output, target in zip(outputs, targets):
-            if mask is not None:
-                total_loss += torch.sum(((output.cpu() - target.cpu()) * mask.cpu()) ** 2) / torch.sum(mask.cpu())
+            total_loss += F.mse_loss(output.cpu(), target.cpu())
+        return total_loss
+
+    def get_test_pde_loss(self, locations, features, outputs):
+        total_loss = 0
+        for i in range(outputs):
+            if i == 0:
+                total_loss += self.pde_loss(locations.cpu(), features.cpu(), outputs[i].cpu())
             else:
-                total_loss += F.mse_loss(output.cpu(), target.cpu())
+                total_loss += self.pde_loss(locations.cpu(), outputs[i-1].cpu(), outputs[i].cpu())
         return total_loss
 
     def load_model(self, pkl_file):

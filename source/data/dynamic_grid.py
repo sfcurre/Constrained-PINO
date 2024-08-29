@@ -41,16 +41,13 @@ class DynamicGrid(Dataset):
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(self.grid.astype(np.float32)).requires_grad_()
 
-        mask = None
-        adj = None
-
         if self.use_cuda:
             locations = locations.to(device='cuda')
             features = features.to(device='cuda')
             targets = targets.to(device='cuda')
 
 
-        return adj, locations, features, targets, mask
+        return locations, features, targets
 
     def training(self):
         self.is_training = True

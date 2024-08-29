@@ -22,31 +22,27 @@ class PushForwardModel(DynamicModel):
         self.t_start = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for i, (adj, locations, features, targets, mask) in enumerate(self.dataloader):
+        for i, (locations, features, targets) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
 
-            output_1 = self.model(locations, features, adj)
+            output_1 = self.model(locations, features)
             output_1 = self.concat_timesteps(features, output_1.detach())
             
-            output_2 = self.model(locations, output_1, adj)
+            output_2 = self.model(locations, output_1)
             
-            loss_train = self.get_loss(locations, output_1, targets[1], output_2, mask)
+            loss_train = self.get_loss(locations, output_1, targets[1], output_2)
             
             loss_train.backward()
             self.optimizer.step()
             dde.grad.clear()
 
             if (i + 1) % report_interval == 0:
-                self.report(adj, locations, features, targets, mask, loss_train, epoch)
+                self.report(locations, features, targets, loss_train, epoch)
         
-        return self.report(adj, locations, features, targets, mask, loss_train, epoch)
+        return self.report(locations, features, targets, loss_train, epoch)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
-        if mask is not None:
-            mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
-        else:
-            mse_loss = F.mse_loss(outputs, targets)
-            mask = 1
-        pde_loss = self.pde_loss(locations, features, outputs, mask)
+        mse_loss = F.mse_loss(outputs, targets)
+        pde_loss = self.pde_loss(locations, features, outputs)
         return mse_loss + self.pde_weight * pde_loss

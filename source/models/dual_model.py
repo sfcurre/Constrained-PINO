@@ -23,12 +23,12 @@ class DualModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         losses = []
-        for i, (adj, locations, features, targets, mask) in enumerate(self.dataloader):
+        for i, (locations, features, targets) in enumerate(self.dataloader):
             for ti_target in targets:
                 self.optimizer.zero_grad()
                 
-                output = self.model(locations, features, adj)
-                loss_train = self.get_loss(locations, features, ti_target, output, mask, term='both')
+                output = self.model(locations, features)
+                loss_train = self.get_loss(locations, features, ti_target, output, term='both')
 
                 loss_train.backward()
                 self.optimizer.step()
@@ -39,18 +39,14 @@ class DualModel(DynamicModel):
             losses.append(loss_train.cpu().item())                
 
             if (i + 1) % report_interval == 0:
-                self.report(adj, locations, features, targets, mask, loss_train, epoch)
+                self.report(locations, features, targets, loss_train, epoch)
         
         return np.mean(losses)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None, term='both'):
-        if mask is not None:
-            mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
-        else:
-            mse_loss = F.mse_loss(outputs, targets)
-            mask = 1
-        pde_loss = self.pde_loss(locations, features, outputs, mask)
+        mse_loss = F.mse_loss(outputs, targets)
+        pde_loss = self.pde_loss(locations, features, outputs)
         if term == 'mse':
             return mse_loss
         elif term == 'pde':

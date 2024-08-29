@@ -7,7 +7,7 @@ import deepxde as dde
 
 #============================================================
 
-def pde_CFD1d(x, y1, y2, mask, gamma=1.4):
+def pde_CFD1d(x, y1, y2, gamma=1.4):
     h1 = y1[..., -3].squeeze()  # rho
     ux1 = y1[..., -2].squeeze()  # vx
     p1 = y1[..., -1].squeeze()  # p
@@ -40,8 +40,7 @@ def pde_CFD1d(x, y1, y2, mask, gamma=1.4):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3))
-    loss = residual * mask
-    return torch.mean(loss)
+    return torch.mean(residual)
 
 def pde_CFD1d_approx(x, y1, y2, mask, gamma=1.4):
     h1 = y1[..., -3].squeeze()  # rho
@@ -77,10 +76,9 @@ def pde_CFD1d_approx(x, y1, y2, mask, gamma=1.4):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3))
-    loss = residual * mask
-    return torch.mean(loss)
+    return torch.mean(residual)
 
-def pde_CFD2d(x, y1, y2, mask, gamma=1.4):
+def pde_CFD2d(x, y1, y2, gamma=1.4):
     h1 = y1[..., -4].squeeze()  # rho
     ux1 = y1[..., -3].squeeze()  # vx
     uy1 = y1[..., -2].squeeze()  # vy
@@ -127,10 +125,9 @@ def pde_CFD2d(x, y1, y2, mask, gamma=1.4):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3) + torch.abs(eq4))
-    loss = residual * mask
-    return torch.mean(loss)
+    return torch.mean(residual)
 
-def pde_CFD2d_approx(x, y1, y2, mask, gamma=1.4):
+def pde_CFD2d_approx(x, y1, y2, gamma=1.4):
     h1 = y1[..., -4].squeeze()  # rho
     ux1 = y1[..., -3].squeeze()  # vx
     uy1 = y1[..., -2].squeeze()  # vy
@@ -173,11 +170,9 @@ def pde_CFD2d_approx(x, y1, y2, mask, gamma=1.4):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3) + torch.abs(eq4))
-    loss = residual * mask
-    return torch.mean(loss)
+    return torch.mean(residual)
 
-
-def pde_CFD3d(x, y1, y2, mask, gamma=1.4):
+def pde_CFD3d(x, y1, y2, gamma=1.4):
     h1 = y1[..., -5].squeeze()  # rho
     ux1 = y1[..., -4].squeeze()  # vx
     uy1 = y1[..., -3].squeeze()  # vy
@@ -239,11 +234,10 @@ def pde_CFD3d(x, y1, y2, mask, gamma=1.4):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) +
                 torch.abs(eq4) + torch.abs(eq5))
-    loss = residual * mask
-    return torch.mean(loss)
+    return torch.mean(residual)
 
 
-def pde_CFD3d_approx(x, y1, y2, mask, gamma=1.4):
+def pde_CFD3d_approx(x, y1, y2, gamma=1.4):
     h1 = y1[..., -5].squeeze()  # rho
     ux1 = y1[..., -4].squeeze()  # vx
     uy1 = y1[..., -3].squeeze()  # vy
@@ -294,6 +288,5 @@ def pde_CFD3d_approx(x, y1, y2, mask, gamma=1.4):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) +
                 torch.abs(eq4) + torch.abs(eq5))
-    loss = residual * mask
-    return torch.mean(loss)
+    return torch.mean(residual)
 
