@@ -30,13 +30,13 @@ class PIFNO(nn.Module):
 
     def scale_totals(self, features, x):
         spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
-        total_density = torch.sum(features[..., -self.nclass], dim=spatial_dims)
-        total_pressure = torch.sum(features[..., -1], dim=spatial_dims)
+        total_density = torch.sum(features[..., -self.nclass])
+        total_pressure = torch.sum(features[..., -1])
         
-        out_density = torch.sum(x[..., 0], dim=spatial_dims)
+        out_density = torch.sum(x[..., 0])
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., -1], dim=spatial_dims)
+        out_pressure = torch.sum(x[..., -1])
         scaled_pressure = x[..., -1:] * total_pressure / out_pressure
         
         if self.scale_momentum:
@@ -49,8 +49,8 @@ class PIFNO(nn.Module):
 
         elif self.scale_energy:
             total_kinetic_energy = torch.sum(features[..., -self.nclass: -self.nclass + 1]
-                                           * features[..., -self.nclass + 1:-1] ** 2, dim=spatial_dims)
-            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2, dim=spatial_dims)
+                                           * features[..., -self.nclass + 1:-1] ** 2)
+            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2)
             ke_ratio = total_kinetic_energy / out_kinetic_energy
             # v2 = (vx^2 + vy^2 + vz^2) needs to be scaled by ke
             # C*v2 = Cvx^2 + Cvy^2 + Cvz^2
@@ -83,8 +83,8 @@ class PIFNO_grad(PIFNO):
     def scale_grads(self, features, dx):
         spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
 
-        scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
-        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims)
+        scaled_density = dx[..., :1] - dx[..., :1].mean()
+        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean()
         
         if self.scale_momentum:
             # sum of -grad(rho)*u
