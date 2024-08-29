@@ -58,25 +58,21 @@ class PIFNO(nn.Module):
             scaled_velocity = x[..., 1:-1] * torch.sqrt(ke_ratio)
             x = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
                 
-            #print(torch.sum(x[...,0]), torch.sum(x[..., :1] * x[..., 1:-1]**2), torch.sum(x[..., -1]))
         else:
             x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1)
 
         return x
 
     def forward(self, locations, features):
-        print(locations.shape, features.shape)
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
-        features = features.squeeze()[None, ...]
-        locations = locations.squeeze()[None, ...]
-        x = self.fno(features, locations)[0]
-        print(x.shape)
+        fno_features = features.squeeze()[None, ...]
+        fno_locations = locations.squeeze()[None, ...]
+        x = self.fno(fno_features, fno_locations)[0]
 
         if self.scale_mass:
             x = self.scale_totals(features, x)
-            print(x.shape)
 
         return x
 
@@ -85,7 +81,7 @@ class PIFNO_grad(PIFNO):
         super(PIFNO_grad, self).__init__(*args, **kwargs)
         
     def scale_grads(self, features, dx):
-        spatial_dims = list(range(1, len(features.shape) - 1)) #all but the last dim
+        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
 
         scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
         scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims)
@@ -106,18 +102,15 @@ class PIFNO_grad(PIFNO):
         return dx
     
     def forward(self, locations, features):
-        print(locations.shape, features.shape)
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
-        features = features.squeeze()[None, ...]
-        locations = locations.squeeze()[None, ...]
-        dx = self.fno(features, locations)[0]
-        print(dx.shape)
+        fno_features = features.squeeze()[None, ...]
+        fno_locations = locations.squeeze()[None, ...]
+        dx = self.fno(fno_features, fno_locations)[0]
 
         if self.scale_mass:
             dx = self.scale_grads(features, dx)
-            print(dx.shape)
 
         x = features[..., -self.nclass:] + dx
         return x
