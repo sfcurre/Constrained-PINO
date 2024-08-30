@@ -42,7 +42,7 @@ def pde_CFD1d(x, y1, y2, gamma=1.4):
                 torch.abs(eq3))
     return torch.mean(residual)
 
-def pde_CFD1d_approx(x, y1, y2, mask, gamma=1.4):
+def pde_CFD1d_approx(x, y1, y2, gamma=1.4):
     h1 = y1[..., -3].squeeze()  # rho
     ux1 = y1[..., -2].squeeze()  # vx
     p1 = y1[..., -1].squeeze()  # p

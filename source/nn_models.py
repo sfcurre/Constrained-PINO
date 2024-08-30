@@ -68,8 +68,8 @@ class PIFNO(nn.Module):
             locations = self.wave_transform(locations, concat_to=None)
 
         fno_features = features.squeeze()[None, ...]
-        fno_locations = locations.squeeze()[None, ...]
-        x = self.fno(fno_features, fno_locations)[0]
+        locations = locations.squeeze()[None, ...]
+        x = self.fno(fno_features, locations)[0]
 
         if self.scale_mass:
             x = self.scale_totals(features, x)
@@ -106,8 +106,8 @@ class PIFNO_grad(PIFNO):
             locations = self.wave_transform(locations, concat_to=None)
 
         fno_features = features.squeeze()[None, ...]
-        fno_locations = locations.squeeze()[None, ...]
-        dx = self.fno(fno_features, fno_locations)[0]
+        locations = locations.squeeze()[None, ...]
+        dx = self.fno(fno_features, locations)[0]
 
         if self.scale_mass:
             dx = self.scale_grads(features, dx)

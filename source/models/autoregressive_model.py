@@ -41,15 +41,13 @@ class AutoRegressiveModel(DynamicModel):
             # if (i + 1) % report_interval == 0:
             self.report(locations, features, targets, loss_train, epoch)
         
-        #self.report(adj, locations, features, targets, mask, loss_train, epoch)
         return np.mean(losses)
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
-        if mask is not None:
-            mse_loss = torch.sum(((outputs - targets) * mask) ** 2) / torch.sum(mask)
+        mse_loss = F.mse_loss(outputs, targets)
+        if self.pde_weight > 0:        
+            pde_loss = self.pde_loss(locations, features, outputs)
         else:
-            mse_loss = F.mse_loss(outputs, targets)
-            mask = 1
-        pde_loss = self.pde_loss(locations, features, outputs, mask)
+            pde_loss = 0
         return mse_loss + self.pde_weight * pde_loss

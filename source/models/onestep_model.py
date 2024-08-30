@@ -42,7 +42,7 @@ class OneStepModel(DynamicModel):
         return np.mean(losses)
 
 
-    def get_loss(self, locations, features, targets, outputs, mask=None):
+    def get_loss(self, locations, features, targets, outputs):
         mse_loss = F.mse_loss(outputs, targets)
         pde_loss = self.pde_loss(locations, features, outputs)
         return mse_loss + self.pde_weight * pde_loss
