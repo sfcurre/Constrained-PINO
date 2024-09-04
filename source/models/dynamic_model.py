@@ -74,11 +74,15 @@ class DynamicModel:
 
         loss_val = self.get_test_loss(targets, outputs)
         pde_loss_val = self.get_test_pde_loss(locations, features, outputs)
+        onestep_loss_val = self.get_test_loss(targets[:1], outputs[:1])
+        onestep_pde_loss_val = self.get_test_pde_loss(locations, features, outputs[:1])
         with open(f'out/reports/report_{self.name}.txt', 'a') as fp:
             print('Epoch: {:04d}'.format(epoch+1),
                 'loss_train: {:.4f}'.format(loss_train.data.item()),
                 'loss_val: {:.4f}'.format(loss_val.data.item()),
                 'pde_loss_val: {:.4f}'.format(pde_loss_val.data.item()),
+                'onestep_loss_val: {:.4f}'.format(onestep_loss_val.data.item()),
+                'onestep_pde_loss_val: {:.4f}'.format(onestep_pde_loss_val.data.item()),
                 'time: {:.4f}'.format(time.time() - self.t_start),
                 # 'RMSE: {:.4f}'.format(err_RMSE.cpu().item()),
                 # 'nRMSE: {:.4f}'.format(err_nRMSE.cpu().item()),

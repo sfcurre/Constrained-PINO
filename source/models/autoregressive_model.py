@@ -24,6 +24,7 @@ class AutoRegressiveModel(DynamicModel):
         self.optimizer.zero_grad()
         losses = []
         for i, (locations, features, targets) in enumerate(self.dataloader):
+            batch_loss = 0
             for ti_target in targets:
                 self.optimizer.zero_grad()
                 
@@ -35,11 +36,12 @@ class AutoRegressiveModel(DynamicModel):
                 dde.grad.clear()
 
                 features = self.concat_timesteps(features, output.detach())
-            
-            losses.append(loss_train.cpu().item())                
+                batch_loss += loss_train.cpu().item()
+
+            losses.append(batch_loss)                
 
             # if (i + 1) % report_interval == 0:
-            self.report(locations, features, targets, loss_train, epoch)
+            self.report(locations, features, targets, batch_loss, epoch)
         
         return np.mean(losses)
 
