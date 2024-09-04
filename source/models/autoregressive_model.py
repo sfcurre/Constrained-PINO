@@ -36,9 +36,9 @@ class AutoRegressiveModel(DynamicModel):
                 dde.grad.clear()
 
                 features = self.concat_timesteps(features, output.detach())
-                batch_loss += loss_train.cpu().item()
+                batch_loss += loss_train
 
-            losses.append(batch_loss)                
+            losses.append(batch_loss.cpu().item())                
 
             # if (i + 1) % report_interval == 0:
             self.report(locations, features, targets, batch_loss, epoch)
