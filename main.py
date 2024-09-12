@@ -127,6 +127,7 @@ def main():
     
     def lp_loss(*fargs, **kwargs):
         loss = normalized_lp_loss(*fargs, **kwargs, p=2)
+        return loss
 
     if args.model_type == 'OneStep':
         dynamic_model = OneStepModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
