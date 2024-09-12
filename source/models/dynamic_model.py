@@ -14,10 +14,11 @@ from torch.autograd import Variable
 from ..losses.metrics import metric_func
 
 class DynamicModel:
-    def __init__(self, dataloader, model, optimizer, pde_loss, pde_weight, name, use_cuda):
+    def __init__(self, dataloader, model, optimizer, lp_loss, pde_loss, pde_weight, name, use_cuda):
         self.dataloader = dataloader
         self.model = model
         self.optimizer = optimizer
+        self.lp_loss = lp_loss
         self.pde_loss = pde_loss
         self.pde_weight = pde_weight
         self.name = name
@@ -126,7 +127,7 @@ class DynamicModel:
     def get_test_loss(self, targets, outputs):
         total_loss = 0
         for output, target in zip(outputs, targets):
-            total_loss += F.mse_loss(output.cpu(), target.cpu())
+            total_loss += self.lp_loss(output.cpu(), target.cpu())
         return total_loss
 
     def get_test_pde_loss(self, locations, features, outputs):

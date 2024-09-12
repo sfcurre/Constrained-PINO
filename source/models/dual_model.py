@@ -45,11 +45,11 @@ class DualModel(DynamicModel):
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None, term='both'):
-        mse_loss = F.mse_loss(outputs, targets)
+        lp_loss = self.lp_loss(outputs, targets)
         pde_loss = self.pde_loss(locations, features, outputs)
-        if term == 'mse':
-            return mse_loss
+        if term == 'lp':
+            return lp_loss
         elif term == 'pde':
             return pde_loss
         else: # term == 'both':
-            return mse_loss + pde_loss
+            return lp_loss + self.pde_weight * pde_loss

@@ -242,12 +242,10 @@ class PDEBenchGrid(DynamicGrid):
             self.data = np.expand_dims(self.data, axis=-3)
 
         self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, batch, ch
-        #self.data = (self.data - self.data.mean(axis=(0, 1, 2, 3, 4))) / self.data.std(axis=(0, 1, 2, 3, 4))
-        #self.data = self.data / self.data.std(axis=(0, 1, 2, 3, 4))
-
-        self.data[..., 0:1] = self.data[..., 0:1] / self.data[..., 0:1].std()
-        self.data[..., 2:] = self.data[..., 2:] / self.data[..., 2:].std()
-        self.data[..., 1:2] = self.data[..., 1:2] / self.data[..., 1:2].std()
+        
+        # self.data[..., 0:1] = self.data[..., 0:1] / self.data[..., 0:1].std()
+        # self.data[..., 2:] = self.data[..., 2:] / self.data[..., 2:].std()
+        # self.data[..., 1:2] = self.data[..., 1:2] / self.data[..., 1:2].std()
 
         self.data = np.concatenate([self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]], axis=-1)       
 
@@ -299,3 +297,14 @@ class TGVGrid(DynamicGrid):
         solution = solution[:, :xcutoff, :ycutoff, :zcutoff, :]
 
         return grid, solution
+    
+class PINOGrid(DynamicGrid):
+    def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
+        grid, solution, num_channels = self.read_input_directory(*args, **kwargs)
+        super(PINOGrid, self).__init__(grid, solution, num_channels,
+                                           timesteps=timesteps, history=history, use_cuda=use_cuda)
+    
+    def read_input_directory(self, filename):
+        mat = np.load(filename)
+        w = mat.transpose((0, 2, 3, 1))
+    
