@@ -157,13 +157,13 @@ def main():
         dynamic_data.timesteps = timesteps
 
         dynamic_data.training()
-        adj, locations, features, _, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps, numpy=True)
+        locations, features, _ = dynamic_data[0]
+        predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
         np.save(f'out/predictions/{args.name}_full.npy', np.array(predictions))
 
         dynamic_data.testing()
-        adj, locations, features, _, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps, numpy=True)
+        locations, features, _ = dynamic_data[0]
+        predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
         np.save(f'out/predictions/{args.name}_test.npy', np.array(predictions))
 
         # get train and test metrics
@@ -172,10 +172,10 @@ def main():
         print(len(dynamic_data))
         loss_info = []
         for i in range(len(dynamic_data)):
-            adj, locations, features, targets, _ = dynamic_data[i]
+            locations, features, targets = dynamic_data[i]
 
             t0 = time.time()
-            predictions = dynamic_model.predict(locations, features, adj, timesteps=timesteps)
+            predictions = dynamic_model.predict(locations, features, timesteps=timesteps)
             t1 = time.time()
             rho_loss = []
             vel_loss = []

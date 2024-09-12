@@ -162,7 +162,7 @@ def main():
             else:
                 data.testing()
             
-            adj, locations, features, targets, mask = data[0]
+            locations, features, targets = data[0]
 
             features = features.detach().numpy()
             targets = [t.detach().numpy() for t in targets]
@@ -194,8 +194,8 @@ def main():
                 vmax_test = np.max(solution, axis=tuple(range(len(solution.shape) - 1)))
 
     if '2D' in args.name:
-        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 256, 256, 1, -1))
-        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 256, 256, 1, -1))
+        full_out = np.load(f'out/predictions/{args.name}_full.npy').reshape((11, 512, 512, 1, -1))
+        test_out = np.load(f'out/predictions/{args.name}_test.npy').reshape((11, 512, 512, 1, -1))
 
         animate_channels(full_out[..., 0, :], f'2D/{args.name}', vmin=vmin, vmax=vmax)
         animate_channels(test_out[..., 0, :], f'2D/{args.name}_test', vmin=vmin_test, vmax=vmax_test)
