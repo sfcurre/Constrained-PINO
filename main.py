@@ -157,15 +157,15 @@ def main():
         
         dynamic_data.timesteps = timesteps
 
-        dynamic_data.training()
-        locations, features, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
-        np.save(f'out/predictions/{args.name}_full.npy', np.array(predictions))
+        # dynamic_data.training()
+        # locations, features, _ = dynamic_data[0]
+        # predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
+        # np.save(f'out/predictions/full/{args.name}_full.npy', np.array(predictions))
 
         dynamic_data.testing()
         locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
-        np.save(f'out/predictions/{args.name}_test.npy', np.array(predictions))
+        np.save(f'out/predictions/test/{args.name}_test.npy', np.array(predictions))
 
         # get train and test metrics
 
@@ -208,7 +208,7 @@ def main():
                 'err_F': err_F.cpu().mean().item()
             })
 
-        with open(f'out/predictions/{args.name}_test_losses.json', 'w') as fp:
+        with open(f'out/predictions/losses/{args.name}_test_losses.json', 'w') as fp:
             json.dump(loss_info, fp)
 
 if __name__ == '__main__':
