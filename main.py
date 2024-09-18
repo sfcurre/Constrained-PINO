@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
                                         default='PushForward', help='Type of training model.')
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
-    parser.add_argument('--kernel-size', type=float, default=1, help='Kernel size for the convolution part of FNO.')
+    parser.add_argument('--kernel-size', type=int, default=1, help='Kernel size for the convolution part of FNO.')
     parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
     parser.add_argument('--history', type=int, default=0, help='The number of historical timesteps to use as a history.')
     args = parser.parse_args()
