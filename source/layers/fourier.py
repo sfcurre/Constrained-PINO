@@ -92,10 +92,10 @@ class FNO1d(nn.Module):
         self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv2 = SpectralConv1d(self.width, self.width, self.modes1)
         self.conv3 = SpectralConv1d(self.width, self.width, self.modes1)
-        self.w0 = nn.Conv1d(self.width, self.width, kernel_size)
-        self.w1 = nn.Conv1d(self.width, self.width, kernel_size)
-        self.w2 = nn.Conv1d(self.width, self.width, kernel_size)
-        self.w3 = nn.Conv1d(self.width, self.width, kernel_size)
+        self.w0 = nn.Conv1d(self.width, self.width, kernel_size, padding='same')
+        self.w1 = nn.Conv1d(self.width, self.width, kernel_size, padding='same')
+        self.w2 = nn.Conv1d(self.width, self.width, kernel_size, padding='same')
+        self.w3 = nn.Conv1d(self.width, self.width, kernel_size, padding='same')
 
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, num_channels)
@@ -174,7 +174,7 @@ class SpectralConv2d_fast(nn.Module):
         return x
 
 class FNO2d(nn.Module):
-    def __init__(self, num_channels, ndims, modes1=12, modes2=12, width=20, initial_step=10, kernel_size=1):
+    def __init__(self, num_channels, ndims, modes1=12, modes2=12, width=64, initial_step=10, kernel_size=1):
         super(FNO2d, self).__init__()
 
         """
@@ -201,10 +201,10 @@ class FNO2d(nn.Module):
         self.conv1 = SpectralConv2d_fast(self.width, self.width, self.modes1, self.modes2)
         self.conv2 = SpectralConv2d_fast(self.width, self.width, self.modes1, self.modes2)
         self.conv3 = SpectralConv2d_fast(self.width, self.width, self.modes1, self.modes2)
-        self.w0 = nn.Conv2d(self.width, self.width, kernel_size)
-        self.w1 = nn.Conv2d(self.width, self.width, kernel_size)
-        self.w2 = nn.Conv2d(self.width, self.width, kernel_size)
-        self.w3 = nn.Conv2d(self.width, self.width, kernel_size)
+        self.w0 = nn.Conv2d(self.width, self.width, kernel_size, padding='same')
+        self.w1 = nn.Conv2d(self.width, self.width, kernel_size, padding='same')
+        self.w2 = nn.Conv2d(self.width, self.width, kernel_size, padding='same')
+        self.w3 = nn.Conv2d(self.width, self.width, kernel_size, padding='same')
 
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, num_channels)
@@ -292,7 +292,7 @@ class SpectralConv3d(nn.Module):
         return x
 
 class FNO3d(nn.Module):
-    def __init__(self, num_channels, ndims, modes1=8, modes2=8, modes3=8, width=20, initial_step=10, kernel_size=1):
+    def __init__(self, num_channels, ndims, modes1=8, modes2=8, modes3=8, width=64, initial_step=10, kernel_size=1):
         super(FNO3d, self).__init__()
 
         """
@@ -320,15 +320,11 @@ class FNO3d(nn.Module):
         self.conv1 = SpectralConv3d(self.width, self.width, self.modes1, self.modes2, self.modes3)
         self.conv2 = SpectralConv3d(self.width, self.width, self.modes1, self.modes2, self.modes3)
         self.conv3 = SpectralConv3d(self.width, self.width, self.modes1, self.modes2, self.modes3)
-        self.w0 = nn.Conv3d(self.width, self.width, kernel_size)
-        self.w1 = nn.Conv3d(self.width, self.width, kernel_size)
-        self.w2 = nn.Conv3d(self.width, self.width, kernel_size)
-        self.w3 = nn.Conv3d(self.width, self.width, kernel_size)
-        self.bn0 = torch.nn.BatchNorm3d(self.width)
-        self.bn1 = torch.nn.BatchNorm3d(self.width)
-        self.bn2 = torch.nn.BatchNorm3d(self.width)
-        self.bn3 = torch.nn.BatchNorm3d(self.width)
-
+        self.w0 = nn.Conv3d(self.width, self.width, kernel_size, padding='same')
+        self.w1 = nn.Conv3d(self.width, self.width, kernel_size, padding='same')
+        self.w2 = nn.Conv3d(self.width, self.width, kernel_size, padding='same')
+        self.w3 = nn.Conv3d(self.width, self.width, kernel_size, padding='same')
+        
         self.fc1 = nn.Linear(self.width, 128)
         self.fc2 = nn.Linear(128, num_channels)
 
