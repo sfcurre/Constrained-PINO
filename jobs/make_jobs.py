@@ -10,7 +10,7 @@ def write_bash(fp, pred_fp, call, pred_call, name):
     fp.write(f'sbatch {name}.sh\n')
     pred_fp.write(f'sbatch {name}_pred.sh\n')
 
-def make_call(name, time='11:59:59', grd=None, sol=None, pdebench=None,
+def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
