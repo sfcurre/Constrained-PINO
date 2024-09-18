@@ -14,7 +14,8 @@ def make_call(name, time='11:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
-              nn_arch='FNO', history=0, scale_mass=True, scale_momentum=False, scale_energy=False, Re=None):
+              nn_arch='FNO', history=0, scale_mass=True, scale_momentum=False, scale_energy=False,
+              Re=None, kernel_size=1):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name={name}
 #SBATCH --time={time}
@@ -61,7 +62,7 @@ cd ~/Physics-Informed-GNNs
     call = f'python main.py --epochs {e} --patience {patience} --lr {lr} --weight-decay {wd} \\\n'
     call += f'    --hidden {hdim} --layers {layers} --nb-heads {heads} --dropout {dropout} \\\n'
     call += f'    --alpha {alpha} --pde-weight {pde_weight} --timesteps {timesteps} --history {history} \\\n'
-    call += f'    --pdebench {pdebench} \\\n'
+    call += f'    --pdebench {pdebench} --kernel-size {kernel_size} \\\n'
 
     if scale_mass:
         call += f'    --scale-mass \\\n'
@@ -128,25 +129,27 @@ def main():
                     for pde_weight in [0.0]: #, 0.01 #, 0.1]:
                         for modeltype in ['AutoRegressive', 'OneStep']:
                             for arch in ['FNO', 'FNO_grad']:  
-                                for scaling in ['mass', 'momentum']:#, 'energy']:
+                                for kernel_size in [1, 3]:
+                                    for scaling in ['mass', 'momentum']:#, 'energy']:
+                                        write_bash(fp, pred_fp, 
+                                        *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-scaled_{scaling}',
+                                                    pdebench=pde,
+                                                    e=100,
+                                                    lr=lr,
+                                                    layers=4,
+                                                    hdim=64,
+                                                    timesteps=5,
+                                                    pde_weight=pde_weight,
+                                                    modeltype=modeltype,
+                                                    nn_arch=arch,
+                                                    history=10,
+                                                    kernel_size=kernel_size,
+                                                    **scaling_settings[scaling]))
+                                
                                     write_bash(fp, pred_fp, 
-                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-scaled_{scaling}',
-                                                pdebench=pde,
-                                                e=1000,
-                                                lr=lr,
-                                                layers=4,
-                                                hdim=64,
-                                                timesteps=5,
-                                                pde_weight=pde_weight,
-                                                modeltype=modeltype,
-                                                nn_arch=arch,
-                                                history=10,
-                                                **scaling_settings[scaling]))
-                            
-                                write_bash(fp, pred_fp, 
-                                *make_call(f'PDEBench_{name}-{arch}-{modeltype}-unscaled',
+                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-unscaled',
                                             pdebench=pde,
-                                            e=1000,
+                                            e=100,
                                             lr=lr,
                                             layers=4,
                                             hdim=64,
@@ -155,6 +158,7 @@ def main():
                                             modeltype=modeltype,
                                             nn_arch=arch,
                                             history=10,
+                                            kernel_size=kernel_size,
                                             scale_mass=False))
 
 if __name__ == '__main__':
