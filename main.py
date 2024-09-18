@@ -60,6 +60,7 @@ def parse_args():
     parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
                                         default='PushForward', help='Type of training model.')
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
+    parser.add_argument('--kernel-size', type=float, default=1, help='Kernel size for the convolution part of FNO.')
     parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
     parser.add_argument('--history', type=int, default=0, help='The number of historical timesteps to use as a history.')
     args = parser.parse_args()
@@ -99,7 +100,8 @@ def main():
                       scale_mass=args.scale_mass,
                       scale_momentum=args.scale_momentum,
                       scale_energy=args.scale_energy,
-                      history=args.history)
+                      history=args.history,
+                      kernel_size=args.kernel_size)
     else:
         model = PIFNO(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
@@ -107,7 +109,8 @@ def main():
                       scale_mass=args.scale_mass,
                       scale_momentum=args.scale_momentum,
                       scale_energy=args.scale_energy,
-                      history=args.history)
+                      history=args.history,
+                      kernel_size=args.kernel_size)
     
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
