@@ -101,7 +101,8 @@ class FNO1d(nn.Module):
         self.fc2 = nn.Linear(128, num_channels)
 
     def forward(self, x, grid):
-        # x dim = [b, x1, t*v]
+        # x dim = [b, x1, t, v]
+        x = x.reshape(x.shape[:-2] + (-1,))
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 2, 1)
@@ -132,7 +133,7 @@ class FNO1d(nn.Module):
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
-        return x.unsqueeze(-2).unsqueeze(-2)
+        return x.unsqueeze(-2)
 
 
 class SpectralConv2d_fast(nn.Module):
@@ -171,7 +172,7 @@ class SpectralConv2d_fast(nn.Module):
 
         #Return to physical space
         x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
-        return x
+        return x.unsqueeze(-2)
 
 class FNO2d(nn.Module):
     def __init__(self, num_channels, ndims, modes1=12, modes2=12, width=64, initial_step=10, kernel_size=1):
@@ -210,7 +211,8 @@ class FNO2d(nn.Module):
         self.fc2 = nn.Linear(128, num_channels)
 
     def forward(self, x, grid):
-        # x dim = [b, x1, x2, t*v]
+        # x dim = [b, x1, x2, t, v]
+        x = x.reshape(x.shape[:-2] + (-1,))
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 3, 1, 2)
@@ -243,7 +245,7 @@ class FNO2d(nn.Module):
         x = F.gelu(x)
         x = self.fc2(x)
         
-        return x.unsqueeze(-2)
+        return x
     
 
 class SpectralConv3d(nn.Module):
@@ -329,7 +331,8 @@ class FNO3d(nn.Module):
         self.fc2 = nn.Linear(128, num_channels)
 
     def forward(self, x, grid):
-        # x dim = [b, x1, x2, x3, t*v]
+        # x dim = [b, x1, x2, x3, t, v]
+        x = x.reshape(x.shape[:-2] + (-1,))
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 4, 1, 2, 3)
@@ -360,4 +363,4 @@ class FNO3d(nn.Module):
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
-        return x
+        return x.unsqueeze(-2)

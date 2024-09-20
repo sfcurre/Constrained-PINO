@@ -131,17 +131,11 @@ class DynamicModel:
         return total_loss
 
     def get_test_pde_loss(self, locations, features, outputs):
-        total_loss = 0
-        for i in range(len(outputs)):
-            if i == 0:
-                total_loss += self.pde_loss(locations.cpu(), features.cpu(), outputs[i].cpu())
-            else:
-                total_loss += self.pde_loss(locations.cpu(), outputs[i-1].cpu(), outputs[i].cpu())
-        return total_loss
+        return self.pde_loss(locations.cpu(), features.cpu(), outputs.cpu())
 
     def load_model(self, pkl_file):
         self.model.load_state_dict(torch.load(pkl_file))
 
     def concat_timesteps(self, features, outputs):
-        t0 = features[..., outputs.shape[-1]:]
-        return torch.concat([t0, outputs], dim=-1)
+        t0 = features[..., outputs.shape[-2]:, :]
+        return torch.concat([t0, outputs], dim=-2)

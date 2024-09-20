@@ -7,144 +7,123 @@ import deepxde as dde
 
 #============================================================
 
-def pde_CFD1d(x, y1, y2, gamma=1.4):
-    h1 = y1[..., -3].squeeze()  # rho
-    ux1 = y1[..., -2].squeeze()  # vx
-    p1 = y1[..., -1].squeeze()  # p
-    E1 = p1/(gamma - 1.) + 0.5 * h1 * (ux1**2)
-    E1 = E1.squeeze()
+def pde_CFD1d(y1, y2, gamma=1.4):
+    s = torch.concat([y1, y2], dim=-2)
     
-    h2 = y2[..., -3].squeeze()  # rho
-    ux2 = y2[..., -2].squeeze()  # vx
-    p2 = y2[..., -1].squeeze()  # p
-    E2 = p2/(gamma - 1.) + 0.5 * h2 * (ux2**2)
-    E2 = E2.squeeze()
-    Fx = ux2 * (E2 + p2)
-    Fx = Fx.squeeze()
+    h = s[..., 0].squeeze()  # rho
+    ux = s[..., 1].squeeze()  # vx
+    p = s[..., 2].squeeze()  # p
+    E = p/(gamma - 1.) + 0.5 * h * (ux**2)
+    E = E.squeeze()
     
     # non conservative form
 
-    hu_x, = torch.gradient(h2 * ux2)
+    hu_x = torch.gradient(h * ux, dim=0)
     
-    ux_x, = torch.gradient(ux2)
-    p_x, = torch.gradient(p2)
+    ux_x, ux_t = torch.gradient(ux)
+    p_x = torch.gradient(p, dim=0)
 
-    Fx_x, = torch.gradient(Fx)
+    Fx_x = torch.gradient(F, dim=0)
+    h_t = torch.gradient(h, dim=1)
+    E_t = torch.gradient(E, dim=1)
     
-    h_t = h2 - h1
-    ux_t = ux2 - ux1
-    E_t = E2 - E1
-
     eq1 = h_t + hu_x
-    eq2 = h2 * (ux_t + ux2 * ux_x) - p_x
+    eq2 = h * (ux_t + ux * ux_x) - p_x
     eq3 = E_t + Fx_x
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3))
+    residual = residual[..., -(y2.shape[-2]):]
     return torch.mean(residual)
 
-def pde_CFD2d(x, y1, y2, gamma=1.4):
-    h1 = y1[..., -4].squeeze()  # rho
-    ux1 = y1[..., -3].squeeze()  # vx
-    uy1 = y1[..., -2].squeeze()  # vy
-    p1 = y1[..., -1].squeeze()  # p
-    E1 = p1/(gamma - 1.) + 0.5 * h1 * (ux1**2 + uy1**2)
-    E1 = E1.squeeze()
+def pde_CFD2d(y1, y2, gamma=1.4):
+    s = torch.concat([y1, y2], dim=-2)
     
-    h2 = y2[..., -4].squeeze()  # rho
-    ux2 = y2[..., -3].squeeze()  # vx
-    uy2 = y2[..., -2].squeeze()  # vy
-    p2 = y2[..., -1].squeeze()  # p
-    E2 = p2/(gamma - 1.) + 0.5 * h2 * (ux2**2 + uy2**2)
-    E2 = E2.squeeze()
-    Fx = ux2 * (E2 + p2)
+    h = s[..., 0].squeeze()  # rho
+    ux = s[..., 1].squeeze()  # vx
+    uy = s[..., 2].squeeze()  # vy
+    p = s[..., 3].squeeze()  # p
+    E = p/(gamma - 1.) + 0.5 * h * (ux**2 + uy**2)
+    E = E.squeeze()
+    Fx = ux * (E + p)
     Fx = Fx.squeeze()
-    Fy = uy2 * (E2 + p2)
+    Fy = uy * (E + p)
     Fy = Fy.squeeze()
 
     # non conservative form
 
-    hu_x, _ = torch.gradient(h2 * ux2)
-    _, hu_y = torch.gradient(h2 * uy2)
+    hux_x, _ = torch.gradient(h * ux, dim=(0, 1))
+    _, huy_y = torch.gradient(h * uy, dim=(0, 1))
 
-    ux_x, ux_y = torch.gradient(ux2, dim=(0, 1))
-    uy_x, uy_y = torch.gradient(uy2, dim=(0, 1))
-    p_x, p_y = torch.gradient(p2, dim=(0, 1))
+    ux_x, ux_y, ux_t = torch.gradient(ux, dim=(0, 1, 2))
+    uy_x, uy_y, uy_t = torch.gradient(uy, dim=(0, 1, 2))
+    p_x, p_y = torch.gradient(p, dim=(0, 1))
 
-    Fx_x, _ = torch.gradient(Fx)
-    _, Fy_y = torch.gradient(Fy)
+    Fx_x, _ = torch.gradient(Fx, dim=(0, 1))
+    _, Fy_y = torch.gradient(Fy, dim=(0, 1))
     
-    h_t = h2 - h1
-    ux_t = ux2 - ux1
-    uy_t = uy2 - uy1
-    E_t = E2 - E1
+    h_t = torch.gradient(h, dim=2)
+    E_t = torch.gradient(E, dim=2)
 
-    eq1 = h_t + hu_x + hu_y
-    eq2 = h2 * (ux_t + ux2 * ux_x + uy2 * ux_y) - p_x
-    eq3 = h2 * (uy_t + ux2 * uy_x + uy2 * uy_y) - p_y
+    eq1 = h_t + hux_x + huy_y
+    eq2 = h * (ux_t + ux * ux_x + uy * ux_y) - p_x
+    eq3 = h * (uy_t + ux * uy_x + uy * uy_y) - p_y
     eq4 = E_t + Fx_x + Fy_y
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3) + torch.abs(eq4))
+    residual = residual[..., -(y2.shape[-2]):]
     return torch.mean(residual)
 
-def pde_CFD3d(x, y1, y2, gamma=1.4):
-    h1 = y1[..., -5].squeeze()  # rho
-    ux1 = y1[..., -4].squeeze()  # vx
-    uy1 = y1[..., -3].squeeze()  # vy
-    uz1 = y1[..., -2].squeeze()  # vz
-    p1 = y1[..., -1].squeeze()  # p
-    E1 = p1/(gamma - 1.) + 0.5 * h1 * (ux1**2 + uy1**2 + uz1**2)
-    E1 = E1.squeeze()
+def pde_CFD3d(y1, y2, gamma=1.4):
+    s = torch.concat([y1, y2], dim=-2)
+
+    h = s[..., 0].squeeze()  # rho
+    ux = s[..., 1].squeeze()  # vx
+    uy = s[..., 2].squeeze()  # vy
+    uz = s[..., 3].squeeze()  # vz
+    p = s[..., 4].squeeze()  # p
+    E = p/(gamma - 1.) + 0.5 * h * (ux**2 + uy**2 + uz**2)
+    E = E.squeeze()
     
-    h2 = y2[..., -5].squeeze()  # rho
-    ux2 = y2[..., -4].squeeze()  # vx
-    uy2 = y2[..., -3].squeeze()  # vy
-    uz2 = y2[..., -2].squeeze()  # vz
-    p2 = y2[..., -1].squeeze()  # p
-    E2 = p2/(gamma - 1.) + 0.5 * h2 * (ux2**2 + uy2**2 + uz2**2)
-    E2 = E2.squeeze()
-    Fx = ux2 * (E2 + p2)
+    Fx = ux * (E + p)
     Fx = Fx.squeeze()
-    Fy = uy2 * (E2 + p2)
+    Fy = uy * (E + p)
     Fy = Fy.squeeze()
-    Fz = uz2 * (E2 + p2)
+    Fz = uz * (E + p)
     Fz = Fz.squeeze()
 
     # non conservative form
-    hu_x, _, _ = torch.gradient(h2 * ux2)
-    _, hu_y, _ = torch.gradient(h2 * uy2)
-    _, _, hu_z = torch.gradient(h2 * uz2)
+    hux_x, _, _ = torch.gradient(h * ux, dim=(0, 1, 2))
+    _, huy_y, _ = torch.gradient(h * uy, dim=(0, 1, 2))
+    _, _, huz_z = torch.gradient(h * uz, dim=(0, 1, 2))
 
-    ux_x, ux_y, ux_z = torch.gradient(ux2, dim=(0, 1, 2))
-    uy_x, uy_y, uy_z = torch.gradient(uy2, dim=(0, 1, 2))
-    uz_x, uz_y, uz_z = torch.gradient(uz2, dim=(0, 1, 2))
-    p_x, p_y, p_z = torch.gradient(p2, dim=(0, 1, 2))
+    ux_x, ux_y, ux_z, ux_t = torch.gradient(ux, dim=(0, 1, 2, 3))
+    uy_x, uy_y, uy_z, uy_t = torch.gradient(uy, dim=(0, 1, 2, 3))
+    uz_x, uz_y, uz_z, uz_t = torch.gradient(uz, dim=(0, 1, 2, 3))
+    p_x, p_y, p_z = torch.gradient(p, dim=(0, 1, 2))
 
-    Fx_x, _, _ = torch.gradient(Fx)
-    _, Fy_y, _ = torch.gradient(Fy)
-    _, _, Fz_z = torch.gradient(Fz)
+    Fx_x, _, _ = torch.gradient(Fx, dim=(0, 1, 2))
+    _, Fy_y, _ = torch.gradient(Fy, dim=(0, 1, 2))
+    _, _, Fz_z = torch.gradient(Fz, dim=(0, 1, 2))
     
-    h_t = h2 - h1
-    ux_t = ux2 - ux1
-    uy_t = uy2 - uy1
-    uz_t = uz2 - uz1
-    E_t = E2 - E1
+    h_t = torch.gradient(h, dim=3)
+    E_t = torch.gradient(E, dim=3)
 
-    eq1 = h_t + hu_x + hu_y + hu_z
-    eq2 = h2 * (ux_t + ux2 * ux_x + uy2 * ux_y + uz2 * ux_z) - p_x
-    eq3 = h2 * (uy_t + ux2 * uy_x + uy2 * uy_y + uz2 * uy_z) - p_y
-    eq4 = h2 * (uz_t + ux2 * uz_x + uy2 * uz_y + uz2 * uz_z) - p_z
+    eq1 = h_t + hux_x + huy_y + huz_z
+    eq2 = h * (ux_t + ux * ux_x + uy * ux_y + uz * ux_z) - p_x
+    eq3 = h * (uy_t + ux * uy_x + uy * uy_y + uz * uy_z) - p_y
+    eq4 = h * (uz_t + ux * uz_x + uy * uz_y + uz * uz_z) - p_z
     eq5 = E_t + Fx_x + Fy_y + Fz_z
 
     residual = (torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) +
                 torch.abs(eq4) + torch.abs(eq5))
+    residual = residual[..., -(y2.shape[-2]):]
     return torch.mean(residual)
 
 
 def forcing(x):
     return -4 * torch.cos(4 * x)
-
 
 def pde_iCFD2d_vorticity(x, w1, w2, Re=500, dt=1.0):
     batchsize = w2.size(0)

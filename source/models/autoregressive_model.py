@@ -25,17 +25,18 @@ class AutoRegressiveModel(DynamicModel):
         losses = []
         for i, (locations, features, targets) in enumerate(self.dataloader):
             batch_loss = 0
+            initial = features
             for ti_target in targets:
                 self.optimizer.zero_grad()
                 
-                output = self.model(locations, features)
-                loss_train = self.get_loss(locations, features, ti_target, output)
+                output = self.model(locations, initial)
+                loss_train = self.get_loss(locations, initial, ti_target, output)
 
                 loss_train.backward()
                 self.optimizer.step()
                 dde.grad.clear()
 
-                features = self.concat_timesteps(features, output.detach())
+                initial = self.concat_timesteps(initial, output.detach())
                 batch_loss += loss_train
 
             losses.append(batch_loss.cpu().item())                

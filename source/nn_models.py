@@ -30,28 +30,27 @@ class PIFNO(nn.Module):
             self.fno = FNO3d(self.nclass, self.ndims, initial_step=self.history, kernel_size=self.kernel_size)
 
     def scale_totals(self, features, x):
-        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
-        total_density = torch.sum(features[..., -self.nclass])
-        total_pressure = torch.sum(features[..., -1])
+        spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
+        initial = features[..., -1:, :] #get last timestep of input
+        total_density = torch.sum(initial[..., 0], dim=spatial_dims)
+        total_pressure = torch.sum(initial[..., -1], dim=spatial_dims)
         
-        out_density = torch.sum(x[..., 0])
+        out_density = torch.sum(x[..., 0], dim=spatial_dims)
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., -1])
+        out_pressure = torch.sum(x[..., -1], dim=spatial_dims)
         scaled_pressure = x[..., -1:] * total_pressure / out_pressure
         
         if self.scale_momentum:
-            total_momentums = torch.sum(features[..., -self.nclass:-self.nclass+1]
-                                        * features[..., -self.nclass + 1:-1], dim=spatial_dims)
+            total_momentums = torch.sum(initial[..., :1] * initial[..., 1:-1], dim=spatial_dims)
             out_momentums = torch.sum(scaled_density * x[..., 1:-1], dim=spatial_dims)
             momentum_ratio = total_momentums / out_momentums
             scaled_velocity = x[..., 1:-1] * momentum_ratio
             x = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
 
         elif self.scale_energy:
-            total_kinetic_energy = torch.sum(features[..., -self.nclass: -self.nclass + 1]
-                                           * features[..., -self.nclass + 1:-1] ** 2)
-            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2)
+            total_kinetic_energy = torch.sum(initial[..., :1] * initial[..., 1:-1] ** 2, dim=spatial_dims)
+            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2, dim=spatial_dims)
             ke_ratio = total_kinetic_energy / out_kinetic_energy
             # v2 = (vx^2 + vy^2 + vz^2) needs to be scaled by ke
             # C*v2 = Cvx^2 + Cvy^2 + Cvz^2
@@ -82,15 +81,16 @@ class PIFNO_grad(PIFNO):
         super(PIFNO_grad, self).__init__(*args, **kwargs)
         
     def scale_grads(self, features, dx):
-        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
-
-        scaled_density = dx[..., :1] - dx[..., :1].mean()
-        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean()
+        spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
+        initial = features[..., -1:, :] #get last timestep of input
+        
+        scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
+        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims)
         
         if self.scale_momentum:
             # sum of -grad(rho)*u
-            numerator = torch.sum(-scaled_density * features[..., -self.nclass + 1:-1], dim=spatial_dims)
-            denominator = torch.sum((features[..., -self.nclass:-self.nclass+1] + scaled_density) * dx[..., 1:-1], dim=spatial_dims)
+            numerator = torch.sum(-scaled_density * initial[..., 1:-1], dim=spatial_dims)
+            denominator = torch.sum((initial[..., :1] + scaled_density) * dx[..., 1:-1], dim=spatial_dims)
             scaled_velocity = dx[..., 1:-1] * (numerator / denominator)
             dx = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
 

@@ -191,7 +191,7 @@ def main():
                 prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
 
             # (batch, nx^i..., timesteps, nc)
-            pred = torch.stack(predictions, dim=-2).squeeze().unsqueeze(0)
+            pred = torch.concat(predictions, dim=-2).squeeze().unsqueeze(0)
             targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
 
             pred = pred.contiguous().reshape(pred.shape)

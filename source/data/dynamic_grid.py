@@ -6,37 +6,33 @@ import torch
 from torch_geometric.utils import get_laplacian, coalesce
 from torch.utils.data import Dataset
 
-# MINIBATCH EVERYTHING with collate_fn
-
 class DynamicGrid(Dataset):
-    def __init__(self, grid, solution, num_channels, timesteps=1, history=0, use_cuda=False):
+    def __init__(self, grid, solution, timesteps=1, history=0, use_cuda=False):
         self.grid = grid
         print(grid.shape)
         print(solution.shape)
+        # batch, x, y, z, t, ch
         self.solution = solution
-        self.num_channels = num_channels
         self.timesteps = timesteps
         self.history = history
         self.use_cuda = use_cuda
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
         
-        self.train = self.solution[..., :int(.9 * self.solution.shape[-1] / self.num_channels) * self.num_channels]
-        self.test = self.solution[..., int(.9 * self.solution.shape[-1] / self.num_channels) * self.num_channels:]
-        self.num_batches = self.train.shape[-1] // self.num_channels
-        self.num_test_batches = self.test.shape[-1] // self.num_channels
+        self.train = self.solution[:int(.9 * self.solution.shape[0])]
+        self.test = self.solution[int(.9 * self.solution.shape[0]):]
+        self.num_batches = self.train.shape[-1]
+        self.num_test_batches = self.test.shape[-1]
         self.is_training = True
     
     def sample_grid(self, flow_features, index, num_batches, tdif=1, hist=1):
-        t = index // num_batches
-        c = (index % num_batches) * self.num_channels
-        features = flow_features[t: t+hist][..., c: c + self.num_channels]
-        targets = flow_features[t+hist: t+hist+tdif][..., c: c + self.num_channels]
+        b = index // num_batches
+        t = (index % num_batches) + self.history
+        c = (index % num_batches)
+        features = flow_features[b][..., t:t+hist, :]
+        targets = flow_features[b][..., t+hist:t+hist+tdif, :]
 
         #shape into feature matrics
-        features = np.moveaxis(features, 0, -2)
-        features = features.reshape(features.shape[:-2] + (-1,))
-
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(self.grid.astype(np.float32)).requires_grad_()
@@ -45,7 +41,6 @@ class DynamicGrid(Dataset):
             locations = locations.to(device='cuda')
             features = features.to(device='cuda')
             targets = targets.to(device='cuda')
-
 
         return locations, features, targets
 
@@ -63,9 +58,9 @@ class DynamicGrid(Dataset):
 
     def __len__(self):
         if self.is_training:
-            return (len(self.train) - self.timesteps - self.history + 1) * self.num_batches
+            return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_batches
         else:
-            return (len(self.test) - self.timesteps - self.history + 1) * self.num_test_batches
+            return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_test_batches
 
 
 class PDEBenchGrid(DynamicGrid):
@@ -236,12 +231,12 @@ class PDEBenchGrid(DynamicGrid):
                     X, Y = np.meshgrid(x, y)
                     self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
 
-        while len(self.grid.shape) < 4:
-            self.grid = np.expand_dims(self.grid, axis=-2)
-        while len(self.data.shape) < 6:
-            self.data = np.expand_dims(self.data, axis=-3)
+        # while len(self.grid.shape) < 4:
+        #     self.grid = np.expand_dims(self.grid, axis=-2)
+        # while len(self.data.shape) < 6:
+        #     self.data = np.expand_dims(self.data, axis=-3)
 
-        self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, batch, ch
+        # self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, z, batch, ch
         
         # self.data[..., 0:1] = self.data[..., 0:1] / self.data[..., 0:1].std()
         # self.data[..., 2:] = self.data[..., 2:] / self.data[..., 2:].std()
@@ -250,53 +245,9 @@ class PDEBenchGrid(DynamicGrid):
         self.data = np.concatenate([self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]], axis=-1)       
 
         num_channels = self.data.shape[-1]
-        self.data = self.data.reshape(self.data.shape[:-2] + (-1,))
+        # self.data = self.data.reshape(self.data.shape[:-2] + (-1,))
 
         return self.grid, self.data, num_channels
-
-class TGVGrid(DynamicGrid):
-    def __init__(self, grd_path, solution_path, timesteps=1, history=0, use_cuda=False):
-        if not grd_path.endswith('.npy') and not solution_path.endswith('.npy'):
-            self.grid, self.solution = self.read_input_directory(self, grd_path, solution_path)
-            np.save(grd_path.replace('.', '_') + '.npy', self.grid)
-            np.save(solution_path + '_sol.npy', self.solution)
-        else:
-            self.grid, self.solution = np.load(grd_path), np.load(solution_path)
-        self.grid, self.solution = self.cut_periodic(self.grid, self.solution)
-        super(DynamicGrid, self).__init__(self.grid, self.solution, 5,
-                                          timesteps=timesteps, history=history, use_cuda=use_cuda)
-        
-    def read_input_directory(self, grd_path, solution_path):
-        locations = self.read_grd_data(grd_path)
-
-        flow_features = []
-        for i in range(1001):
-            if i != 0:
-                i *= 100
-            filename = solution_path + f'{i}'
-            flow_features.append(self.read_solution_data(filename))
-        features = np.stack(flow_features, axis = 0)
-
-        return locations, features
-
-    def cut_periodic(self, grid, solution):
-        #cut features to ensure periodicity
-        xindices = np.arange(grid.shape[0])
-        yindices = np.arange(grid.shape[1])
-        zindices = np.arange(grid.shape[2])
-
-        helper = lambda comparison, axes: np.argmax(np.sum(comparison, axis=axes)) + 1
-
-        #find periodic cutoffs
-        xcutoff = helper(solution[:, 1:] == solution[:, :1, :, :, :], (0, 2, 3, 4))
-        ycutoff = helper(solution[:, :, 1:] == solution[:, :, :1, :, :], (0, 1, 3, 4))
-        zcutoff = helper(solution[:, :, :, 1:] == solution[:, :, :, :1, :], (0, 1, 2, 4))
-
-        #cut grid and solution
-        grid = grid[:xcutoff, :ycutoff, :zcutoff, :]
-        solution = solution[:, :xcutoff, :ycutoff, :zcutoff, :]
-
-        return grid, solution
     
 class PINOGrid(DynamicGrid):
     def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
