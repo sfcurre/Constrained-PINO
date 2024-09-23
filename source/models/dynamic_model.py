@@ -125,7 +125,7 @@ class DynamicModel:
         return test_losses
 
     def get_test_loss(self, targets, outputs):
-        total_loss = self.lp_loss(output.cpu(), target.cpu())
+        total_loss = self.lp_loss(outputs.cpu(), targets.cpu())
         return total_loss
 
     def get_test_pde_loss(self, features, outputs):
