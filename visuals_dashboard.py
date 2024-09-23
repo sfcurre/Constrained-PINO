@@ -37,7 +37,8 @@ st.title('Constrained Physics Informed Neural Operators - Evaluation')
 
 # directory = 'out\\norm_loss'
 # directory = 'out\\std_scaled'
-directory = 'out\\std_scaled_norm_loss'
+# directory = 'out\\std_scaled_norm_loss'
+directory = 'out\\k_varying'
 DATAFILE = os.listdir(directory)
 
 with st.spinner('Loading...'):

@@ -65,7 +65,7 @@ class DynamicModel:
 
     def report(self, locations, features, targets, loss_train, epoch):
         self.model.eval()
-        outputs = self.predict(locations, features, timesteps=len(targets))
+        outputs = self.predict(locations, features, timesteps=targets.shape[-2])
 
         # pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
         # metric_targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
@@ -74,9 +74,9 @@ class DynamicModel:
         # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, metric_targets)
 
         loss_val = self.get_test_loss(targets, outputs)
-        pde_loss_val = self.get_test_pde_loss(locations, features, outputs)
-        onestep_loss_val = self.get_test_loss(targets[:1], outputs[:1])
-        onestep_pde_loss_val = self.get_test_pde_loss(locations, features, outputs[:1])
+        pde_loss_val = self.get_test_pde_loss(features, outputs)
+        onestep_loss_val = self.get_test_loss(targets[..., :1, :], outputs[..., :1, :])
+        onestep_pde_loss_val = self.get_test_pde_loss(features, outputs[..., :1, :])
         with open(f'out/reports/report_{self.name}.txt', 'a') as fp:
             print('Epoch: {:04d}'.format(epoch+1),
                 'loss_train: {:.4f}'.format(loss_train.data.item()),
@@ -112,7 +112,7 @@ class DynamicModel:
             if numpy:
                 output = output.numpy()
             outputs.append(output)
-        return outputs
+        return torch.concat(outputs, dim=-2)
 
     def compute_test(self):
         #LOOK AT THIS
@@ -125,23 +125,15 @@ class DynamicModel:
         return test_losses
 
     def get_test_loss(self, targets, outputs):
-        total_loss = 0
-        for output, target in zip(outputs, targets):
-            total_loss += self.lp_loss(output.cpu(), target.cpu())
+        total_loss = self.lp_loss(output.cpu(), target.cpu())
         return total_loss
 
-    def get_test_pde_loss(self, locations, features, outputs):
-        total_loss = 0
-        for i in range(len(outputs)):
-            if i == 0:
-                total_loss += self.pde_loss(locations.cpu(), features.cpu(), outputs[i].cpu())
-            else:
-                total_loss += self.pde_loss(locations.cpu(), outputs[i-1].cpu(), outputs[i].cpu())
-        return total_loss
+    def get_test_pde_loss(self, features, outputs):
+        return self.pde_loss(features.cpu(), outputs.cpu())
 
     def load_model(self, pkl_file):
         self.model.load_state_dict(torch.load(pkl_file))
 
     def concat_timesteps(self, features, outputs):
-        t0 = features[..., outputs.shape[-1]:]
-        return torch.concat([t0, outputs], dim=-1)
+        t0 = features[..., outputs.shape[-2]:, :]
+        return torch.concat([t0, outputs], dim=-2)

@@ -31,7 +31,7 @@ class OneStepModel(DynamicModel):
             losses.append(loss_train.cpu().item())
             loss_train.backward()
             
-            self.optimizer.step()            
+            self.optimizer.step()
             self.optimizer.zero_grad()
             dde.grad.clear()
 

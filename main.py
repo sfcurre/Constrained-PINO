@@ -12,7 +12,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from source.data.dynamic_grid import PDEBenchGrid, TGVGrid
+from source.data.dynamic_grid import PDEBenchGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
@@ -84,8 +84,8 @@ def main():
                                 reduced_resolution=1, reduced_batch=2)
   
 
-    np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[..., :100*dynamic_data.num_channels])
-    np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[..., :100*dynamic_data.num_channels])
+    np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[:100])
+    np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[:100])
 
     if args.cuda:
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
@@ -191,7 +191,7 @@ def main():
                 prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
 
             # (batch, nx^i..., timesteps, nc)
-            pred = torch.stack(predictions, dim=-2).squeeze().unsqueeze(0)
+            pred = torch.concat(predictions, dim=-2).squeeze().unsqueeze(0)
             targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
 
             pred = pred.contiguous().reshape(pred.shape)

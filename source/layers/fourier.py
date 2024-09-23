@@ -101,7 +101,8 @@ class FNO1d(nn.Module):
         self.fc2 = nn.Linear(128, num_channels)
 
     def forward(self, x, grid):
-        # x dim = [b, x1, t*v]
+        # x dim = [b, x1, t, v]
+        x = x.reshape(x.shape[:-2] + (-1,))
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 2, 1)
@@ -127,12 +128,13 @@ class FNO1d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding]
+        if self.padding > 0:
+            x = x[..., :-self.padding]
         x = x.permute(0, 2, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
-        return x.unsqueeze(-2).unsqueeze(-2)
+        return x.unsqueeze(-2)
 
 
 class SpectralConv2d_fast(nn.Module):
@@ -210,7 +212,8 @@ class FNO2d(nn.Module):
         self.fc2 = nn.Linear(128, num_channels)
 
     def forward(self, x, grid):
-        # x dim = [b, x1, x2, t*v]
+        # x dim = [b, x1, x2, t, v]
+        x = x.reshape(x.shape[:-2] + (-1,))
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 3, 1, 2)
@@ -237,7 +240,8 @@ class FNO2d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding, :-self.padding] # Unpad the tensor
+        if self.padding > 0:
+            x = x[..., :-self.padding, :-self.padding] # Unpad the tensor
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
         x = F.gelu(x)
@@ -329,7 +333,8 @@ class FNO3d(nn.Module):
         self.fc2 = nn.Linear(128, num_channels)
 
     def forward(self, x, grid):
-        # x dim = [b, x1, x2, x3, t*v]
+        # x dim = [b, x1, x2, x3, t, v]
+        x = x.reshape(x.shape[:-2] + (-1,))
         x = torch.cat((x, grid), dim=-1)
         x = self.fc0(x)
         x = x.permute(0, 4, 1, 2, 3)
@@ -355,9 +360,10 @@ class FNO3d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding]
+        if self.padding > 0:
+            x = x[..., :-self.padding]
         x = x.permute(0, 2, 3, 4, 1) # pad the domain if input is non-periodic
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
-        return x
+        return x.unsqueeze(-2)
