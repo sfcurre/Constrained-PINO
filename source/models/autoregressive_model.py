@@ -26,11 +26,11 @@ class AutoRegressiveModel(DynamicModel):
         for i, (locations, features, targets) in enumerate(self.dataloader):
             batch_loss = 0
             initial = features
-            for ti_target in targets:
+            for i in range(targets.shape[-2]):
                 self.optimizer.zero_grad()
                 
                 output = self.model(locations, initial)
-                loss_train = self.get_loss(locations, initial, ti_target, output)
+                loss_train = self.get_loss(locations, initial, targets[...,i,:], output)
 
                 loss_train.backward()
                 self.optimizer.step()
@@ -50,7 +50,7 @@ class AutoRegressiveModel(DynamicModel):
     def get_loss(self, locations, features, targets, outputs, mask=None):
         lp_loss = self.lp_loss(outputs, targets)
         if self.pde_weight > 0:        
-            pde_loss = self.pde_loss(locations, features, outputs)
+            pde_loss = self.pde_loss(features, outputs)
         else:
             pde_loss = 0
         return lp_loss + self.pde_weight * pde_loss

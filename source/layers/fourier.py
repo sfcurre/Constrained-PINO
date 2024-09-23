@@ -128,7 +128,8 @@ class FNO1d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding]
+        if self.padding > 0:
+            x = x[..., :-self.padding]
         x = x.permute(0, 2, 1)
         x = self.fc1(x)
         x = F.gelu(x)
@@ -172,7 +173,7 @@ class SpectralConv2d_fast(nn.Module):
 
         #Return to physical space
         x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
-        return x.unsqueeze(-2)
+        return x
 
 class FNO2d(nn.Module):
     def __init__(self, num_channels, ndims, modes1=12, modes2=12, width=64, initial_step=10, kernel_size=1):
@@ -239,13 +240,14 @@ class FNO2d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding, :-self.padding] # Unpad the tensor
+        if self.padding > 0:
+            x = x[..., :-self.padding, :-self.padding] # Unpad the tensor
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
         
-        return x
+        return x.unsqueeze(-2)
     
 
 class SpectralConv3d(nn.Module):
@@ -358,7 +360,8 @@ class FNO3d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., :-self.padding]
+        if self.padding > 0:
+            x = x[..., :-self.padding]
         x = x.permute(0, 2, 3, 4, 1) # pad the domain if input is non-periodic
         x = self.fc1(x)
         x = F.gelu(x)

@@ -62,8 +62,8 @@ def pde_CFD2d(y1, y2, gamma=1.4):
     Fx_x, _ = torch.gradient(Fx, dim=(0, 1))
     _, Fy_y = torch.gradient(Fy, dim=(0, 1))
     
-    h_t = torch.gradient(h, dim=2)
-    E_t = torch.gradient(E, dim=2)
+    _, _, h_t = torch.gradient(h, dim=(0, 1, 2))
+    _, _, E_t = torch.gradient(E, dim=(0, 1, 2))
 
     eq1 = h_t + hux_x + huy_y
     eq2 = h * (ux_t + ux * ux_x + uy * ux_y) - p_x

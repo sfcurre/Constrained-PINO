@@ -16,19 +16,19 @@ class DynamicGrid(Dataset):
         self.timesteps = timesteps
         self.history = history
         self.use_cuda = use_cuda
+        self.num_channels = self.solution.shape[-1]
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
         
         self.train = self.solution[:int(.9 * self.solution.shape[0])]
         self.test = self.solution[int(.9 * self.solution.shape[0]):]
-        self.num_batches = self.train.shape[-1]
-        self.num_test_batches = self.test.shape[-1]
+        self.num_batches = self.train.shape[0]
+        self.num_test_batches = self.test.shape[0]
         self.is_training = True
     
     def sample_grid(self, flow_features, index, num_batches, tdif=1, hist=1):
-        b = index // num_batches
-        t = (index % num_batches) + self.history
-        c = (index % num_batches)
+        b = index % num_batches
+        t = index // num_batches
         features = flow_features[b][..., t:t+hist, :]
         targets = flow_features[b][..., t+hist:t+hist+tdif, :]
 
@@ -65,9 +65,8 @@ class DynamicGrid(Dataset):
 
 class PDEBenchGrid(DynamicGrid):
     def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
-        grid, solution, num_channels = self.read_input_directory(*args, **kwargs)
-        super(PDEBenchGrid, self).__init__(grid, solution, num_channels,
-                                           timesteps=timesteps, history=history, use_cuda=use_cuda)
+        grid, solution = self.read_input_directory(*args, **kwargs)
+        super(PDEBenchGrid, self).__init__(grid, solution, timesteps=timesteps, history=history, use_cuda=use_cuda)
     
     def read_input_directory(self, filename,
                                    saved_folder='',
@@ -247,13 +246,12 @@ class PDEBenchGrid(DynamicGrid):
         num_channels = self.data.shape[-1]
         # self.data = self.data.reshape(self.data.shape[:-2] + (-1,))
 
-        return self.grid, self.data, num_channels
+        return self.grid, self.data
     
 class PINOGrid(DynamicGrid):
     def __init__(self, *args, timesteps=1, history=0, use_cuda=False, **kwargs):
-        grid, solution, num_channels = self.read_input_directory(*args, **kwargs)
-        super(PINOGrid, self).__init__(grid, solution, num_channels,
-                                           timesteps=timesteps, history=history, use_cuda=use_cuda)
+        grid, solution  = self.read_input_directory(*args, **kwargs)
+        super(PINOGrid, self).__init__(grid, solution, timesteps=timesteps, history=history, use_cuda=use_cuda)
     
     def read_input_directory(self, filename):
         mat = np.load(filename)
