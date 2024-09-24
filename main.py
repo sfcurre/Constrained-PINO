@@ -168,6 +168,7 @@ def main():
         dynamic_data.testing()
         locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
+        predictions = np.moveaxis(predictions, -2, 0)
         np.save(f'out/predictions/test/{args.name}_test.npy', np.array(predictions))
 
         # get train and test metrics
@@ -180,6 +181,8 @@ def main():
 
             t0 = time.time()
             predictions = dynamic_model.predict(locations, features, timesteps=timesteps)
+            predictions = torch.movedim(predictions, -2, 0)
+            targets = torch.movedim(targets, -2, 0)
             t1 = time.time()
             rho_loss = []
             vel_loss = []
@@ -191,7 +194,7 @@ def main():
                 prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
 
             # (batch, nx^i..., timesteps, nc)
-            pred = torch.concat(predictions, dim=-2).squeeze().unsqueeze(0)
+            pred = predictions.moveaxis(0, -2).squeeze().unsqueeze(0)
             targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
 
             pred = pred.contiguous().reshape(pred.shape)

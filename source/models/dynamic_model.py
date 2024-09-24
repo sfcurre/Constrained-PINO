@@ -112,6 +112,9 @@ class DynamicModel:
             if numpy:
                 output = output.numpy()
             outputs.append(output)
+
+        if numpy:
+            return np.concatenate(outputs, axis=-2)
         return torch.concat(outputs, dim=-2)
 
     def compute_test(self):
