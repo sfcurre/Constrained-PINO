@@ -125,7 +125,7 @@ def pde_CFD3d(y1, y2, gamma=1.4):
 def forcing(x):
     return -4 * torch.cos(4 * x)
 
-def pde_iCFD2d_vorticity(x, w1, w2, Re=500, dt=1.0):
+def pde_iCFD2d_vorticity(x, w1, w2, v=1e-4, dt=1.0):
     batchsize = w2.size(0)
     nx = w2.size(1)
     ny = w2.size(2)

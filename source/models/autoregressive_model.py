@@ -48,6 +48,7 @@ class AutoRegressiveModel(DynamicModel):
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
+        print(features.shape, outputs.shape, targets.shape)
         lp_loss = self.lp_loss(outputs, targets)
         if self.pde_weight > 0:        
             pde_loss = self.pde_loss(features, outputs)

@@ -117,16 +117,6 @@ class DynamicModel:
             return np.concatenate(outputs, axis=-2)
         return torch.concat(outputs, dim=-2)
 
-    def compute_test(self):
-        #LOOK AT THIS
-        test_losses = []
-        self.model.eval()
-        for adj, locations, features, targets, _ in self.dataloader:
-            outputs = self.predict(locations, features, adj, timesteps=len(targets))
-            loss_test = self.get_test_loss(targets, outputs)
-            test_losses.append(loss_test.data.item())
-        return test_losses
-
     def get_test_loss(self, targets, outputs):
         total_loss = self.lp_loss(outputs.cpu(), targets.cpu())
         return total_loss
@@ -138,5 +128,6 @@ class DynamicModel:
         self.model.load_state_dict(torch.load(pkl_file))
 
     def concat_timesteps(self, features, outputs):
+        print(outputs.shape)
         t0 = features[..., outputs.shape[-2]:, :]
         return torch.concat([t0, outputs], dim=-2)

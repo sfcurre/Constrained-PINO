@@ -243,9 +243,6 @@ class PDEBenchGrid(DynamicGrid):
 
         self.data = np.concatenate([self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]], axis=-1)       
 
-        num_channels = self.data.shape[-1]
-        # self.data = self.data.reshape(self.data.shape[:-2] + (-1,))
-
         return self.grid, self.data
     
 class PINOGrid(DynamicGrid):
