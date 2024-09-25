@@ -251,6 +251,11 @@ class PINOGrid(DynamicGrid):
         super(PINOGrid, self).__init__(grid, solution, timesteps=timesteps, history=history, use_cuda=use_cuda)
     
     def read_input_directory(self, filename):
-        mat = np.load(filename)
-        w = mat.transpose((0, 2, 3, 1))
+        mat = {}
+        f = h5py.File(filename)
+        for k, v in f.items():
+            mat[k] = np.array(v)
+        w = mat['u'].transpose((3, 1, 2, 0)).unsqueeze(-1)
+        grid = mat['a']
+        return grid, w
     

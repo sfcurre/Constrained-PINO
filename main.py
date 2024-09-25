@@ -12,7 +12,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
-from source.data.dynamic_grid import PDEBenchGrid
+from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
@@ -63,6 +63,7 @@ def parse_args():
     parser.add_argument('--kernel-size', type=int, default=1, help='Kernel size for the convolution part of FNO.')
     parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
     parser.add_argument('--history', type=int, default=0, help='The number of historical timesteps to use as a history.')
+    parser.add_argument('--vorticity', action='store_true', help='Use vorticity equation for incompressible flows.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -79,10 +80,14 @@ def main():
         torch.cuda.manual_seed(args.seed)
 
     # Load data
-    dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
-                                history=args.history, use_cuda=args.cuda,
-                                reduced_resolution=1, reduced_batch=2)
-  
+    if args.vorticity:
+        # Load PINO data
+        dynamic_data = PINOGrid(args.pdebench, timesteps=args.timesteps,
+                                history=args.history, use_cuda=args.cuda)
+    else:
+        dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
+                                    history=args.history, use_cuda=args.cuda,
+                                    reduced_resolution=1, reduced_batch=2)
 
     np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[:100])
     np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[:100])
@@ -118,8 +123,8 @@ def main():
 
     # Train Model
     def pde_loss(*fargs, **kwargs):
-        if args.Re is not None:
-            loss = pde_iCFD2d_vorticity(*fargs, Re=args.Re, **kwargs)
+        if args.vorticity:
+            loss = pde_iCFD2d_vorticity(*fargs, v=1e-4, **kwargs)
         elif dynamic_data.ndims == 1:
             loss = pde_CFD1d(*fargs, **kwargs)
         elif dynamic_data.ndims == 2:
@@ -181,6 +186,10 @@ def main():
 
             t0 = time.time()
             predictions = dynamic_model.predict(locations, features, timesteps=timesteps)
+            
+            test_loss = dynamic_model.get_test_loss(targets, predictions)
+            test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions)
+
             predictions = torch.movedim(predictions, -2, 0)
             targets = torch.movedim(targets, -2, 0)
             t1 = time.time()
@@ -190,8 +199,9 @@ def main():
             for t, (output, target) in enumerate(zip(predictions, targets)):
                 output, target = output.cpu(), target.cpu() 
                 rho_loss.append(F.mse_loss(output[..., 0], target[..., 0]).item())
-                vel_loss.append(F.mse_loss(output[..., 1:-1], target[..., 1:-1]).item())
-                prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
+                if not args.vorticity:
+                    vel_loss.append(F.mse_loss(output[..., 1:-1], target[..., 1:-1]).item())
+                    prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
 
             # (batch, nx^i..., timesteps, nc)
             pred = predictions.moveaxis(0, -2).squeeze().unsqueeze(0)
@@ -199,20 +209,31 @@ def main():
 
             pred = pred.contiguous().reshape(pred.shape)
             targets.contiguous().reshape(targets.shape)
-            err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, targets)
+            if not args.vorticity:
+                err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, targets)
 
-            loss_info.append({
-                'pred_time': t1 - t0,
-                'density_loss': rho_loss,
-                'velocity_loss': vel_loss,
-                'pressure_loss': prs_loss,
-                'RMSE': err_RMSE.cpu().item(),
-                'nRMSE': err_nRMSE.cpu().item(),
-                'err_CSV': err_CSV.cpu().item(),
-                'err_Max': err_Max.cpu().item(),
-                'err_BD': err_BD.cpu().item(),
-                'err_F': err_F.cpu().mean().item()
-            })
+            if args.vorticity:
+                loss_info.append({
+                    'pred_time': t1 - t0,
+                    'test_loss': test_loss,
+                    'test_pde_loss': test_pde_loss,
+                    'vorticity_loss': rho_loss,
+                    })
+            else:
+                loss_info.append({
+                    'pred_time': t1 - t0,
+                    'test_loss': test_loss,
+                    'test_pde_loss': test_pde_loss,
+                    'density_loss': rho_loss,
+                    'velocity_loss': vel_loss,
+                    'pressure_loss': prs_loss,
+                    'RMSE': err_RMSE.cpu().item(),
+                    'nRMSE': err_nRMSE.cpu().item(),
+                    'err_CSV': err_CSV.cpu().item(),
+                    'err_Max': err_Max.cpu().item(),
+                    'err_BD': err_BD.cpu().item(),
+                    'err_F': err_F.cpu().mean().item()
+                })
 
         with open(f'out/predictions/losses/{args.name}_test_losses.json', 'w') as fp:
             json.dump(loss_info, fp)

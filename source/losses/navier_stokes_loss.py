@@ -34,7 +34,7 @@ def pde_CFD1d(y1, y2, gamma=1.4):
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3))
     residual = residual[..., -(y2.shape[-2]):]
-    return torch.mean(residual)
+    return torch.mean(residual ** 2)
 
 def pde_CFD2d(y1, y2, gamma=1.4):
     s = torch.concat([y1, y2], dim=-2)
@@ -73,7 +73,7 @@ def pde_CFD2d(y1, y2, gamma=1.4):
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3) + torch.abs(eq4))
     residual = residual[..., -(y2.shape[-2]):]
-    return torch.mean(residual)
+    return torch.mean(residual ** 2)
 
 def pde_CFD3d(y1, y2, gamma=1.4):
     s = torch.concat([y1, y2], dim=-2)
@@ -119,16 +119,19 @@ def pde_CFD3d(y1, y2, gamma=1.4):
     residual = (torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) +
                 torch.abs(eq4) + torch.abs(eq5))
     residual = residual[..., -(y2.shape[-2]):]
-    return torch.mean(residual)
+    return torch.mean(residual ** 2)
 
 
 def forcing(x):
     return -4 * torch.cos(4 * x)
 
-def pde_iCFD2d_vorticity(x, w1, w2, v=1e-4, dt=1.0):
-    batchsize = w2.size(0)
-    nx = w2.size(1)
-    ny = w2.size(2)
+def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
+    w = torch.concat([w1, w2], dim=-2).squeeze(dim=-1)
+
+    batchsize = w.size(0)
+    nx = w.size(1)
+    ny = w.size(2)
+    nt = w.size(3)
     device = w2.device
     
     w_h = torch.fft.fft2(w2, dim=[1, 2])
@@ -159,9 +162,8 @@ def pde_iCFD2d_vorticity(x, w1, w2, v=1e-4, dt=1.0):
     ux_x, _ = torch.gradient(ux)
     _, uy_y = torch.gradient(uy)
 
-    wt = (w2 - w1) / (dt)
+    dt = t_interval / (nt-1)
+    wt = wt = (w[:, :, :, 2:] - w[:, :, :, :-2]) / (2 * dt)
 
-    eq1 = ux_x + uy_y
-    eq2 = wt + (ux*wx + uy*wy - (1 / Re)*wlap) - forcing(np.linspace(0, 2*np.pi, nx))
-    residual = (torch.abs(eq1) + torch.abs(eq2))
-    return torch.mean(residual)
+    residual = wt + (ux*wx + uy*wy - v*wlap)[..., 1:-1] - forcing(np.linspace(0, 2*np.pi, nx)).repeat(batchsize, 1, 1, nt-2)
+    return torch.mean(residual ** 2)

@@ -15,7 +15,7 @@ def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
               nn_arch='FNO', history=0, scale_mass=True, scale_momentum=False, scale_energy=False,
-              Re=None, kernel_size=1):
+              vorticity=False, kernel_size=1):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name={name}
 #SBATCH --time={time}
@@ -79,8 +79,8 @@ cd ~/Physics-Informed-GNNs
     if bs:
         call += f'    --batch-size {bs} \\\n'
 
-    if Re is not None:
-        call += f'    --Re {Re} \\\n'
+    if vorticity:
+        call += f'    --vorticity \\\n'
 
     call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}'
 
@@ -111,6 +111,8 @@ def main():
     pdebench_3d_turb=(("/fs/scratch/PAS2170/pdebench/data/3D/Train/"
                        "3d_cfd_turb_m1.0_eta1e-08_zeta1e-08_periodic_train.hdf5"),
                        "3D_Turb")
+    
+    pino_vorticity=("data/ns_V1e-4_N10000_T30.mat", "2D_Vort")
 
     grd='TGV/ijk_snapshots/ijkmvmv_grd.npy'
     sol='TGV/ijk_snapshots/ijkmvmv_sol.npy'
@@ -160,6 +162,46 @@ def main():
                                             history=10,
                                             kernel_size=kernel_size,
                                             scale_mass=False))
+
+            for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
+                for lr in [1e-5]:
+                    for pde_weight in [0.0]: #, 0.01 #, 0.1]:
+                        for modeltype in ['AutoRegressive', 'OneStep']:
+                            for arch in ['FNO', 'FNO_grad']:  
+                                for kernel_size in [1, 3]:
+                                    for scaling in ['mass']:#, 'momentum']:#, 'energy']:
+                                        write_bash(fp, pred_fp, 
+                                        *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-scaled_{scaling}',
+                                                    pdebench=pde,
+                                                    e=100,
+                                                    lr=lr,
+                                                    layers=4,
+                                                    hdim=64,
+                                                    timesteps=5,
+                                                    pde_weight=pde_weight,
+                                                    modeltype=modeltype,
+                                                    nn_arch=arch,
+                                                    history=10,
+                                                    kernel_size=kernel_size,
+                                                    vorticity=True,
+                                                    **scaling_settings[scaling]))
+                                
+                                    write_bash(fp, pred_fp, 
+                                    *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-unscaled',
+                                            pdebench=pde,
+                                            e=100,
+                                            lr=lr,
+                                            layers=4,
+                                            hdim=64,
+                                            timesteps=5,
+                                            pde_weight=pde_weight,
+                                            modeltype=modeltype,
+                                            nn_arch=arch,
+                                            history=10,
+                                            kernel_size=kernel_size,
+                                            vorticity=True,
+                                            scale_mass=False))
+
 
 if __name__ == '__main__':
     main()
