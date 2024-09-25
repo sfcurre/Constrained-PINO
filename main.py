@@ -16,6 +16,7 @@ from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
+from source.models.static_model import StaticModel
 from source.losses.navier_stokes_loss import *
 from source.losses.normalized_lp_loss import normalized_lp_loss
 from source.nn_models import *
@@ -51,7 +52,6 @@ def parse_args():
     parser.add_argument('--timesteps', type=int, default=5, help='Number of timesteps to train over.')
     parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
     parser.add_argument('--periodic', action='store_true', default=False, help='Enable periodic boundary conditions.')
-    parser.add_argument('--Re', type=float, default=None, help='Reynolds number for incompressible flow.')
     parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
     parser.add_argument('--scale-mass', action='store_true', default=False, help='Enable mass scaling for density and pressure.')
     parser.add_argument('--scale-momentum', action='store_true', default=False, help='Enable velocity scaling for momenutm.')
@@ -108,7 +108,8 @@ def main():
                       scale_momentum=args.scale_momentum,
                       scale_energy=args.scale_energy,
                       history=args.history,
-                      kernel_size=args.kernel_size)
+                      kernel_size=args.kernel_size,
+                      static=args.model_type == 'Static')
     else:
         model = PIFNO(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
@@ -117,7 +118,8 @@ def main():
                       scale_momentum=args.scale_momentum,
                       scale_energy=args.scale_energy,
                       history=args.history,
-                      kernel_size=args.kernel_size)
+                      kernel_size=args.kernel_size,
+                      static=args.model_type == 'Static')
     
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
@@ -139,13 +141,15 @@ def main():
         loss = normalized_lp_loss(*fargs, **kwargs, p=2)
         return loss
 
-    if args.model_type == 'OneStep':
-        dynamic_model = OneStepModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
+    if args.model_type == 'Static':
+        dynamic_model = StaticModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
     elif args.model_type == 'AutoRegressive':
         dynamic_model = AutoRegressiveModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
-    else:
+    elif args.model_type == 'PushForward':
         dynamic_model = PushForwardModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
-
+    else: # args.model_type == 'OneStep':
+        dynamic_model = OneStepModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
+    
     if args.load_pkl:
         dynamic_model.load_model(args.load_pkl)
 
@@ -159,11 +163,11 @@ def main():
     dynamic_model.model.eval()
     with torch.no_grad():
         if dynamic_data.ndims == 1:
-            timesteps = 91
+            timesteps = 101 - args.history
         if dynamic_data.ndims == 2:
-            timesteps = 11
+            timesteps = 21 - args.history
         if dynamic_data.ndims == 3:
-            timesteps = 11
+            timesteps = 21 - args.history
         
         dynamic_data.timesteps = timesteps
 

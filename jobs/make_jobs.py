@@ -127,9 +127,9 @@ def main():
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
             for pde, name in [pdebench_2d]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-5]:
+                for lr in [1e-3]:
                     for pde_weight in [0.0]: #, 0.01 #, 0.1]:
-                        for modeltype in ['AutoRegressive']:#, 'OneStep']:
+                        for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
                             for arch in ['FNO', 'FNO_grad']:  
                                 for kernel_size in [1, 3]:
                                     for scaling in ['mass', 'momentum']:#, 'energy']:
@@ -164,9 +164,9 @@ def main():
                                             scale_mass=False))
 
             for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-5]:
+                for lr in [1e-3]:
                     for pde_weight in [0.0]: #, 0.01 #, 0.1]:
-                        for modeltype in ['AutoRegressive']:#, 'OneStep']:
+                        for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
                             for arch in ['FNO', 'FNO_grad']:  
                                 for kernel_size in [1, 3]:
                                     for scaling in ['mass']:#, 'momentum']:#, 'energy']:
