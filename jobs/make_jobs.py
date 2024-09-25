@@ -86,8 +86,8 @@ cd ~/Physics-Informed-GNNs
 
     pred_call = call + ' \\\n'
     pred_call += f'    --no-train --load-pkl out/saved_models/{name}.pkl\n\n'
-    pred_call += f'python visuals_pdebench.py --name {name}\\\n'
-    pred_call += f'    --run-true {pdebench}\n\n'
+    #pred_call += f'python visuals_pdebench.py --name {name}\\\n'
+    #pred_call += f'    --run-true {pdebench}\n\n'
 
     call += '\n\n'
 
@@ -129,7 +129,7 @@ def main():
             for pde, name in [pdebench_2d]: #, pdebench_1d, pdebench_3d]:
                 for lr in [1e-5]:
                     for pde_weight in [0.0]: #, 0.01 #, 0.1]:
-                        for modeltype in ['AutoRegressive', 'OneStep']:
+                        for modeltype in ['AutoRegressive']:#, 'OneStep']:
                             for arch in ['FNO', 'FNO_grad']:  
                                 for kernel_size in [1, 3]:
                                     for scaling in ['mass', 'momentum']:#, 'energy']:
@@ -166,7 +166,7 @@ def main():
             for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
                 for lr in [1e-5]:
                     for pde_weight in [0.0]: #, 0.01 #, 0.1]:
-                        for modeltype in ['AutoRegressive', 'OneStep']:
+                        for modeltype in ['AutoRegressive']:#, 'OneStep']:
                             for arch in ['FNO', 'FNO_grad']:  
                                 for kernel_size in [1, 3]:
                                     for scaling in ['mass']:#, 'momentum']:#, 'energy']:

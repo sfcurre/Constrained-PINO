@@ -92,6 +92,8 @@ def main():
     np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[:100])
     np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[:100])
 
+    print(len(dynamic_data))
+
     if args.cuda:
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
     else:
@@ -187,8 +189,8 @@ def main():
             t0 = time.time()
             predictions = dynamic_model.predict(locations, features, timesteps=timesteps)
             
-            test_loss = dynamic_model.get_test_loss(targets, predictions)
-            test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions)
+            test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
+            test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions).cpu().item()
 
             predictions = torch.movedim(predictions, -2, 0)
             targets = torch.movedim(targets, -2, 0)
