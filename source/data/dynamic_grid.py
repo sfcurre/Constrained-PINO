@@ -9,8 +9,6 @@ from torch.utils.data import Dataset
 class DynamicGrid(Dataset):
     def __init__(self, grid, solution, timesteps=1, history=0, use_cuda=False):
         self.grid = grid
-        print(grid.shape)
-        print(solution.shape)
         # batch, x, y, z, t, ch
         self.solution = solution
         self.timesteps = timesteps
@@ -29,14 +27,15 @@ class DynamicGrid(Dataset):
     def sample_grid(self, flow_features, index, num_batches, tdif=1, hist=1):
         b = index % num_batches
         t = index // num_batches
-        features = flow_features[b][..., t:t+hist, :]
-        targets = flow_features[b][..., t+hist:t+hist+tdif, :]
+        features = flow_features[b:b+1][..., t:t+hist, :]
+        targets = flow_features[b:b+1][..., t+hist:t+hist+tdif, :]        
 
         #shape into feature matrics
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(self.grid.astype(np.float32)).requires_grad_()
 
+        locations = locations.unsqueeze(0)
         if self.use_cuda:
             locations = locations.to(device='cuda')
             features = features.to(device='cuda')
@@ -255,7 +254,8 @@ class PINOGrid(DynamicGrid):
         f = h5py.File(filename)
         for k, v in f.items():
             mat[k] = np.array(v)
-        w = mat['u'].transpose((3, 1, 2, 0)).unsqueeze(-1)
-        grid = mat['a']
+        w = mat['u'].transpose((3, 1, 2, 0))[...,None]
+        grid = mat['a'][..., 0, None]
+        grid = np.repeat(grid, 2, axis=-1)
         return grid, w
     

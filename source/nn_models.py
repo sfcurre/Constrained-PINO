@@ -22,7 +22,7 @@ class PIFNO(nn.Module):
         if self.periodic:
             self.wave_transform = WaveTransform()
             self.ndims *= 2
-        
+
         if static:
             if ndims == 1:
                 self.fno = FNO2d(self.nclass, self.nclass, self.ndims, kernel_size=self.kernel_size)
@@ -76,14 +76,16 @@ class PIFNO(nn.Module):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
-        fno_features = features.squeeze()[None, ...]
-        locations = locations.squeeze()[None, ...]
+        fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        x = self.fno(fno_features, locations)[0]
+        x = self.fno(fno_features, locations)
 
         if self.scale_mass:
             x = self.scale_totals(features, x)
+        
+        if not self.static:
+            x = x.unsqueeze(-2)        
 
         return x
 
@@ -117,22 +119,25 @@ class PIFNO_grad(PIFNO):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
-        fno_features = features.squeeze()[None, ...]
-        locations = locations.squeeze()[None, ...]
+        fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        dx = self.fno(fno_features, locations)[0]
+        dx = self.fno(fno_features, locations)
 
         if self.scale_mass:
             dx = self.scale_grads(features, dx)
 
         x = features[..., -self.nclass:] + dx
+        
+        if not self.static:
+            x = x.unsqueeze(-2)        
+        
         return x
 
 
-class iPIFNO(nn.Module):
+class iPIFNO(PIFNO):
     def __init__(self, *args, **kwargs):
-        super(iPIFNO, self).__init__()
+        super(iPIFNO, self).__init__(*args, **kwargs)
     
     def scale_totals(self, features, x):
         spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
@@ -147,14 +152,16 @@ class iPIFNO(nn.Module):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
-        fno_features = features.squeeze()[None, ...]
-        locations = locations.squeeze()[None, ...]
+        fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        x = self.fno(fno_features, locations)[0]
+        x = self.fno(fno_features, locations)
 
         if self.scale_mass:
             x = self.scale_totals(features, x)
+
+        if not self.static:
+            x = x.unsqueeze(-2)        
 
         return x
 

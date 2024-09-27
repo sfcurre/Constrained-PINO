@@ -13,6 +13,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
+from source.data.static_grid import PDEBenchStaticGrid, PINOStaticGrid
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
@@ -57,8 +58,8 @@ def parse_args():
     parser.add_argument('--scale-momentum', action='store_true', default=False, help='Enable velocity scaling for momenutm.')
     parser.add_argument('--scale-energy', action='store_true', default=False, help='Enable velocity scaling for kinetic energy.')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
-    parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive'],
-                                        default='PushForward', help='Type of training model.')
+    parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive', 'Static'],
+                                        default='AutoRegressive', help='Type of training model.')
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
     parser.add_argument('--kernel-size', type=int, default=1, help='Kernel size for the convolution part of FNO.')
     parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
@@ -82,17 +83,25 @@ def main():
     # Load data
     if args.vorticity:
         # Load PINO data
-        dynamic_data = PINOGrid(args.pdebench, timesteps=args.timesteps,
-                                history=args.history, use_cuda=args.cuda)
+        if args.model_type == 'Static':
+            dynamic_data = PINOStaticGrid(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
+        else:
+            dynamic_data = PINOGrid(args.pdebench, timesteps=args.timesteps,
+                                    history=args.history, use_cuda=args.cuda)
     else:
-        dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
-                                    history=args.history, use_cuda=args.cuda,
-                                    reduced_resolution=1, reduced_batch=2)
+        if args.model_type == 'Static':
+            dynamic_data = PDEBenchStaticGrid(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda,
+                                        reduced_resolution=1, reduced_batch=2)
+        else:
+            dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
+                                       history=args.history, use_cuda=args.cuda,
+                                        reduced_resolution=1, reduced_batch=2)
+    
 
     np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[:100])
     np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[:100])
 
-    print(len(dynamic_data))
+    print('Num batches:', len(dynamic_data))
 
     if args.cuda:
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
@@ -100,7 +109,17 @@ def main():
         dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
 
     # Model and optimizer
-    if args.nn_arch == 'FNO_grad':
+    if args.vorticity:
+        model = iPIFNO(ndims=dynamic_data.ndims,
+                      nclass=dynamic_data.nfeats,
+                      periodic=args.periodic,
+                      scale_mass=args.scale_mass,
+                      scale_momentum=args.scale_momentum,
+                      scale_energy=args.scale_energy,
+                      history=args.history,
+                      kernel_size=args.kernel_size,
+                      static=args.model_type == 'Static')
+    elif args.nn_arch == 'FNO_grad':
         model = PIFNO_grad(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
                       periodic=args.periodic,

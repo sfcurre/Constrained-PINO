@@ -30,7 +30,7 @@ class AutoRegressiveModel(DynamicModel):
                 self.optimizer.zero_grad()
                 
                 output = self.model(locations, initial)
-                loss_train = self.get_loss(locations, initial, targets[...,i,:], output)
+                loss_train = self.get_loss(locations, initial, targets[...,i:i+1,:], output)
 
                 loss_train.backward()
                 self.optimizer.step()
@@ -48,7 +48,7 @@ class AutoRegressiveModel(DynamicModel):
 
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
-        print(features.shape, outputs.shape, targets.shape)
+        # print(features.shape, outputs.shape, targets.shape)
         lp_loss = self.lp_loss(outputs, targets)
         if self.pde_weight > 0:        
             pde_loss = self.pde_loss(features, outputs)

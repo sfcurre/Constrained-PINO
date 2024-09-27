@@ -34,7 +34,7 @@ def pde_CFD1d(y1, y2, gamma=1.4):
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3))
     residual = residual[..., -(y2.shape[-2]):]
-    return torch.mean(residual ** 2)
+    return torch.mean(residual)
 
 def pde_CFD2d(y1, y2, gamma=1.4):
     s = torch.concat([y1, y2], dim=-2)
@@ -73,7 +73,7 @@ def pde_CFD2d(y1, y2, gamma=1.4):
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3) + torch.abs(eq4))
     residual = residual[..., -(y2.shape[-2]):]
-    return torch.mean(residual ** 2)
+    return torch.mean(residual)
 
 def pde_CFD3d(y1, y2, gamma=1.4):
     s = torch.concat([y1, y2], dim=-2)
@@ -119,11 +119,12 @@ def pde_CFD3d(y1, y2, gamma=1.4):
     residual = (torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) +
                 torch.abs(eq4) + torch.abs(eq5))
     residual = residual[..., -(y2.shape[-2]):]
-    return torch.mean(residual ** 2)
+    return torch.mean(residual)
 
 
-def forcing(x):
-    return -4 * torch.cos(4 * x)
+def forcing(S, device):
+    x = torch.tensor(np.linspace(0, 2*np.pi, S, endpoint=False), dtype=torch.float, device=device).reshape(1, S).repeat(S, 1)
+    return -4 * (torch.cos(4*(x))).reshape(1,S,S,1)
 
 def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
     w = torch.concat([w1, w2], dim=-2).squeeze(dim=-1)
@@ -132,16 +133,16 @@ def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
     nx = w.size(1)
     ny = w.size(2)
     nt = w.size(3)
-    device = w2.device
-    
-    w_h = torch.fft.fft2(w2, dim=[1, 2])
+    device = w.device
+ 
+    w_h = torch.fft.fft2(w, dim=[1, 2])
     # Wavenumbers in y-direction
     k_max = nx//2
     N = nx
     k_x = torch.cat((torch.arange(start=0, end=k_max, step=1, device=device),
-                     torch.arange(start=-k_max, end=0, step=1, device=device)), 0).reshape(N, 1).repeat(1, N).reshape(1,N,N)
+                     torch.arange(start=-k_max, end=0, step=1, device=device)), 0).reshape(N, 1).repeat(1, N).reshape(1,N,N,1)
     k_y = torch.cat((torch.arange(start=0, end=k_max, step=1, device=device),
-                     torch.arange(start=-k_max, end=0, step=1, device=device)), 0).reshape(1, N).repeat(N, 1).reshape(1,N,N)
+                     torch.arange(start=-k_max, end=0, step=1, device=device)), 0).reshape(1, N).repeat(N, 1).reshape(1,N,N,1)
     # Negative Laplacian in Fourier space
     lap = (k_x ** 2 + k_y ** 2)
     lap[0, 0, 0] = 1.0
@@ -159,11 +160,8 @@ def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
     wy = torch.fft.irfft2(wy_h[:, :, :k_max+1], dim=[1,2])
     wlap = torch.fft.irfft2(wlap_h[:, :, :k_max+1], dim=[1,2])
 
-    ux_x, _ = torch.gradient(ux)
-    _, uy_y = torch.gradient(uy)
-
     dt = t_interval / (nt-1)
     wt = wt = (w[:, :, :, 2:] - w[:, :, :, :-2]) / (2 * dt)
-
-    residual = wt + (ux*wx + uy*wy - v*wlap)[..., 1:-1] - forcing(np.linspace(0, 2*np.pi, nx)).repeat(batchsize, 1, 1, nt-2)
+    
+    residual = wt + (ux*wx + uy*wy - v*wlap)[..., 1:-1] - forcing(nx, device)
     return torch.mean(residual ** 2)

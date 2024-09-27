@@ -11,8 +11,6 @@ from .dynamic_grid import *
 class StaticGrid(DynamicGrid):
     def __init__(self, grid, solution, timesteps=1, use_cuda=False):
         self.grid = grid
-        print(grid.shape)
-        print(solution.shape)
         # batch, x, y, z, t, ch
         self.solution = solution
         self.timesteps = timesteps
@@ -31,8 +29,8 @@ class StaticGrid(DynamicGrid):
     def sample_grid(self, flow_features, index, num_batches, timesteps=1):
         b = index % num_batches
         t = index // num_batches
-        features = flow_features[b][..., t:t+1, :]
-        targets = flow_features[b][..., t+1:t+timesteps+1, :]
+        features = flow_features[b:b+1][..., t:t+1, :]
+        targets = flow_features[b:b+1][..., t+1:t+timesteps+1, :]
 
         #shape into feature matrics
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
@@ -40,6 +38,8 @@ class StaticGrid(DynamicGrid):
         locations = torch.from_numpy(self.grid.astype(np.float32)).requires_grad_()
 
         features = features.tile((timesteps, 1))
+        locations = locations.unsqueeze(0).unsqueeze(-2)
+        locations = locations.tile((timesteps, 1))
         if self.use_cuda:
             locations = locations.to(device='cuda')
             features = features.to(device='cuda')

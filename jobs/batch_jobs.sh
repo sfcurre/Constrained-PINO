@@ -1,22 +1,6 @@
 cd ~/Physics-Informed-GNNs/jobs/job_files
 
-sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k1-scaled_mass.sh
-#sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k1-scaled_momentum.sh
-sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k1-unscaled.sh
-#sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k3-scaled_mass.sh
-#sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k3-scaled_momentum.sh
-#sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k3-unscaled.sh
-#sbatch PDEBench_2D_Rand-FNO_grad-AutoRegressive-k1-scaled_mass.sh
-#sbatch PDEBench_2D_Rand-FNO_grad-AutoRegressive-k1-scaled_momentum.sh
-#sbatch PDEBench_2D_Rand-FNO_grad-AutoRegressive-k1-unscaled.sh
-#sbatch PDEBench_2D_Rand-FNO_grad-AutoRegressive-k3-scaled_mass.sh
-#sbatch PDEBench_2D_Rand-FNO_grad-AutoRegressive-k3-scaled_momentum.sh
-#sbatch PDEBench_2D_Rand-FNO_grad-AutoRegressive-k3-unscaled.sh
-sbatch PINO_2D_Vort-FNO-AutoRegressive-k1-scaled_mass.sh
+#sbatch PDEBench_2D_Rand-FNO-AutoRegressive-k1-unscaled.sh
+#sbatch PDEBench_2D_Rand-FNO-Static-k1-unscaled.sh
 sbatch PINO_2D_Vort-FNO-AutoRegressive-k1-unscaled.sh
-#sbatch PINO_2D_Vort-FNO-AutoRegressive-k3-scaled_mass.sh
-#sbatch PINO_2D_Vort-FNO-AutoRegressive-k3-unscaled.sh
-#sbatch PINO_2D_Vort-FNO_grad-AutoRegressive-k1-scaled_mass.sh
-#sbatch PINO_2D_Vort-FNO_grad-AutoRegressive-k1-unscaled.sh
-#sbatch PINO_2D_Vort-FNO_grad-AutoRegressive-k3-scaled_mass.sh
-#sbatch PINO_2D_Vort-FNO_grad-AutoRegressive-k3-unscaled.sh
+sbatch PINO_2D_Vort-FNO-Static-k1-unscaled.sh
