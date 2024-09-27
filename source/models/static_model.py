@@ -35,6 +35,8 @@ class StaticModel(DynamicModel):
             self.optimizer.zero_grad()
             dde.grad.clear()
 
+            self.scheduler.step()
+
             #if (i + 1) % report_interval == 0:
             self.report(locations, features, targets, loss_train, epoch)
         

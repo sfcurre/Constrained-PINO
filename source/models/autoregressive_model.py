@@ -36,6 +36,8 @@ class AutoRegressiveModel(DynamicModel):
                 self.optimizer.step()
                 dde.grad.clear()
 
+                self.scheduler.step()
+
                 initial = self.concat_timesteps(initial, output.detach())
                 batch_loss += loss_train
 
