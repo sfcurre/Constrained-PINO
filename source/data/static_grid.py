@@ -19,6 +19,7 @@ class StaticGrid(DynamicGrid):
         self.num_channels = self.solution.shape[-1]
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
+        self.duration = self.solution.shape[-2]
         
         self.train = self.solution[:int(.9 * self.solution.shape[0])]
         self.test = self.solution[int(.9 * self.solution.shape[0]):]

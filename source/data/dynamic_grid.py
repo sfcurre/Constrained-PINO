@@ -7,7 +7,7 @@ from torch_geometric.utils import get_laplacian, coalesce
 from torch.utils.data import Dataset
 
 class DynamicGrid(Dataset):
-    def __init__(self, grid, solution, timesteps=1, history=0, use_cuda=False):
+    def __init__(self, grid, solution, timesteps=1, history=1, use_cuda=False):
         self.grid = grid
         # batch, x, y, z, t, ch
         self.solution = solution
@@ -17,7 +17,8 @@ class DynamicGrid(Dataset):
         self.num_channels = self.solution.shape[-1]
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
-        
+        self.duration = self.solution.shape[-2]
+
         self.train = self.solution[:int(.9 * self.solution.shape[0])]
         self.test = self.solution[int(.9 * self.solution.shape[0]):]
         self.num_batches = self.train.shape[0]

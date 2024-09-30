@@ -32,15 +32,15 @@ class AutoRegressiveModel(DynamicModel):
                 output = self.model(locations, initial)
                 loss_train = self.get_loss(locations, initial, targets[...,i:i+1,:], output)
 
-                loss_train.backward()
-                self.optimizer.step()
-                dde.grad.clear()
-
-                self.scheduler.step()
-
-                initial = self.concat_timesteps(initial, output.detach())
+                
+                initial = self.concat_timesteps(initial, output)
                 batch_loss += loss_train
 
+            batch_loss.backward()
+            self.optimizer.step()
+            self.scheduler.step()
+            dde.grad.clear()
+            
             losses.append(batch_loss.cpu().item())                
 
             # if (i + 1) % report_interval == 0:

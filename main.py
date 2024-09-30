@@ -63,7 +63,7 @@ def parse_args():
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
     parser.add_argument('--kernel-size', type=int, default=1, help='Kernel size for the convolution part of FNO.')
     parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
-    parser.add_argument('--history', type=int, default=0, help='The number of historical timesteps to use as a history.')
+    parser.add_argument('--history', type=int, default=1, help='The number of historical timesteps to use as a history.')
     parser.add_argument('--vorticity', action='store_true', help='Use vorticity equation for incompressible flows.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -157,7 +157,8 @@ def main():
         return loss
     
     def lp_loss(*fargs, **kwargs):
-        loss = normalized_lp_loss(*fargs, **kwargs, p=2)
+        #loss = normalized_lp_loss(*fargs, **kwargs, p=2)
+        loss = F.mse_loss(*fargs, **kwargs)
         return loss
 
     if args.model_type == 'Static':
@@ -181,13 +182,7 @@ def main():
 
     dynamic_model.model.eval()
     with torch.no_grad():
-        if dynamic_data.ndims == 1:
-            timesteps = 101 - args.history
-        if dynamic_data.ndims == 2:
-            timesteps = 21 - args.history
-        if dynamic_data.ndims == 3:
-            timesteps = 21 - args.history
-        
+        timesteps = dynamic_data.duration - args.history
         dynamic_data.timesteps = timesteps
 
         # dynamic_data.training()
