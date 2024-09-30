@@ -41,10 +41,12 @@ class PIFNO(nn.Module):
     def scale_totals(self, features, x):
         spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
         initial = features[..., -1:, :] #get last timestep of input
+        print(initial.shape)
         total_density = torch.sum(initial[..., 0], dim=spatial_dims)
         total_pressure = torch.sum(initial[..., -1], dim=spatial_dims)
         
         out_density = torch.sum(x[..., 0], dim=spatial_dims)
+        print(out_density.shape)
         scaled_density = x[..., :1] * total_density / out_density
 
         out_pressure = torch.sum(x[..., -1], dim=spatial_dims)

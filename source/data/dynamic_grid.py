@@ -257,5 +257,6 @@ class PINOGrid(DynamicGrid):
         w = mat['u'].transpose((3, 1, 2, 0))[...,None]
         grid = mat['a'][..., 0, None]
         grid = np.repeat(grid, 2, axis=-1)
+        w = w / w.std()
         return grid, w
     

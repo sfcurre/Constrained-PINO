@@ -45,7 +45,9 @@ class StaticModel(DynamicModel):
 
     def get_loss(self, locations, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)
-        pde_loss = self.pde_loss(features, outputs)
+        pde_loss = 0
+        if self.pde_weight > 0:
+            pde_loss = self.pde_loss(features, outputs)
         return (1-self.pde_weight) * lp_loss + self.pde_weight * pde_loss
 
     def predict(self, locations, features, timesteps=1, numpy=False):

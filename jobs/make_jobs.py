@@ -127,8 +127,8 @@ def main():
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
             for pde, name in [pdebench_2d]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-3]:
-                    for pde_weight in [0.0]: #, 0.01 #, 0.1]:
+                for lr in [1e-4]:
+                    for pde_weight in [0.0, 0.1]: #, 0.01 #, 0.1]:
                         for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
                             for arch in ['FNO']:#, 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
@@ -140,11 +140,11 @@ def main():
                                                     lr=lr,
                                                     layers=4,
                                                     hdim=64,
-                                                    timesteps=5,
+                                                    timesteps=10,
                                                     pde_weight=pde_weight,
                                                     modeltype=modeltype,
                                                     nn_arch=arch,
-                                                    history=10,
+                                                    history=5,
                                                     kernel_size=kernel_size,
                                                     **scaling_settings[scaling]))
                                 
@@ -155,23 +155,23 @@ def main():
                                             lr=lr,
                                             layers=4,
                                             hdim=64,
-                                            timesteps=5,
+                                            timesteps=10,
                                             pde_weight=pde_weight,
                                             modeltype=modeltype,
                                             nn_arch=arch,
-                                            history=10,
+                                            history=5,
                                             kernel_size=kernel_size,
                                             scale_mass=False))
 
             for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-3]:
-                    for pde_weight in [0.0]: #, 0.01 #, 0.1]:
+                for lr in [1e-4]:
+                    for pde_weight in [0.0, 0.5, 1.0]: #, 0.01 #, 0.1]:
                         for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
                             for arch in ['FNO']:#, 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
                                     for scaling in []:#'mass']:#, 'momentum']:#, 'energy']:
                                         write_bash(fp, pred_fp, 
-                                        *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-scaled_{scaling}',
+                                        *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-pde{pde_weight}-scaled_{scaling}',
                                                     pdebench=pde,
                                                     e=100,
                                                     lr=lr,
@@ -181,13 +181,13 @@ def main():
                                                     pde_weight=pde_weight,
                                                     modeltype=modeltype,
                                                     nn_arch=arch,
-                                                    history=10,
+                                                    history=1,
                                                     kernel_size=kernel_size,
                                                     vorticity=True,
                                                     **scaling_settings[scaling]))
                                 
                                     write_bash(fp, pred_fp, 
-                                    *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-unscaled',
+                                    *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-pde{pde_weight}-unscaled',
                                             pdebench=pde,
                                             e=100,
                                             lr=lr,
@@ -197,7 +197,7 @@ def main():
                                             pde_weight=pde_weight,
                                             modeltype=modeltype,
                                             nn_arch=arch,
-                                            history=10,
+                                            history=1,
                                             kernel_size=kernel_size,
                                             vorticity=True,
                                             scale_mass=False))
