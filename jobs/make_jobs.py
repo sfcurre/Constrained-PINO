@@ -140,11 +140,11 @@ def main():
                                                     lr=lr,
                                                     layers=4,
                                                     hdim=64,
-                                                    timesteps=10,
+                                                    timesteps=5,
                                                     pde_weight=pde_weight,
                                                     modeltype=modeltype,
                                                     nn_arch=arch,
-                                                    history=5,
+                                                    history=1,
                                                     kernel_size=kernel_size,
                                                     **scaling_settings[scaling]))
                                 
@@ -155,17 +155,17 @@ def main():
                                             lr=lr,
                                             layers=4,
                                             hdim=64,
-                                            timesteps=10,
+                                            timesteps=5,
                                             pde_weight=pde_weight,
                                             modeltype=modeltype,
                                             nn_arch=arch,
-                                            history=5,
+                                            history=1,
                                             kernel_size=kernel_size,
                                             scale_mass=False))
 
             for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
                 for lr in [1e-4]:
-                    for pde_weight in [0.0, 0.5, 1.0]: #, 0.01 #, 0.1]:
+                    for pde_weight in [0.0]:#, 0.5, 1.0]: #, 0.01 #, 0.1]:
                         for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
                             for arch in ['FNO']:#, 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
