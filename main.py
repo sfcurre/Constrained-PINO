@@ -98,8 +98,8 @@ def main():
                                         reduced_resolution=1, reduced_batch=2)
     
 
-    np.save(f'GT_train_{dynamic_data.num_channels - 2}D.npy', dynamic_data.train[:100])
-    np.save(f'GT_test_{dynamic_data.num_channels - 2}D.npy', dynamic_data.test[:100])
+    np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.train[:100])
+    np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.test[:100])
 
     print('Num batches:', len(dynamic_data))
 

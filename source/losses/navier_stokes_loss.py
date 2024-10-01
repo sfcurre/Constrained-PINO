@@ -160,9 +160,9 @@ def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
     wy = torch.fft.irfft2(wy_h[:, :, :k_max+1], dim=[1,2])
     wlap = torch.fft.irfft2(wlap_h[:, :, :k_max+1], dim=[1,2])
 
-    dt = 1 #t_interval / (nt-1)
+    dt = t_interval / (nt-1)
     wt = (w[:, :, :, 2:] - w[:, :, :, :-2]) / (2 * dt)
     
     residual = wt + (ux*wx + uy*wy - v*wlap)[..., 1:-1] - forcing(nx, device)
     residual = torch.abs(residual)
-    return residual
+    return torch.mean(residual)
