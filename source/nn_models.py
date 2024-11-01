@@ -29,6 +29,7 @@ class PIFNO(nn.Module):
             if self.scale_mass or self.scale_momentum or self.scale_energy:
                 raise NotImplementedError("Scaling procedures are not implemented for uncertainty models.")
 
+        self.ndims += 1 # time dim
         if static:
             if ndims == 1:
                 self.fno = FNO2d(self.nclass, self.nclass, self.ndims, kernel_size=self.kernel_size)
@@ -47,7 +48,7 @@ class PIFNO(nn.Module):
     def scale_totals(self, features, x):
         spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
         initial = features[..., -1:, :] #get last timestep of input
-        print(initial.shape)
+        
         total_density = torch.sum(initial[..., 0], dim=spatial_dims)
         total_pressure = torch.sum(initial[..., -1], dim=spatial_dims)
         
@@ -83,6 +84,10 @@ class PIFNO(nn.Module):
     def forward(self, locations, features):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
+        
+        times = torch.ones_like(locations[...,0])
+        times = (times * torch.linspace(0, 1, times.shape[-1])).unsqueeze(-1)
+        locations = torch.concat([locations, times], dim=-1)
 
         fno_features = features
         if not self.static:
@@ -127,6 +132,10 @@ class PIFNO_grad(PIFNO):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
+        times = torch.ones_like(locations[...,0])
+        times = (times * torch.linspace(0, 1, times.shape[-1])).unsqueeze(-1)
+        locations = torch.concat([locations, times], dim=-1)
+
         fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
@@ -160,6 +169,10 @@ class iPIFNO(PIFNO):
         if self.periodic:
             locations = self.wave_transform(locations, concat_to=None)
 
+        times = torch.ones_like(locations[...,0])
+        times = (times * torch.linspace(0, 1, times.shape[-1])).unsqueeze(-1)
+        locations = torch.concat([locations, times], dim=-1)
+        
         fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))

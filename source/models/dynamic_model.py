@@ -43,7 +43,7 @@ class DynamicModel:
                 best = loss_values[-1]
                 best_epoch = epoch
                 bad_counter = 0
-                torch.save(self.model.state_dict(), f'out/saved_models/{self.name}.pkl')
+                torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_best.pkl')
             else:
                 bad_counter += 1
 
@@ -58,7 +58,7 @@ class DynamicModel:
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        self.load_model(f'out/saved_models/{self.name}.pkl')
+        self.load_model(f'out/saved_models/{self.name}_best.pkl')
 
         # Testing
         test_losses = self.compute_test()
@@ -94,7 +94,7 @@ class DynamicModel:
                 # 'err_F: {:.4f}'.format(err_F.cpu().mean().item()),
                 sep=',', file=fp)
 
-        torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_{epoch}.pkl')
+        torch.save(self.model.state_dict(), f'out/saved_models/{self.name}.pkl')
         return loss_val.data.item()
 
     def train_step(self, epoch):

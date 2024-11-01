@@ -175,7 +175,7 @@ class SpectralConv2d_fast(nn.Module):
         return x
 
 class FNO2d(nn.Module):
-    def __init__(self, in_channels, out_channels, ndims, modes1=12, modes2=12, width=64, kernel_size=1):
+    def __init__(self, in_channels, out_channels, ndims, modes1=24, modes2=24, width=64, kernel_size=1):
         super(FNO2d, self).__init__()
 
         """
@@ -277,7 +277,7 @@ class SpectralConv3d(nn.Module):
         batchsize = x.shape[0]
 
         # Compute Fourier coeffcients up to factor of e^(- something constant)
-        x_ft = torch.fft.rfftn(x, dim=[-3,-2,-1])
+        x_ft = torch.fft.rfftn(x, dim=[2,3,4])
         z_dim = min(x_ft.shape[4], self.modes3)
 
         # Multiply relevant Fourier modes
@@ -305,7 +305,7 @@ class SpectralConv3d(nn.Module):
         return x
 
 class FNO3d(nn.Module):
-    def __init__(self, in_channels, out_channels, ndims, modes1=8, modes2=8, modes3=8, width=64, kernel_size=1):
+    def __init__(self, in_channels, out_channels, ndims, modes1=12, modes2=12, modes3=12, width=64, kernel_size=1):
         super(FNO3d, self).__init__()
 
         """
@@ -393,22 +393,12 @@ class FNO3d(nn.Module):
         '''
         super(FNO3d, self).__init__()
 
-        if isinstance(pad_ratio, float):
-            pad_ratio = [pad_ratio, pad_ratio]
-        else:
-            assert len(pad_ratio) == 2, 'Cannot add padding in more than 2 directions.'
+        self.modes1 = [modes1] * 5
+        self.modes2 = [modes2] * 5
+        self.modes3 = [modes3] * 5
 
-        self.pad_ratio = pad_ratio
-        self.modes1 = modes1
-        self.modes2 = modes2
-        self.modes3 = modes3
-        self.pad_ratio = pad_ratio
-
-        layers = None
-        if layers is None:
-            self.layers = [width] * 4
-        else:
-            self.layers = layers
+        layers = [width] * 5
+        self.layers = layers
         self.fc0 = nn.Linear(in_channels+ndims, layers[0])
 
         self.sp_convs = nn.ModuleList([SpectralConv3d(
@@ -423,7 +413,7 @@ class FNO3d(nn.Module):
         self.fc2 = nn.Linear(128, out_channels)
         self.act = F.gelu
 
-    def forward(self, x):
+    def forward(self, x, grid):
         '''
         Args:
             x: (batchsize, x_grid, y_grid, t_grid, 3)
@@ -432,11 +422,8 @@ class FNO3d(nn.Module):
             u: (batchsize, x_grid, y_grid, t_grid, 1)
 
         '''
+        x = torch.cat((x, grid), dim=-1)
         size_z = x.shape[-2]
-        if max(self.pad_ratio) > 0:
-            num_pad = [round(size_z * i) for i in self.pad_ratio]
-        else:
-            num_pad = [0., 0.]
         length = len(self.ws)
         batchsize = x.shape[0]
         

@@ -10,7 +10,7 @@ def write_bash(fp, pred_fp, call, pred_call, name):
     fp.write(f'sbatch {name}.sh\n')
     pred_fp.write(f'sbatch {name}_pred.sh\n')
 
-def make_call(name, time='11:59:59', grd=None, sol=None, pdebench=None,
+def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
@@ -85,7 +85,7 @@ cd ~/Physics-Informed-GNNs
     call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}'
 
     pred_call = call + ' \\\n'
-    pred_call += f'    --no-train --load-pkl out/saved_models/{name}.pkl\n\n'
+    pred_call += f'    --no-train --load-pkl out/saved_models/{name}_best.pkl\n\n'
     #pred_call += f'python visuals_pdebench.py --name {name}\\\n'
     #pred_call += f'    --run-true {pdebench}\n\n'
 
@@ -127,20 +127,20 @@ def main():
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
             for pde, name in [pdebench_2d]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-4]:
-                    for pde_weight in [0.0, 0.1]: #, 0.01 #, 0.1]:
-                        for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
-                            for arch in ['FNO']:#, 'FNO_grad']:  
+                for lr in [1e-4]:#, 1e-5]:
+                    for pde_weight in [0.0]:#, 0.01]: #, 0.01 #, 0.1]:
+                        for modeltype, timesteps in [('AutoRegressive', 5), ('Static', 10)]:#, 'OneStep']:
+                            for arch in ['FNO', 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
-                                    for scaling in []:#'mass', 'momentum']:#, 'energy']:
+                                    for scaling in ['mass']:#, 'momentum']:#, 'energy']:
                                         write_bash(fp, pred_fp, 
-                                        *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-scaled_{scaling}',
+                                        *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-pde{pde_weight}-scaled_{scaling}',
                                                     pdebench=pde,
                                                     e=100,
                                                     lr=lr,
                                                     layers=4,
                                                     hdim=64,
-                                                    timesteps=5,
+                                                    timesteps=timesteps,
                                                     pde_weight=pde_weight,
                                                     modeltype=modeltype,
                                                     nn_arch=arch,
@@ -149,13 +149,13 @@ def main():
                                                     **scaling_settings[scaling]))
                                 
                                     write_bash(fp, pred_fp, 
-                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-unscaled',
+                                    *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-pde{pde_weight}-unscaled',
                                             pdebench=pde,
                                             e=100,
                                             lr=lr,
                                             layers=4,
                                             hdim=64,
-                                            timesteps=5,
+                                            timesteps=timesteps,
                                             pde_weight=pde_weight,
                                             modeltype=modeltype,
                                             nn_arch=arch,
@@ -165,8 +165,8 @@ def main():
 
             for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
                 for lr in [1e-4]:
-                    for pde_weight in [0.0]:#, 0.5, 1.0]: #, 0.01 #, 0.1]:
-                        for modeltype in ['AutoRegressive', 'Static']:#, 'OneStep']:
+                    for pde_weight in [0.0]:#, 0.5]:#, 0.5]:
+                        for modeltype, timesteps in [('AutoRegressive', 10), ('Static', 50)]:#, 'OneStep']:
                             for arch in ['FNO']:#, 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
                                     for scaling in []:#'mass']:#, 'momentum']:#, 'energy']:
@@ -177,7 +177,7 @@ def main():
                                                     lr=lr,
                                                     layers=4,
                                                     hdim=64,
-                                                    timesteps=40,
+                                                    timesteps=timesteps,
                                                     pde_weight=pde_weight,
                                                     modeltype=modeltype,
                                                     nn_arch=arch,
@@ -193,7 +193,7 @@ def main():
                                             lr=lr,
                                             layers=4,
                                             hdim=64,
-                                            timesteps=40,
+                                            timesteps=timesteps,
                                             pde_weight=pde_weight,
                                             modeltype=modeltype,
                                             nn_arch=arch,

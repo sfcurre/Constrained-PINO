@@ -31,11 +31,11 @@ class AutoRegressiveModel(DynamicModel):
                 
                 output = self.model(locations, initial)
                 loss_train = self.get_loss(locations, initial, targets[...,i:i+1,:], output)
-
                 
-                initial = self.concat_timesteps(initial, output)
+                initial = self.concat_timesteps(initial, output.detach())
                 batch_loss += loss_train
 
+            batch_loss /= targets.shape[-2]
             batch_loss.backward()
             self.optimizer.step()
             self.scheduler.step()

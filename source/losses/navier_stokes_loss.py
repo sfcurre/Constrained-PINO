@@ -122,9 +122,15 @@ def pde_CFD3d(y1, y2, gamma=1.4):
     return torch.mean(residual)
 
 
+#def forcing(S, device):
+#    x = torch.tensor(np.linspace(0, 2*np.pi, S, endpoint=False), dtype=torch.float, device=device).reshape(1, S).repeat(S, 1)
+#    return -4 * (torch.cos(4*(x))).reshape(1,S,S,1)
+
 def forcing(S, device):
-    x = torch.tensor(np.linspace(0, 2*np.pi, S, endpoint=False), dtype=torch.float, device=device).reshape(1, S).repeat(S, 1)
-    return -4 * (torch.cos(4*(x))).reshape(1,S,S,1)
+    x1 = torch.tensor(np.linspace(0, 1, S, endpoint=False), dtype=torch.float, device=device).reshape(1, S).repeat(S, 1)
+    x2 = torch.tensor(np.linspace(0, 1, S, endpoint=False), dtype=torch.float, device=device).reshape(S, 1).repeat(1, S)
+    x = x1 + x2
+    return (1.0 * (torch.sin(2 * np.pi * x) + torch.cos(2 * np.pi * x))).reshape(1, S, S, 1)
 
 def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
     w = torch.concat([w1, w2], dim=-2).squeeze(dim=-1)
@@ -160,9 +166,9 @@ def pde_iCFD2d_vorticity(w1, w2, v=1e-4, t_interval=1.0):
     wy = torch.fft.irfft2(wy_h[:, :, :k_max+1], dim=[1,2])
     wlap = torch.fft.irfft2(wlap_h[:, :, :k_max+1], dim=[1,2])
 
-    dt = t_interval / (nt-1)
+    dt = nt / (nt-1)
     wt = (w[:, :, :, 2:] - w[:, :, :, :-2]) / (2 * dt)
     
     residual = wt + (ux*wx + uy*wy - v*wlap)[..., 1:-1] - forcing(nx, device)
-    residual = torch.abs(residual)
+    residual = torch.abs(residual[..., -w2.shape[-2]:-1])
     return torch.mean(residual)

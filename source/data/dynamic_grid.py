@@ -11,13 +11,13 @@ class DynamicGrid(Dataset):
         self.grid = grid
         # batch, x, y, z, t, ch
         self.solution = solution
-        self.timesteps = timesteps
+        self.duration = self.solution.shape[-2]
+        self.timesteps = min(timesteps, self.duration - history)
         self.history = history
         self.use_cuda = use_cuda
         self.num_channels = self.solution.shape[-1]
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
-        self.duration = self.solution.shape[-2]
 
         self.train = self.solution[:int(.9 * self.solution.shape[0])]
         self.test = self.solution[int(.9 * self.solution.shape[0]):]
