@@ -18,6 +18,7 @@ from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
 from source.models.static_model import StaticModel
+from source.models.ar_uncertainty_model import ARUncertaintyModel
 from source.losses.navier_stokes_loss import *
 from source.losses.normalized_lp_loss import normalized_lp_loss
 from source.nn_models import *
@@ -58,7 +59,7 @@ def parse_args():
     parser.add_argument('--scale-momentum', action='store_true', default=False, help='Enable velocity scaling for momenutm.')
     parser.add_argument('--scale-energy', action='store_true', default=False, help='Enable velocity scaling for kinetic energy.')
     parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
-    parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive', 'Static'],
+    parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive', 'Static', 'Uncertainty'],
                                         default='AutoRegressive', help='Type of training model.')
     parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
     parser.add_argument('--kernel-size', type=int, default=1, help='Kernel size for the convolution part of FNO.')
@@ -118,7 +119,8 @@ def main():
                       scale_energy=args.scale_energy,
                       history=args.history,
                       kernel_size=args.kernel_size,
-                      static=args.model_type == 'Static')
+                      static=args.model_type == 'Static',
+                      uncertainty=args.model_type == 'Uncertainty')
     elif args.nn_arch == 'FNO_grad':
         model = PIFNO_grad(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
@@ -128,7 +130,8 @@ def main():
                       scale_energy=args.scale_energy,
                       history=args.history,
                       kernel_size=args.kernel_size,
-                      static=args.model_type == 'Static')
+                      static=args.model_type == 'Static',
+                      uncertainty=args.model_type == 'Uncertainty')
     else:
         model = PIFNO(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
@@ -138,7 +141,8 @@ def main():
                       scale_energy=args.scale_energy,
                       history=args.history,
                       kernel_size=args.kernel_size,
-                      static=args.model_type == 'Static')
+                      static=args.model_type == 'Static',
+                      uncertainty=args.model_type == 'Uncertainty')
     
     optimizer = optim.Adam(model.parameters(),
                         lr=args.lr, 
@@ -161,7 +165,15 @@ def main():
         loss = F.mse_loss(*fargs, **kwargs)
         return loss
 
-    if args.model_type == 'Static':
+    def nll_loss(target, mean, std):
+        var = std ** 2
+        mse = (mean - target) ** 2
+        loss = (torch.log(var) + (mse / var)) / 2
+        return loss
+
+    if args.model_type == 'Uncertainty':
+        dynamic_model = ARUncertaintyModel(dataloader, model, optimizer, nll_loss, pde_loss, args.pde_weight, args.name, args.cuda)
+    elif args.model_type == 'Static':
         dynamic_model = StaticModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
     elif args.model_type == 'AutoRegressive':
         dynamic_model = AutoRegressiveModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)

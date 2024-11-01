@@ -7,7 +7,7 @@ from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, ndims, nclass, periodic=True, scale_mass=True, scale_momentum=False, scale_energy=False, history=10, kernel_size=1, static=False):
+    def __init__(self, ndims, nclass, periodic=True, scale_mass=True, scale_momentum=False, scale_energy=False, history=10, kernel_size=1, static=False, uncertainty=False):
         super(PIFNO, self).__init__()
         self.ndims = ndims
         self.nclass = nclass
@@ -18,10 +18,16 @@ class PIFNO(nn.Module):
         self.history = history
         self.kernel_size = kernel_size
         self.static = static
+        self.uncertainty = uncertainty
 
         if self.periodic:
             self.wave_transform = WaveTransform()
             self.ndims *= 2
+
+        if self.uncertainty:
+            self.nclass *= 2
+            if self.scale_mass or self.scale_momentum or self.scale_energy:
+                raise NotImplementedError("Scaling procedures are not implemented for uncertainty models.")
 
         if static:
             if ndims == 1:
