@@ -25,7 +25,7 @@ def vorticity_plot(x, y, Fx, Fy):
 
 def main():
 
-    file_dir = 'visuals/2d_preds/'
+    file_dir = 'visuals/2d_preds_full/'
     filenames = os.listdir(file_dir)
     filenames = [file_dir + f for f in filenames]
 
@@ -41,14 +41,14 @@ def main():
             # vmin, vmax = 0, arr[...,0].max()
             t0, arr = arr[0], arr[1:]
         elif 'unscaled' in fname:
-            axis.append(2)
+            axis.append(1)
             labels.append('Unscaled')
         elif 'ke' in fname or 'allscaled' in fname:
             axis.append(3)
             labels.append('Energy-Scaled')
         else:
-            axis.append(1)
-            labels.append('Scaled')
+            axis.append(2)
+            labels.append('Mass-Scaled')
         arrays.append(arr)
         
     fig, axes = plt.subplots(len(axis), 6, figsize = (18, 12), layout='constrained',
