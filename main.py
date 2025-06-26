@@ -66,6 +66,8 @@ def parse_args():
     parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
     parser.add_argument('--history', type=int, default=1, help='The number of historical timesteps to use as a history.')
     parser.add_argument('--vorticity', action='store_true', help='Use vorticity equation for incompressible flows.')
+    parser.add_argument('--reduce_resolution', type=int, default=1, help='The rate of resolution reduction.')
+    parser.add_argument('--reduce_batch', type=int, default=2, help='The rate of batch reduction.')
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
@@ -92,11 +94,11 @@ def main():
     else:
         if args.model_type == 'Static':
             dynamic_data = PDEBenchStaticGrid(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda,
-                                        reduced_resolution=1, reduced_batch=2)
+                                        reduced_resolution=args.reduce_resolution * 2, reduced_batch=args.reduce_batch)
         else:
             dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
                                        history=args.history, use_cuda=args.cuda,
-                                        reduced_resolution=1, reduced_batch=2)
+                                        reduced_resolution=args.reduce_resolution, reduced_batch=args.reduce_batch)
     
 
     np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.train[:100])
@@ -111,16 +113,28 @@ def main():
 
     # Model and optimizer
     if args.vorticity:
-        model = iPIFNO(ndims=dynamic_data.ndims,
-                      nclass=dynamic_data.nfeats,
-                      periodic=args.periodic,
-                      scale_mass=args.scale_mass,
-                      scale_momentum=args.scale_momentum,
-                      scale_energy=args.scale_energy,
-                      history=args.history,
-                      kernel_size=args.kernel_size,
-                      static=args.model_type == 'Static',
-                      uncertainty=args.model_type == 'Uncertainty')
+        if args.nn_arch == 'FNO_grad':
+            model = iPIFNO_grad(ndims=dynamic_data.ndims,
+                          nclass=dynamic_data.nfeats,
+                          periodic=args.periodic,
+                          scale_mass=args.scale_mass,
+                          scale_momentum=args.scale_momentum,
+                          scale_energy=args.scale_energy,
+                          history=args.history,
+                          kernel_size=args.kernel_size,
+                          static=args.model_type == 'Static',
+                          uncertainty=args.model_type == 'Uncertainty')
+        else:
+            model = iPIFNO(ndims=dynamic_data.ndims,
+                          nclass=dynamic_data.nfeats,
+                          periodic=args.periodic,
+                          scale_mass=args.scale_mass,
+                          scale_momentum=args.scale_momentum,
+                          scale_energy=args.scale_energy,
+                          history=args.history,
+                          kernel_size=args.kernel_size,
+                          static=args.model_type == 'Static',
+                          uncertainty=args.model_type == 'Uncertainty')
     elif args.nn_arch == 'FNO_grad':
         model = PIFNO_grad(ndims=dynamic_data.ndims,
                       nclass=dynamic_data.nfeats,
@@ -163,13 +177,16 @@ def main():
     def lp_loss(*fargs, **kwargs):
         #loss = normalized_lp_loss(*fargs, **kwargs, p=2)
         loss = F.mse_loss(*fargs, **kwargs)
-        return loss
+        output, target = fargs
+        dims = list(range(-dynamic_data.ndims - 1, -1, 1))
+        f_output, f_target = torch.fft.rfftn(output, dim=dims, norm='ortho'), torch.fft.rfftn(target, dim=dims, norm='ortho')
+        floss = F.mse_loss(f_output.abs(), f_target.abs())
+        return loss + floss
 
-    def nll_loss(target, mean, std):
-        var = std ** 2
+    def nll_loss(target, mean, var):
         mse = (mean - target) ** 2
         loss = (torch.log(var) + (mse / var)) / 2
-        return loss
+        return loss.mean()
 
     if args.model_type == 'Uncertainty':
         dynamic_model = ARUncertaintyModel(dataloader, model, optimizer, nll_loss, pde_loss, args.pde_weight, args.name, args.cuda)

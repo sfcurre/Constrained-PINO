@@ -47,16 +47,15 @@ class PIFNO(nn.Module):
         
     def scale_totals(self, features, x):
         spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
-        initial = features[..., -1:, :] #get last timestep of input
-        
-        total_density = torch.sum(initial[..., 0], dim=spatial_dims)
-        total_pressure = torch.sum(initial[..., -1], dim=spatial_dims)
-        
-        out_density = torch.sum(x[..., 0], dim=spatial_dims)
-        print(out_density.shape)
+        initial = features[..., -x.shape[-2]:, :] #get last timestep of input
+ 
+        total_density = torch.sum(initial[..., :1], dim=spatial_dims)
+        total_pressure = torch.sum(initial[..., -1:], dim=spatial_dims)
+
+        out_density = torch.sum(x[..., :1], dim=spatial_dims)
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., -1], dim=spatial_dims)
+        out_pressure = torch.sum(x[..., -1:], dim=spatial_dims)
         scaled_pressure = x[..., -1:] * total_pressure / out_pressure
         
         if self.scale_momentum:
@@ -78,6 +77,9 @@ class PIFNO(nn.Module):
                 
         else:
             x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1)
+
+        if self.uncertainty:
+            x[..., self.nclass // 2:] = x[..., self.nclass // 2:]**2
 
         return x
 
@@ -108,7 +110,7 @@ class PIFNO_grad(PIFNO):
         
     def scale_grads(self, features, dx):
         spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
-        initial = features[..., -1:, :] #get last timestep of input
+        initial = features[..., -dx.shape[-2]:, :] #get last timestep of input
         
         scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
         scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims)
@@ -144,11 +146,11 @@ class PIFNO_grad(PIFNO):
         if self.scale_mass:
             dx = self.scale_grads(features, dx)
 
-        x = features[..., -self.nclass:] + dx
+        x = fno_features[..., -self.nclass:] + dx
         
         if not self.static:
             x = x.unsqueeze(-2)        
-        
+
         return x
 
 
@@ -157,10 +159,10 @@ class iPIFNO(PIFNO):
         super(iPIFNO, self).__init__(*args, **kwargs)
     
     def scale_totals(self, features, x):
-        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
-        total_vorticity = torch.sum(features[..., -self.nclass])
+        spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
+        total_vorticity = torch.sum(features[..., -x.shape[-2]:, :1], dim=spatial_dims)
         
-        out_vorticity = torch.sum(x[..., 0])
+        out_vorticity = torch.sum(x[..., :1], dim=spatial_dims)
         scaled_vorticity = x[..., :1] * total_vorticity / out_vorticity
 
         return scaled_vorticity
@@ -185,4 +187,37 @@ class iPIFNO(PIFNO):
             x = x.unsqueeze(-2)        
 
         return x
+
+class iPIFNO_grad(PIFNO):
+    def __init__(self, *args, **kwargs):
+        super(iPIFNO_grad, self).__init__(*args, **kwargs)
+    
+    def scale_grads(self, features, dx):
+        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
+        scaled_vorticity = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
+        return scaled_vorticity
+
+    def forward(self, locations, features):
+        if self.periodic:
+            locations = self.wave_transform(locations, concat_to=None)
+
+        times = torch.ones_like(locations[...,0])
+        times = (times * torch.linspace(0, 1, times.shape[-1])).unsqueeze(-1)
+        locations = torch.concat([locations, times], dim=-1)
+
+        fno_features = features
+        if not self.static:
+            fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
+        dx = self.fno(fno_features, locations)
+
+        if self.scale_mass:
+            dx = self.scale_grads(features, dx)
+
+        x = fno_features[..., -self.nclass:] + dx
+        
+        if not self.static:
+            x = x.unsqueeze(-2)        
+
+        return x
+
 

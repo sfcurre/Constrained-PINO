@@ -3,7 +3,6 @@ import scipy.sparse as sp
 import glob, os, h5py
 import math as mt
 import torch
-from torch_geometric.utils import get_laplacian, coalesce
 from torch.utils.data import Dataset
 
 class DynamicGrid(Dataset):

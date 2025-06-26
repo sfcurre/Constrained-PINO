@@ -10,7 +10,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-import deepxde as dde
 
 from .dynamic_model import DynamicModel
 
@@ -45,7 +44,6 @@ class ARUncertaintyModel(DynamicModel):
             batch_loss.backward()
             self.optimizer.step()
             self.scheduler.step()
-            dde.grad.clear()
             
             losses.append(batch_loss.cpu().item())                
 
