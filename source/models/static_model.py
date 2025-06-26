@@ -10,7 +10,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
-import deepxde as dde
 
 from .dynamic_model import DynamicModel
 
@@ -33,7 +32,6 @@ class StaticModel(DynamicModel):
             
             self.optimizer.step()
             self.optimizer.zero_grad()
-            dde.grad.clear()
 
             self.scheduler.step()
 

@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_geometric.nn as tgnn
 from .layers.fourier import FNO1d, FNO2d, FNO3d
 from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
