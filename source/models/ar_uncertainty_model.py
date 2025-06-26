@@ -26,11 +26,6 @@ class ARUncertaintyModel(DynamicModel):
         for i, (locations, features, targets) in enumerate(self.dataloader):
             batch_loss = 0
             initial = features
-            
-            std = torch.zeros_like(initial)
-            if self.use_cuda:
-                std = std.cuda()
-            
             initial = torch.concat([initial, torch.zeros_like(initial)], dim=-1)
 
             for i in range(targets.shape[-2]):
@@ -54,16 +49,16 @@ class ARUncertaintyModel(DynamicModel):
         
         return np.mean(losses)
     
-    def mean_std_split(self, outputs):
+    def mean_var_split(self, outputs):
         num_vars = outputs.shape[-1] // 2
-        mean, std = outputs[..., :num_vars], outputs[..., num_vars:]
-        return mean, std
+        mean, var = outputs[..., :num_vars], outputs[..., num_vars:]
+        return mean, var
 
     def get_loss(self, locations, features, targets, outputs, mask=None):
         # print(features.shape, outputs.shape, targets.shape)
-        mean, std = self.mean_std_split(outputs)
-        features_mean, _ = self.mean_std_split(features)
-        lp_loss = self.lp_loss(targets, mean, std)
+        mean, var = self.mean_var_split(outputs)
+        features_mean, _ = self.mean_var_split(features)
+        lp_loss = self.lp_loss(targets, mean, var)
         if self.pde_weight > 0:        
             pde_loss = self.pde_loss(features_mean, mean)
         else:
@@ -73,10 +68,6 @@ class ARUncertaintyModel(DynamicModel):
     def predict(self, locations, features, timesteps=1, numpy=False):
         # add with torch.no_grad
         outputs = []
-
-        std = torch.zeros_like(features)
-        if self.use_cuda:
-            std = std.cuda()
         features = torch.concat([features, torch.zeros_like(features)], dim=-1)
 
         for i in range(timesteps):
@@ -92,11 +83,11 @@ class ARUncertaintyModel(DynamicModel):
         return torch.concat(outputs, dim=-2)
 
     def get_test_loss(self, targets, outputs):
-        mean, std = self.mean_std_split(outputs)
-        total_loss = self.lp_loss(targets.cpu(), mean.cpu(), std.cpu())
+        mean, var = self.mean_var_split(outputs)
+        total_loss = self.lp_loss(targets.cpu(), mean.cpu(), var.cpu())
         return total_loss
 
     def get_test_pde_loss(self, features, outputs):
-        mean, std = self.mean_std_split(outputs)
-        features_mean, _ = self.mean_std_split(features)
-        return self.pde_loss(features_mean.cpu(), mean.cpu())
+        mean, var = self.mean_var_split(outputs)
+        #features_mean, _ = self.mean_std_split(features)
+        return self.pde_loss(features.cpu(), mean.cpu())

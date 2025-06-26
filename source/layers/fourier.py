@@ -175,7 +175,7 @@ class SpectralConv2d_fast(nn.Module):
         return x
 
 class FNO2d(nn.Module):
-    def __init__(self, in_channels, out_channels, ndims, modes1=24, modes2=24, width=64, kernel_size=1):
+    def __init__(self, in_channels, out_channels, ndims, modes1=32, modes2=32, width=64, kernel_size=1):
         super(FNO2d, self).__init__()
 
         """
@@ -305,7 +305,7 @@ class SpectralConv3d(nn.Module):
         return x
 
 class FNO3d(nn.Module):
-    def __init__(self, in_channels, out_channels, ndims, modes1=12, modes2=12, modes3=12, width=64, kernel_size=1):
+    def __init__(self, in_channels, out_channels, ndims, modes1=16, modes2=16, modes3=16, width=64, kernel_size=1):
         super(FNO3d, self).__init__()
 
         """
@@ -376,71 +376,3 @@ class FNO3d(nn.Module):
         x = self.fc2(x)
         return x
 
-class FNO3d(nn.Module):
-    
-    def __init__(self, in_channels, out_channels, ndims, modes1=8, modes2=8, modes3=8, width=64, kernel_size=1):
-        '''         
-        Args:
-            modes1: list of int, first dimension maximal modes for each layer
-            modes2: list of int, second dimension maximal modes for each layer
-            modes3: list of int, third dimension maximal modes for each layer
-            layers: list of int, channels for each layer
-            fc_dim: dimension of fully connected layers
-            in_dim: int, input dimension
-            out_dim: int, output dimension
-            act: {tanh, gelu, relu, leaky_relu}, activation function
-            pad_ratio: the ratio of the extended domain
-        '''
-        super(FNO3d, self).__init__()
-
-        self.modes1 = [modes1] * 5
-        self.modes2 = [modes2] * 5
-        self.modes3 = [modes3] * 5
-
-        layers = [width] * 5
-        self.layers = layers
-        self.fc0 = nn.Linear(in_channels+ndims, layers[0])
-
-        self.sp_convs = nn.ModuleList([SpectralConv3d(
-            in_size, out_size, mode1_num, mode2_num, mode3_num)
-            for in_size, out_size, mode1_num, mode2_num, mode3_num
-            in zip(self.layers, self.layers[1:], self.modes1, self.modes2, self.modes3)])
-
-        self.ws = nn.ModuleList([nn.Conv1d(in_size, out_size, 1)
-                                 for in_size, out_size in zip(self.layers, self.layers[1:])])
-
-        self.fc1 = nn.Linear(layers[-1], 128)
-        self.fc2 = nn.Linear(128, out_channels)
-        self.act = F.gelu
-
-    def forward(self, x, grid):
-        '''
-        Args:
-            x: (batchsize, x_grid, y_grid, t_grid, 3)
-
-        Returns:
-            u: (batchsize, x_grid, y_grid, t_grid, 1)
-
-        '''
-        x = torch.cat((x, grid), dim=-1)
-        size_z = x.shape[-2]
-        length = len(self.ws)
-        batchsize = x.shape[0]
-        
-        x = self.fc0(x)
-        x = x.permute(0, 4, 1, 2, 3)
-        # x = add_padding(x, num_pad=num_pad)
-        size_x, size_y, size_z = x.shape[-3], x.shape[-2], x.shape[-1]
-
-        for i, (speconv, w) in enumerate(zip(self.sp_convs, self.ws)):
-            x1 = speconv(x)
-            x2 = w(x.view(batchsize, self.layers[i], -1)).view(batchsize, self.layers[i+1], size_x, size_y, size_z)
-            x = x1 + x2
-            if i != length - 1:
-                x = self.act(x)
-        # x = remove_padding(x, num_pad=num_pad)
-        x = x.permute(0, 2, 3, 4, 1)
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.fc2(x)
-        return x

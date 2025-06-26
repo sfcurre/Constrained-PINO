@@ -10,12 +10,12 @@ def write_bash(fp, pred_fp, call, pred_call, name):
     fp.write(f'sbatch {name}.sh\n')
     pred_fp.write(f'sbatch {name}_pred.sh\n')
 
-def make_call(name, time='23:59:59', grd=None, sol=None, pdebench=None,
+def make_call(name, time='47:59:59', grd=None, sol=None, pdebench=None,
               e=100, lr=1e-4, wd=1e-8, bs=None, hdim=32, layers=6, heads=4,
               dropout=0.0, alpha=0.2, pde_weight=1, patience=100, timesteps=5,
               periodic=True, use_grid=False, minibatch=0, modeltype='PushForward',
               nn_arch='FNO', history=0, scale_mass=True, scale_momentum=False, scale_energy=False,
-              vorticity=False, kernel_size=1):
+              vorticity=False, kernel_size=1, reduce_res=None, reduce_batch=None):
     HEADER = f'''#!/bin/bash
 #SBATCH --job-name={name}
 #SBATCH --time={time}
@@ -32,7 +32,7 @@ set -x
 set -e
 
 module load cuda
-source /usr/local/python/3.6-conda5.2/etc/profile.d/conda.sh
+module load miniconda3/24.1.2-py310
 conda activate pignn
 
 cd ~/Physics-Informed-GNNs
@@ -53,7 +53,7 @@ set -x
 set -e
 
 module load cuda
-source /usr/local/python/3.6-conda5.2/etc/profile.d/conda.sh
+module load miniconda3/24.1.2-py310
 conda activate pignn
 
 cd ~/Physics-Informed-GNNs
@@ -82,10 +82,16 @@ cd ~/Physics-Informed-GNNs
     if vorticity:
         call += f'    --vorticity \\\n'
 
+    if reduce_res:
+        call += f'    --reduce_resolution {reduce_res} \\\n'
+    
+    if reduce_batch:
+        call += f'    --reduce_batch {reduce_batch} \\\n'
+
     call += f'    --model-type {modeltype} --nn-arch {nn_arch} --name {name}'
 
     pred_call = call + ' \\\n'
-    pred_call += f'    --no-train --load-pkl out/saved_models/{name}_best.pkl\n\n'
+    pred_call += f'    --no-train --load-pkl out/saved_models/{name}.pkl\n\n'
     #pred_call += f'python visuals_pdebench.py --name {name}\\\n'
     #pred_call += f'    --run-true {pdebench}\n\n'
 
@@ -127,12 +133,12 @@ def main():
             pred_fp.write('cd ~/Physics-Informed-GNNs/jobs/job_files\n\n')
             
             for pde, name in [pdebench_2d]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-4]:#, 1e-5]:
+                for lr in [1e-5]:
                     for pde_weight in [0.0]:#, 0.01]: #, 0.01 #, 0.1]:
                         for modeltype, timesteps in [('AutoRegressive', 5), ('Static', 10)]:#, 'OneStep']:
-                            for arch in ['FNO', 'FNO_grad']:  
+                            for arch in ['FNO']:#, 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
-                                    for scaling in ['mass']:#, 'momentum']:#, 'energy']:
+                                    for scaling in ['mass', 'momentum']:#, 'energy']:
                                         write_bash(fp, pred_fp, 
                                         *make_call(f'PDEBench_{name}-{arch}-{modeltype}-k{kernel_size}-pde{pde_weight}-scaled_{scaling}',
                                                     pdebench=pde,
@@ -164,12 +170,12 @@ def main():
                                             scale_mass=False))
 
             for pde, name in [pino_vorticity]: #, pdebench_1d, pdebench_3d]:
-                for lr in [1e-4]:
+                for lr in [1e-5]:
                     for pde_weight in [0.0]:#, 0.5]:#, 0.5]:
                         for modeltype, timesteps in [('AutoRegressive', 10), ('Static', 50)]:#, 'OneStep']:
                             for arch in ['FNO']:#, 'FNO_grad']:  
                                 for kernel_size in [1]:#, 3]:
-                                    for scaling in []:#'mass']:#, 'momentum']:#, 'energy']:
+                                    for scaling in ['momentum']:#, 'energy']:
                                         write_bash(fp, pred_fp, 
                                         *make_call(f'PINO_{name}-{arch}-{modeltype}-k{kernel_size}-pde{pde_weight}-scaled_{scaling}',
                                                     pdebench=pde,
