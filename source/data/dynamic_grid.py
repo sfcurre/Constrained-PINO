@@ -24,11 +24,11 @@ class DynamicGrid(Dataset):
         self.num_test_batches = self.test.shape[0]
         self.is_training = True
     
-    def sample_grid(self, flow_features, index, num_batches, tdif=1, hist=1):
+    def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
         b = index % num_batches
         t = index // num_batches
         features = flow_features[b:b+1][..., t:t+hist, :]
-        targets = flow_features[b:b+1][..., t+hist:t+hist+tdif, :]        
+        targets = flow_features[b:b+1][..., t+hist:t+hist+timesteps, :]        
 
         #shape into feature matrics
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
@@ -51,9 +51,9 @@ class DynamicGrid(Dataset):
 
     def __getitem__(self, index):
         if self.is_training:
-            return self.sample_grid(self.train, index, self.num_batches, tdif=self.timesteps, hist=self.history)
+            return self.sample_grid(self.train, index, self.num_batches, timesteps=self.timesteps, hist=self.history)
         else:
-            return self.sample_grid(self.test, index, self.num_test_batches, tdif=self.timesteps, hist=self.history)
+            return self.sample_grid(self.test, index, self.num_test_batches, timesteps=self.timesteps, hist=self.history)
 
     def __len__(self):
         if self.is_training:

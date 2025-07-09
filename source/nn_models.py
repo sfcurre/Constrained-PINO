@@ -31,9 +31,9 @@ class PIFNO(nn.Module):
         self.ndims += 1 # time dim
         if static:
             if ndims == 1:
-                self.fno = FNO2d(self.nclass, self.nclass, self.ndims, kernel_size=self.kernel_size)
+                self.fno = FNO2d(self.nclass * self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
             if ndims == 2:
-                self.fno = FNO3d(self.nclass, self.nclass, self.ndims, kernel_size=self.kernel_size)
+                self.fno = FNO3d(self.nclass + self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
             if ndims == 3:
                 raise NotImplementedError("Static models are not impelmented for 3D flows.")
         else:

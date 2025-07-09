@@ -2,9 +2,11 @@ import os
 import json
 import time
 import random
-import argparse
+import argparse, yaml
 import numpy as np
 import matplotlib.pyplot as plt
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,210 +16,134 @@ from torch.utils.data import DataLoader
 
 from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.data.static_grid import PDEBenchStaticGrid, PINOStaticGrid
+from source.nn_models import *
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
 from source.models.static_model import StaticModel
 from source.models.ar_uncertainty_model import ARUncertaintyModel
+from source.models.time_dilated_model import TimeDilatedModel
 from source.losses.navier_stokes_loss import *
-from source.losses.normalized_lp_loss import normalized_lp_loss
-from source.nn_models import *
-
+from source.losses.lp_loss import *
 from source.losses.metrics import metric_func
 
-# Example call:
-# python main.py --grd TGV/ijk_snapshots/ijkmvmv_grd.npy --sol TGV/ijk_snapshots/ijkmvmv_sol.npy --name ExampleMain --model-type OneStep
-
-# torch.autograd.set_detect_anomaly(True)
-
-# np.random.seed(1998)
-# torch.manual_seed(1998)
-
+random.seed(1998)
+np.random.seed(1998)
+torch.manual_seed(1998)
+    
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, help='Model name for saving files.')
-    parser.add_argument('--grd', type=str, help='Path to grd data file.')
-    parser.add_argument('--sol', type=str, help='Beginning of solution filename(s).')
-    parser.add_argument('--pdebench', type=str, help='Filename for pdebench dataset.')
-    parser.add_argument('--no-cuda', action='store_true', default=False, help='Disables CUDA training.')
-    parser.add_argument('--fastmode', action='store_true', default=False, help='Validate during training pass.')
-    parser.add_argument('--seed', type=int, default=72, help='Random seed.')
-    parser.add_argument('--epochs', type=int, default=200, help='Number of epochs to train.')
-    parser.add_argument('--lr', type=float, default=0.0001, help='Initial learning rate.')
-    parser.add_argument('--weight-decay', type=float, default=5e-4, help='Weight decay (L2 loss on parameters).')
-    parser.add_argument('--hidden', type=int, default=8, help='Number of hidden units.')
-    parser.add_argument('--layers', type=int, default=2, help='Number of layers in the neural network.')
-    parser.add_argument('--nb-heads', type=int, default=4, help='Number of head attentions.')
-    parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate (1 - keep probability).')
-    parser.add_argument('--alpha', type=float, default=0.2, help='Alpha for the leaky_relu.')
-    parser.add_argument('--patience', type=int, default=100, help='Patience')
-    parser.add_argument('--timesteps', type=int, default=5, help='Number of timesteps to train over.')
-    parser.add_argument('--load-pkl', type=str, default='', help='Existing model state to load initially.')
-    parser.add_argument('--periodic', action='store_true', default=False, help='Enable periodic boundary conditions.')
-    parser.add_argument('--no-train', action='store_true', default=False, help='Disable training (only run prediction).')
-    parser.add_argument('--scale-mass', action='store_true', default=False, help='Enable mass scaling for density and pressure.')
-    parser.add_argument('--scale-momentum', action='store_true', default=False, help='Enable velocity scaling for momenutm.')
-    parser.add_argument('--scale-energy', action='store_true', default=False, help='Enable velocity scaling for kinetic energy.')
-    parser.add_argument('--batch-size', type=int, default=None, help='Batch size for dataloader. If not specified, training will not use batches.')
-    parser.add_argument('--model-type', type=str, choices=['OneStep', 'PushForward', 'AutoRegressive', 'Static', 'Uncertainty'],
-                                        default='AutoRegressive', help='Type of training model.')
-    parser.add_argument('--pde-weight', type=float, default=1, help='Weighting for the PDE loss.')
-    parser.add_argument('--kernel-size', type=int, default=1, help='Kernel size for the convolution part of FNO.')
-    parser.add_argument('--nn-arch', type=str, default='FNO', help='Which neural network architecture to use.')
-    parser.add_argument('--history', type=int, default=1, help='The number of historical timesteps to use as a history.')
-    parser.add_argument('--vorticity', action='store_true', help='Use vorticity equation for incompressible flows.')
-    parser.add_argument('--reduce_resolution', type=int, default=1, help='The rate of resolution reduction.')
-    parser.add_argument('--reduce_batch', type=int, default=2, help='The rate of batch reduction.')
+    parser.add_argument('--config', type=str, help='path to config file.')
+    parser.add_argument('--load', type=str, default='', help='Existing model state to load initially.')
+    parser.add_argument('--eval', action='store_true', default=False, help='Disable training (only run prediction).')
     args = parser.parse_args()
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
     return args
 
-def main():
-
-    args = parse_args()
-
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.cuda:
-        print("Using CUDA.")
-        torch.cuda.manual_seed(args.seed)
-
-    # Load data
-    if args.vorticity:
+def select_dataset(config, cuda):
+    kwargs = dict(timesteps=config['model']['timesteps'],
+                  use_cuda=cuda)
+    if config['data']['task'] == 'pino':
         # Load PINO data
-        if args.model_type == 'Static':
-            dynamic_data = PINOStaticGrid(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda)
+        if config['model']['model_type'] == 'Static':
+            data_class = PINOStaticGrid
         else:
-            dynamic_data = PINOGrid(args.pdebench, timesteps=args.timesteps,
-                                    history=args.history, use_cuda=args.cuda)
-    else:
-        if args.model_type == 'Static':
-            dynamic_data = PDEBenchStaticGrid(args.pdebench, timesteps=args.timesteps, use_cuda=args.cuda,
-                                        reduced_resolution=args.reduce_resolution * 2, reduced_batch=args.reduce_batch)
-        else:
-            dynamic_data = PDEBenchGrid(args.pdebench, timesteps=args.timesteps,
-                                       history=args.history, use_cuda=args.cuda,
-                                        reduced_resolution=args.reduce_resolution, reduced_batch=args.reduce_batch)
+            data_class = PINOGrid
+            kwargs['history'] = config['model']['history']
     
+    elif config['data']['task'] == 'pdebench':
+        if args.model_type == 'Static':
+            data_class = PDEBenchStaticGrid
+            kwargs['reduced_resolution'] = config['data']['reduce_res']
+            kwargs['reduce_batch'] = config['data']['reduced_batch']   
+        else:
+            data_class = PDEBenchGrid
+            kwargs['history'] = config['model']['history']         
+            kwargs['reduced_resolution'] = config['data']['reduce_res']
+            kwargs['reduce_batch'] = config['data']['reduced_batch']
+    dynamic_data = data_class(config['data']['data_path'], **kwargs)
+    return dynamic_data
 
+def main(config, args):
+
+    CUDA = False
+    if config['training']['gpus'] > 0 and torch.cuda.is_available():
+        print("Using CUDA.")
+        CUDA = True
+        torch.cuda.manual_seed(1998)
+
+    dynamic_data = select_dataset(config, CUDA)
+    
     np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.train[:100])
     np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.test[:100])
 
     print('Num batches:', len(dynamic_data))
 
-    if args.cuda:
-        dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator(device='cuda'))
+    if CUDA:
+        dataloader = DataLoader(dynamic_data, batch_size=config['training']['batch_size'], shuffle=True, generator=torch.Generator(device='cuda'))
     else:
-        dataloader = DataLoader(dynamic_data, batch_size=args.batch_size, shuffle=True)
+        dataloader = DataLoader(dynamic_data, batch_size=config['training']['batch_size'], shuffle=True)
 
     # Model and optimizer
-    if args.vorticity:
-        if args.nn_arch == 'FNO_grad':
-            model = iPIFNO_grad(ndims=dynamic_data.ndims,
-                          nclass=dynamic_data.nfeats,
-                          periodic=args.periodic,
-                          scale_mass=args.scale_mass,
-                          scale_momentum=args.scale_momentum,
-                          scale_energy=args.scale_energy,
-                          history=args.history,
-                          kernel_size=args.kernel_size,
-                          static=args.model_type == 'Static',
-                          uncertainty=args.model_type == 'Uncertainty')
+    if config['model']['vorticity']:
+        if config['model']['grad']:
+            model_class = iPIFNO_grad
         else:
-            model = iPIFNO(ndims=dynamic_data.ndims,
-                          nclass=dynamic_data.nfeats,
-                          periodic=args.periodic,
-                          scale_mass=args.scale_mass,
-                          scale_momentum=args.scale_momentum,
-                          scale_energy=args.scale_energy,
-                          history=args.history,
-                          kernel_size=args.kernel_size,
-                          static=args.model_type == 'Static',
-                          uncertainty=args.model_type == 'Uncertainty')
-    elif args.nn_arch == 'FNO_grad':
-        model = PIFNO_grad(ndims=dynamic_data.ndims,
-                      nclass=dynamic_data.nfeats,
-                      periodic=args.periodic,
-                      scale_mass=args.scale_mass,
-                      scale_momentum=args.scale_momentum,
-                      scale_energy=args.scale_energy,
-                      history=args.history,
-                      kernel_size=args.kernel_size,
-                      static=args.model_type == 'Static',
-                      uncertainty=args.model_type == 'Uncertainty')
+            model_class = iPIFNO
     else:
-        model = PIFNO(ndims=dynamic_data.ndims,
-                      nclass=dynamic_data.nfeats,
-                      periodic=args.periodic,
-                      scale_mass=args.scale_mass,
-                      scale_momentum=args.scale_momentum,
-                      scale_energy=args.scale_energy,
-                      history=args.history,
-                      kernel_size=args.kernel_size,
-                      static=args.model_type == 'Static',
-                      uncertainty=args.model_type == 'Uncertainty')
+        if config['model']['grad']:
+            model_class = PIFNO_grad
+        else:
+            model_class = PIFNO    
+
+    model = model_class(ndims=dynamic_data.ndims,
+                        nclass=dynamic_data.nfeats,
+                        periodic=config['model']['periodic'],
+                        scale_mass='mass' in config['model']['scaling'],
+                        scale_momentum='momentum' in config['model']['scaling'],
+                        scale_energy='energy' in config['model']['scaling'],
+                        history=config['model']['history'],
+                        kernel_size=config['model']['kernel_size'],
+                        static=config['model']['model_type'] == 'Static',
+                        uncertainty=config['model']['model_type'] == 'Uncertainty')
     
     optimizer = optim.Adam(model.parameters(),
-                        lr=args.lr, 
-                        weight_decay=args.weight_decay)
+                        lr=config['training']['learning_rate'], 
+                        weight_decay=config['training']['weight_decay'])
 
     # Train Model
-    def pde_loss(*fargs, **kwargs):
-        if args.vorticity:
-            loss = pde_iCFD2d_vorticity(*fargs, v=1e-4, **kwargs)
-        elif dynamic_data.ndims == 1:
-            loss = pde_CFD1d(*fargs, **kwargs)
-        elif dynamic_data.ndims == 2:
-            loss = pde_CFD2d(*fargs, **kwargs)
-        elif dynamic_data.ndims == 3:
-            loss = pde_CFD3d(*fargs, **kwargs)
-        return loss
+    pde_loss = get_pde_loss(dynamic_data.ndims, vorticity=config['model']['vorticity'])
+    lp_loss = get_lp_loss(dynamic_data.ndims)
     
-    def lp_loss(*fargs, **kwargs):
-        #loss = normalized_lp_loss(*fargs, **kwargs, p=2)
-        loss = F.mse_loss(*fargs, **kwargs)
-        output, target = fargs
-        dims = list(range(-dynamic_data.ndims - 1, -1, 1))
-        f_output, f_target = torch.fft.rfftn(output, dim=dims, norm='ortho'), torch.fft.rfftn(target, dim=dims, norm='ortho')
-        floss = F.mse_loss(f_output.abs(), f_target.abs())
-        return loss + floss
-
-    def nll_loss(target, mean, var):
-        mse = (mean - target) ** 2
-        loss = (torch.log(var) + (mse / var)) / 2
-        return loss.mean()
-
     if args.model_type == 'Uncertainty':
-        dynamic_model = ARUncertaintyModel(dataloader, model, optimizer, nll_loss, pde_loss, args.pde_weight, args.name, args.cuda)
+        model_type = ARUncertaintyModel
+        lp_loss = nll_loss
+    elif args.model_type == 'TimeDilated':
+        model_type = partial(TimeDilatedModel, dilation=config['model']['dilation'])
     elif args.model_type == 'Static':
-        dynamic_model = StaticModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
+        model_type = StaticModel
     elif args.model_type == 'AutoRegressive':
-        dynamic_model = AutoRegressiveModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
+        model_type = AutoRegressiveModel
     elif args.model_type == 'PushForward':
-        dynamic_model = PushForwardModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
-    else: # args.model_type == 'OneStep':
-        dynamic_model = OneStepModel(dataloader, model, optimizer, lp_loss, pde_loss, args.pde_weight, args.name, args.cuda)
-    
-    if args.load_pkl:
-        dynamic_model.load_model(args.load_pkl)
+        model_type = PushForwardModel
+    elif args.model_type == 'OneStep':
+        model_type = OneStepModel
 
-    if not args.no_train:
+    dynamic_model = model_type(args.name, dataloader, model, optimizer, lp_loss, pde_loss, config['model']['pde_weight'], CUDA)
+    
+    if args.load:
+        dynamic_model.load_model(args.load)
+
+    if not args.eval:
         if os.path.exists(f'out/reports/outfile_{args.name}.txt'):
             os.remove(f'out/reports/outfile_{args.name}.txt')
         if os.path.exists(f'out/reports/report_{args.name}.txt'):
             os.remove(f'out/reports/report_{args.name}.txt')
-        train_losses, test_losses = dynamic_model.train(args.epochs, args.patience)
+        train_losses, test_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])
 
     dynamic_model.model.eval()
     with torch.no_grad():
-        timesteps = dynamic_data.duration - args.history
+        timesteps = dynamic_data.duration - config['model']['history']
         dynamic_data.timesteps = timesteps
-
-        # dynamic_data.training()
-        # locations, features, _ = dynamic_data[0]
-        # predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
-        # np.save(f'out/predictions/full/{args.name}_full.npy', np.array(predictions))
 
         dynamic_data.testing()
         locations, features, _ = dynamic_data[0]
@@ -258,10 +184,10 @@ def main():
 
             pred = pred.contiguous().reshape(pred.shape)
             targets.contiguous().reshape(targets.shape)
-            if not args.vorticity:
+            if not config['model']['vorticity']:
                 err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, targets)
 
-            if args.vorticity:
+            if config['model']['vorticity']:
                 loss_info.append({
                     'pred_time': t1 - t0,
                     'test_loss': test_loss,
@@ -288,4 +214,9 @@ def main():
             json.dump(loss_info, fp)
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    config_file = args.config
+    with open(config_file, 'r') as stream:
+        config = yaml.load(stream, yaml.FullLoader)
+
+    main(config, args)

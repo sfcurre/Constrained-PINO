@@ -3,9 +3,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import deepxde as dde
+from functools import partial
 
 #============================================================
+
+def get_pde_loss(dims, vorticity=False):
+        if vorticity:
+            return pde_iCFD2d_vorticity
+        elif dims == 1:
+            loss = pde_CFD1d
+        elif dims == 2:
+            loss = pde_CFD2d
+        elif dims == 3:
+            loss = pde_CFD3d
+        return loss
 
 def pde_CFD1d(y1, y2, gamma=1.4):
     s = torch.concat([y1, y2], dim=-2)

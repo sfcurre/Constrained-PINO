@@ -14,14 +14,14 @@ from torch.autograd import Variable
 from ..losses.metrics import metric_func
 
 class DynamicModel:
-    def __init__(self, dataloader, model, optimizer, lp_loss, pde_loss, pde_weight, name, use_cuda):
+    def __init__(self, name, dataloader, model, optimizer, lp_loss, pde_loss, pde_weight, use_cuda):
+        self.name = name
         self.dataloader = dataloader
         self.model = model
         self.optimizer = optimizer
         self.lp_loss = lp_loss
         self.pde_loss = pde_loss
         self.pde_weight = pde_weight
-        self.name = name
         self.use_cuda = use_cuda
         self.scheduler = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer, step_size=10000, gamma=0.5)
 
