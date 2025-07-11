@@ -51,7 +51,7 @@ def select_dataset(config, cuda):
             kwargs['history'] = config['model']['history']
     
     elif config['data']['task'] == 'pdebench':
-        if args.model_type == 'Static':
+        if config['model']['model_type'] == 'Static':
             data_class = PDEBenchStaticGrid
             kwargs['reduced_resolution'] = config['data']['reduce_res']
             kwargs['reduce_batch'] = config['data']['reduced_batch']   
@@ -65,6 +65,7 @@ def select_dataset(config, cuda):
 
 def main(config, args):
 
+    NAME = args.config.split('/')[-1].split('.')[0]
     CUDA = False
     if config['training']['gpus'] > 0 and torch.cuda.is_available():
         print("Using CUDA.")
@@ -73,8 +74,8 @@ def main(config, args):
 
     dynamic_data = select_dataset(config, CUDA)
     
-    np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.train[:100])
-    np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * args.vorticity}.npy', dynamic_data.test[:100])
+    np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * config['model']['vorticity']}.npy', dynamic_data.train[:100])
+    np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * config['model']['vorticity']}.npy', dynamic_data.test[:100])
 
     print('Num batches:', len(dynamic_data))
 
@@ -114,30 +115,30 @@ def main(config, args):
     pde_loss = get_pde_loss(dynamic_data.ndims, vorticity=config['model']['vorticity'])
     lp_loss = get_lp_loss(dynamic_data.ndims)
     
-    if args.model_type == 'Uncertainty':
+    if config['model']['model_type'] == 'Uncertainty':
         model_type = ARUncertaintyModel
         lp_loss = nll_loss
-    elif args.model_type == 'TimeDilated':
+    elif config['model']['model_type'] == 'TimeDilated':
         model_type = partial(TimeDilatedModel, dilation=config['model']['dilation'])
-    elif args.model_type == 'Static':
+    elif config['model']['model_type'] == 'Static':
         model_type = StaticModel
-    elif args.model_type == 'AutoRegressive':
+    elif config['model']['model_type'] == 'AutoRegressive':
         model_type = AutoRegressiveModel
-    elif args.model_type == 'PushForward':
+    elif config['model']['model_type'] == 'PushForward':
         model_type = PushForwardModel
-    elif args.model_type == 'OneStep':
+    elif config['model']['model_type'] == 'OneStep':
         model_type = OneStepModel
 
-    dynamic_model = model_type(args.name, dataloader, model, optimizer, lp_loss, pde_loss, config['model']['pde_weight'], CUDA)
+    dynamic_model = model_type(NAME, dataloader, model, optimizer, lp_loss, pde_loss, config['model']['pde_weight'], CUDA)
     
     if args.load:
         dynamic_model.load_model(args.load)
 
     if not args.eval:
-        if os.path.exists(f'out/reports/outfile_{args.name}.txt'):
-            os.remove(f'out/reports/outfile_{args.name}.txt')
-        if os.path.exists(f'out/reports/report_{args.name}.txt'):
-            os.remove(f'out/reports/report_{args.name}.txt')
+        if os.path.exists(f'out/reports/outfile_{NAME}.txt'):
+            os.remove(f'out/reports/outfile_{NAME}.txt')
+        if os.path.exists(f'out/reports/report_{NAME}.txt'):
+            os.remove(f'out/reports/report_{NAME}.txt')
         train_losses, test_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])
 
     dynamic_model.model.eval()
@@ -149,7 +150,7 @@ def main(config, args):
         locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
         predictions = np.moveaxis(predictions, -2, 0)
-        np.save(f'out/predictions/test/{args.name}_test.npy', np.array(predictions))
+        np.save(f'out/predictions/test/{NAME}_test.npy', np.array(predictions))
 
         # get train and test metrics
 
@@ -174,7 +175,7 @@ def main(config, args):
             for t, (output, target) in enumerate(zip(predictions, targets)):
                 output, target = output.cpu(), target.cpu() 
                 rho_loss.append(F.mse_loss(output[..., 0], target[..., 0]).item())
-                if not args.vorticity:
+                if not config['model']['vorticity']:
                     vel_loss.append(F.mse_loss(output[..., 1:-1], target[..., 1:-1]).item())
                     prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
 
@@ -210,7 +211,7 @@ def main(config, args):
                     'err_F': err_F.cpu().mean().item()
                 })
 
-        with open(f'out/predictions/losses/{args.name}_test_losses.json', 'w') as fp:
+        with open(f'out/predictions/losses/{NAME}_test_losses.json', 'w') as fp:
             json.dump(loss_info, fp)
 
 if __name__ == '__main__':
