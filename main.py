@@ -54,12 +54,12 @@ def select_dataset(config, cuda):
         if config['model']['model_type'] == 'Static':
             data_class = PDEBenchStaticGrid
             kwargs['reduced_resolution'] = config['data']['reduce_res']
-            kwargs['reduce_batch'] = config['data']['reduced_batch']   
+            kwargs['reduced_batch'] = config['data']['reduce_batch']   
         else:
             data_class = PDEBenchGrid
             kwargs['history'] = config['model']['history']         
             kwargs['reduced_resolution'] = config['data']['reduce_res']
-            kwargs['reduce_batch'] = config['data']['reduced_batch']
+            kwargs['reduced_batch'] = config['data']['reduce_batch']
     dynamic_data = data_class(config['data']['data_path'], **kwargs)
     return dynamic_data
 
@@ -74,8 +74,8 @@ def main(config, args):
 
     dynamic_data = select_dataset(config, CUDA)
     
-    np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * config['model']['vorticity']}.npy', dynamic_data.train[:100])
-    np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * config['model']['vorticity']}.npy', dynamic_data.test[:100])
+    np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * config["model"]["vorticity"]}.npy', dynamic_data.train[:100])
+    np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * config["model"]["vorticity"]}.npy', dynamic_data.test[:100])
 
     print('Num batches:', len(dynamic_data))
 

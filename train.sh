@@ -13,9 +13,9 @@
 set -x
 set -e
 
-module load cuda
-module load miniconda3/24.1.2-py310
+module load miniconda3/24.1.2-py310 cuda/12.3.0
 conda activate cpino
+conda list
 
 cd ~/Physics-Informed-GNNs
 
