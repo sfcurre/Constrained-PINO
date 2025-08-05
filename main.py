@@ -4,15 +4,13 @@ import time
 import random
 import argparse, yaml
 import numpy as np
-import matplotlib.pyplot as plt
 from functools import partial
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.autograd import Variable
 from torch.utils.data import DataLoader
+from torch.profiler import profile, ProfilerActivity, record_function
 
 from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.data.static_grid import PDEBenchStaticGrid, PINOStaticGrid
@@ -78,11 +76,7 @@ def main(config, args):
     np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * config["model"]["vorticity"]}.npy', dynamic_data.test[:100])
 
     print('Num batches:', len(dynamic_data))
-
-    if CUDA:
-        dataloader = DataLoader(dynamic_data, batch_size=config['training']['batch_size'], shuffle=True, generator=torch.Generator(device='cuda'))
-    else:
-        dataloader = DataLoader(dynamic_data, batch_size=config['training']['batch_size'], shuffle=True)
+    dataloader = DataLoader(dynamic_data, batch_size=config['training']['batch_size'], shuffle=True)
 
     # Model and optimizer
     if config['model']['vorticity']:
@@ -139,7 +133,14 @@ def main(config, args):
             os.remove(f'out/reports/outfile_{NAME}.txt')
         if os.path.exists(f'out/reports/report_{NAME}.txt'):
             os.remove(f'out/reports/report_{NAME}.txt')
-        train_losses, test_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])
+
+        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
+            try:
+                train_losses, test_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])
+            except torch.cuda.OutOfMemoryError as e:
+                print(prof.key_averages().table(sort_by="self_cpu_memory_usage"))
+                print(prof.key_averages().table(sort_by="self_gpu_memory_usage"))
+                raise
 
     dynamic_model.model.eval()
     with torch.no_grad():
@@ -150,7 +151,7 @@ def main(config, args):
         locations, features, _ = dynamic_data[0]
         predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
         predictions = np.moveaxis(predictions, -2, 0)
-        np.save(f'out/predictions/test/{NAME}_test.npy', np.array(predictions))
+        np.save(f'out/predictions/{NAME}_test.npy', np.array(predictions))
 
         # get train and test metrics
 
@@ -211,7 +212,7 @@ def main(config, args):
                     'err_F': err_F.cpu().mean().item()
                 })
 
-        with open(f'out/predictions/losses/{NAME}_test_losses.json', 'w') as fp:
+        with open(f'out/losses/{NAME}_test_losses.json', 'w') as fp:
             json.dump(loss_info, fp)
 
 if __name__ == '__main__':

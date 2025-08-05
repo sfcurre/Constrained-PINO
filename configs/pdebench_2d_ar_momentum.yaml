@@ -1,0 +1,35 @@
+data:
+  data_path: "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"
+  task: 'pdebench'
+  reduce_res: 2
+  reduce_batch: 1
+
+model:
+  # architecture parameters
+  hdim: 64
+  layers: 4
+  kernel_size: 1
+  dropout: 0.0
+  modes: [24, 24]
+  
+  # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
+  model_type: 'AutoRegressive'
+  # Combination of: mass, momentum, energy, vorticity
+  scaling: ['mass', 'momentum']
+  periodic: true
+  vorticity: false
+  grad: false
+
+  pde_weight: 0
+  timesteps: 2
+  history: 3
+
+training:
+  batch_size: 1
+  learning_rate: 0.0001
+  weight_decay: 0.0
+  epochs: 1
+  patience: 1
+  gpus: 1  
+
+  

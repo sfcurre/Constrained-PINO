@@ -27,15 +27,14 @@ class DynamicGrid(Dataset):
     def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
         b = index % num_batches
         t = index // num_batches
-        features = flow_features[b:b+1][..., t:t+hist, :]
-        targets = flow_features[b:b+1][..., t+hist:t+hist+timesteps, :]        
+        features = flow_features[b][..., t:t+hist, :]
+        targets = flow_features[b][..., t+hist:t+hist+timesteps, :]
 
         #shape into feature matrics
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
         locations = torch.from_numpy(self.grid.astype(np.float32)).requires_grad_()
 
-        locations = locations.unsqueeze(0)
         if self.use_cuda:
             locations = locations.to(device='cuda')
             features = features.to(device='cuda')

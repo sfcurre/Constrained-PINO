@@ -29,7 +29,7 @@ class PushForwardModel(DynamicModel):
             
             output_2 = self.model(locations, output_1)
             
-            loss_train = self.get_loss(locations, output_1, targets[1], output_2)
+            loss_train = self.get_loss(locations, output_1, targets[1:2], output_2)
             
             loss_train.backward()
             self.optimizer.step()
@@ -42,5 +42,8 @@ class PushForwardModel(DynamicModel):
 
     def get_loss(self, locations, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)
-        pde_loss = self.pde_loss(locations, features, outputs)
+        if self.pde_weight > 0:        
+            pde_loss = self.pde_loss(features, outputs)
+        else:
+            pde_loss = 0
         return lp_loss + self.pde_weight * pde_loss

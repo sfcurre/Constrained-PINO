@@ -13,7 +13,7 @@ def normalized_lp_loss(x, y, p=2):
 
     return torch.mean(diff_norms/y_norms)
 
-def lp_loss(dims, *fargs, **kwargs):
+def lp_loss(*fargs, dims, **kwargs):
         #loss = normalized_lp_loss(*fargs, **kwargs, p=2)
         loss = F.mse_loss(*fargs, **kwargs)
         output, target = fargs
