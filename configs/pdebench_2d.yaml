@@ -8,8 +8,6 @@ model:
   # architecture parameters
   hdim: 64
   layers: 4
-  heads: 4
-  kernel_size: 1
   dropout: 0.1
   modes: [24, 24]
   

@@ -11,6 +11,9 @@ class DynamicGrid(Dataset):
         # batch, x, y, z, t, ch
         self.solution = solution
         self.duration = self.solution.shape[-2]
+        self.spacing = [np.diff(self.grid[...,i], axis=i).mean() for i in range(len(self.grid.shape) - 1)]
+        self.spacing.append(1 / (self.duration-1))
+        
         self.timesteps = min(timesteps, self.duration - history)
         self.history = history
         self.use_cuda = use_cuda
@@ -33,14 +36,12 @@ class DynamicGrid(Dataset):
         #shape into feature matrics
         features = torch.from_numpy(features.astype(np.float32)).requires_grad_()
         targets = torch.from_numpy(targets.astype(np.float32)).requires_grad_()
-        locations = torch.from_numpy(self.grid.astype(np.float32)).requires_grad_()
 
         if self.use_cuda:
-            locations = locations.to(device='cuda')
             features = features.to(device='cuda')
             targets = targets.to(device='cuda')
 
-        return locations, features, targets
+        return features, targets
 
     def training(self):
         self.is_training = True

@@ -60,13 +60,11 @@ class DynamicModel:
         print('Loading {}th epoch'.format(best_epoch))
         self.load_model(f'out/models/{self.name}_best.pkl')
 
-        # Testing
-        test_losses = self.compute_test()
-        return loss_values, test_losses
+        return loss_values
 
-    def report(self, locations, features, targets, loss_train, epoch):
+    def report(self, features, targets, loss_train, epoch):
         self.model.eval()
-        outputs = self.predict(locations, features, timesteps=targets.shape[-2])
+        outputs = self.predict(features, timesteps=targets.shape[-2])
 
         # pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
         # metric_targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
@@ -100,14 +98,14 @@ class DynamicModel:
     def train_step(self, epoch):
         raise NotImplementedError()
 
-    def get_loss(self, locations, features, targets, outputs):
+    def get_loss(self, features, targets, outputs):
         raise NotImplementedError()
 
-    def predict(self, locations, features, timesteps=1, numpy=False):
+    def predict(self, features, timesteps=1, numpy=False):
         # add with torch.no_grad
         outputs = []
         for i in range(timesteps):
-            output = self.model(locations, features)
+            output = self.model(features)
             features = self.concat_timesteps(features, output)
             output = output.detach().cpu()
             if numpy:
@@ -126,7 +124,10 @@ class DynamicModel:
         return self.pde_loss(features.cpu(), outputs.cpu())
 
     def load_model(self, pkl_file):
-        self.model.load_state_dict(torch.load(pkl_file))
+        state_dict = torch.load(pkl_file, weights_only=False)
+        if '_metadata' in state_dict:
+            state_dict.pop('_metadata')
+        self.model.load_state_dict(state_dict)
 
     def concat_timesteps(self, features, outputs):
         t0 = features[..., outputs.shape[-2]:, :]

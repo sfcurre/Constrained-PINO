@@ -1,49 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .layers.fourier import FNO1d, FNO2d, FNO3d
-from .layers.wave_transform import WaveTransform
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, ndims, nclass, periodic=True, scale_mass=True, scale_momentum=False, scale_energy=False, history=10, kernel_size=1, static=False, uncertainty=False):
+    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_energy=False, static=False, uncertainty=False):
         super(PIFNO, self).__init__()
-        self.ndims = ndims
-        self.nclass = nclass
-        self.periodic = periodic
+        self.fno = fno
         self.scale_mass = scale_mass
         self.scale_momentum = scale_momentum
         self.scale_energy = scale_energy
-        self.history = history
-        self.kernel_size = kernel_size
         self.static = static
         self.uncertainty = uncertainty
-
-        if self.periodic:
-            self.wave_transform = WaveTransform()
-            self.ndims *= 2
-
-        if self.uncertainty:
-            self.nclass *= 2
-            if self.scale_mass or self.scale_momentum or self.scale_energy:
-                raise NotImplementedError("Scaling procedures are not implemented for uncertainty models.")
-
-        self.ndims += 1 # time dim
-        if static:
-            if ndims == 1:
-                self.fno = FNO2d(self.nclass * self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
-            if ndims == 2:
-                self.fno = FNO3d(self.nclass + self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
-            if ndims == 3:
-                raise NotImplementedError("Static models are not impelmented for 3D flows.")
-        else:
-            if ndims == 1:
-                self.fno = FNO1d(self.nclass * self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
-            if ndims == 2:
-                self.fno = FNO2d(self.nclass * self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
-            if ndims == 3:
-                self.fno = FNO3d(self.nclass * self.history, self.nclass, self.ndims, kernel_size=self.kernel_size)
-        
+            
     def scale_totals(self, features, x):
         spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
         initial = features[..., -x.shape[-2]:, :] #get last timestep of input
@@ -82,24 +51,19 @@ class PIFNO(nn.Module):
 
         return x
 
-    def forward(self, locations, features):
-        if self.periodic:
-            locations = self.wave_transform(locations, concat_to=None)
-        
-        times = torch.ones_like(locations[...,0], device=locations.device)
-        times = (times * torch.linspace(0, 1, times.shape[-1], device=locations.device)).unsqueeze(-1)
-        locations = torch.concat([locations, times], dim=-1)
-
+    def forward(self, features):
         fno_features = features
         if not self.static:
-            features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        x = self.fno(features, locations)
+            fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
+        fno_features = fno_features.moveaxis(-1, 1)
+        x = self.fno(fno_features)
+        x = x.moveaxis(1, -1)
 
         if self.scale_mass:
             x = self.scale_totals(features, x)
         
         if not self.static:
-            x = x.unsqueeze(-2)        
+            x = x.unsqueeze(-2) 
 
         return x
 
@@ -129,23 +93,18 @@ class PIFNO_grad(PIFNO):
 
         return dx
     
-    def forward(self, locations, features):
-        if self.periodic:
-            locations = self.wave_transform(locations, concat_to=None)
-
-        times = torch.ones_like(locations[...,0], device=locations.device)
-        times = (times * torch.linspace(0, 1, times.shape[-1], device=locations.device)).unsqueeze(-1)
-        locations = torch.concat([locations, times], dim=-1)
-
+    def forward(self, features):
         fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        dx = self.fno(fno_features, locations)
+        fno_features = fno_features.moveaxis(-1, 1)
+        dx = self.fno(fno_features)
+        dx = dx.moveaxis(1, -1)
 
         if self.scale_mass:
             dx = self.scale_grads(features, dx)
 
-        x = fno_features[..., -self.nclass:] + dx
+        x = fno_features.moveaxis(1, -1)[..., -self.nclass:] + dx
         
         if not self.static:
             x = x.unsqueeze(-2)        
@@ -166,18 +125,13 @@ class iPIFNO(PIFNO):
 
         return scaled_vorticity
 
-    def forward(self, locations, features):
-        if self.periodic:
-            locations = self.wave_transform(locations, concat_to=None)
-
-        times = torch.ones_like(locations[...,0], device=locations.device)
-        times = (times * torch.linspace(0, 1, times.shape[-1], device=locations.device)).unsqueeze(-1)
-        locations = torch.concat([locations, times], dim=-1)
-        
+    def forward(self, features):
         fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        x = self.fno(fno_features, locations)
+        fno_features = fno_features.moveaxis(-1, 1)
+        x = self.fno(fno_features)
+        x = x.transpose(1, -1)
 
         if self.scale_mass:
             x = self.scale_totals(features, x)
@@ -196,23 +150,18 @@ class iPIFNO_grad(PIFNO):
         scaled_vorticity = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
         return scaled_vorticity
 
-    def forward(self, locations, features):
-        if self.periodic:
-            locations = self.wave_transform(locations, concat_to=None)
-
-        times = torch.ones_like(locations[...,0], device=locations.device)
-        times = (times * torch.linspace(0, 1, times.shape[-1], device=locations.device)).unsqueeze(-1)
-        locations = torch.concat([locations, times], dim=-1)
-
+    def forward(self, features):
         fno_features = features
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        dx = self.fno(fno_features, locations)
+        fno_features = fno_features.moveaxis(-1, 1)
+        dx = self.fno(fno_features)
+        dx = dx.moveaxis(1, -1)
 
         if self.scale_mass:
             dx = self.scale_grads(features, dx)
 
-        x = fno_features[..., -self.nclass:] + dx
+        x = fno_features.moveaxis(1, -1)[..., -self.nclass:] + dx
         
         if not self.static:
             x = x.unsqueeze(-2)        

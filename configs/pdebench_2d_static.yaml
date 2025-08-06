@@ -22,7 +22,7 @@ model:
 
   pde_weight: 0
   timesteps: 3
-  history: 3
+  history: 1
 
 training:
   batch_size: 1

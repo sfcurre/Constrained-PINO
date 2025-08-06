@@ -21,26 +21,26 @@ class PushForwardModel(DynamicModel):
         self.t_start = time.time()
         self.model.train()
         self.optimizer.zero_grad()
-        for i, (locations, features, targets) in enumerate(self.dataloader):
+        for i, (features, targets) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
 
-            output_1 = self.model(locations, features)
+            output_1 = self.model(features)
             output_1 = self.concat_timesteps(features, output_1.detach())
             
-            output_2 = self.model(locations, output_1)
+            output_2 = self.model(output_1)
             
-            loss_train = self.get_loss(locations, output_1, targets[1:2], output_2)
+            loss_train = self.get_loss(output_1, targets[..., 1:2, :], output_2)
             
             loss_train.backward()
             self.optimizer.step()
 
             if (i + 1) % report_interval == 0:
-                self.report(locations, features, targets, loss_train, epoch)
+                self.report(features, targets, loss_train, epoch)
         
-        return self.report(locations, features, targets, loss_train, epoch)
+        return self.report(features, targets, loss_train, epoch)
 
 
-    def get_loss(self, locations, features, targets, outputs):
+    def get_loss(self, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)
         if self.pde_weight > 0:        
             pde_loss = self.pde_loss(features, outputs)

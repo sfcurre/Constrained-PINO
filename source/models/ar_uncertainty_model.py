@@ -22,7 +22,7 @@ class ARUncertaintyModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         losses = []
-        for i, (locations, features, targets) in enumerate(self.dataloader):
+        for i, (features, targets) in enumerate(self.dataloader):
             batch_loss = 0
             initial = features
             
@@ -35,8 +35,8 @@ class ARUncertaintyModel(DynamicModel):
             for i in range(targets.shape[-2]):
                 self.optimizer.zero_grad()
                 
-                output = self.model(locations, initial)
-                loss_train = self.get_loss(locations, initial, targets[...,i:i+1,:], output)
+                output = self.model(initial)
+                loss_train = self.get_loss(initial, targets[...,i:i+1,:], output)
                 
                 initial = self.concat_timesteps(initial, output)
                 batch_loss += loss_train
@@ -48,7 +48,7 @@ class ARUncertaintyModel(DynamicModel):
             losses.append(batch_loss.cpu().item())                
 
             # if (i + 1) % report_interval == 0:
-            self.report(locations, features, targets, batch_loss, epoch)
+            self.report(features, targets, batch_loss, epoch)
         
         return np.mean(losses)
     
@@ -57,7 +57,7 @@ class ARUncertaintyModel(DynamicModel):
         mean, std = outputs[..., :num_vars], outputs[..., num_vars:]
         return mean, std
 
-    def get_loss(self, locations, features, targets, outputs, mask=None):
+    def get_loss(self, features, targets, outputs, mask=None):
         # print(features.shape, outputs.shape, targets.shape)
         mean, std = self.mean_std_split(outputs)
         features_mean, _ = self.mean_std_split(features)
@@ -68,7 +68,7 @@ class ARUncertaintyModel(DynamicModel):
             pde_loss = 0
         return lp_loss + self.pde_weight * pde_loss
     
-    def predict(self, locations, features, timesteps=1, numpy=False):
+    def predict(self, features, timesteps=1, numpy=False):
         # add with torch.no_grad
         outputs = []
 
@@ -78,7 +78,7 @@ class ARUncertaintyModel(DynamicModel):
         features = torch.concat([features, torch.zeros_like(features)], dim=-1)
 
         for i in range(timesteps):
-            output = self.model(locations, features)
+            output = self.model(features)
             features = self.concat_timesteps(features, output)
             output = output.detach().cpu()
             if numpy:

@@ -22,11 +22,11 @@ class OneStepModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         losses = []
-        for i, (locations, features, targets) in enumerate(self.dataloader):
+        for i, (features, targets) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
             
-            output = self.model(locations, features)
-            loss_train = self.get_loss(locations, features, targets, output)
+            output = self.model(features)
+            loss_train = self.get_loss(features, targets, output)
             losses.append(loss_train.cpu().item())
             loss_train.backward()
             
@@ -34,13 +34,12 @@ class OneStepModel(DynamicModel):
             self.optimizer.zero_grad()
 
             #if (i + 1) % report_interval == 0:
-            self.report(locations, features, targets, loss_train, epoch)
+            self.report(features, targets, loss_train, epoch)
         
         #self.report(adj, locations, features, targets, mask, loss_train, epoch)    
         return np.mean(losses)
 
-
-    def get_loss(self, locations, features, targets, outputs):
+    def get_loss(self, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)
         if self.pde_weight > 0:        
             pde_loss = self.pde_loss(features, outputs)

@@ -12,8 +12,12 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.profiler import profile, ProfilerActivity, record_function
 
+from neuralop.models import FNO
+from neuralop.layers.embeddings import GridEmbeddingND 
+
 from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.data.static_grid import PDEBenchStaticGrid, PINOStaticGrid
+from source.data.debug_grid import DebugGrid, DebugStaticGrid
 from source.nn_models import *
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
@@ -39,25 +43,30 @@ def parse_args():
 
 def select_dataset(config, cuda):
     kwargs = dict(timesteps=config['model']['timesteps'],
+                  history=config['model']['history'],
                   use_cuda=cuda)
-    if config['data']['task'] == 'pino':
+    if config['data']['task'] == 'debug':
+        if config['model']['model_type'] == 'Static':
+            data_class = DebugStaticGrid
+        else:
+            data_class = DebugGrid
+        
+    elif config['data']['task'] == 'pino':
         # Load PINO data
         if config['model']['model_type'] == 'Static':
             data_class = PINOStaticGrid
         else:
             data_class = PINOGrid
-            kwargs['history'] = config['model']['history']
-    
+        
     elif config['data']['task'] == 'pdebench':
+        # Load PDEBench data
+        kwargs['reduced_resolution'] = config['data']['reduce_res']
+        kwargs['reduced_batch'] = config['data']['reduce_batch']
         if config['model']['model_type'] == 'Static':
             data_class = PDEBenchStaticGrid
-            kwargs['reduced_resolution'] = config['data']['reduce_res']
-            kwargs['reduced_batch'] = config['data']['reduce_batch']   
         else:
             data_class = PDEBenchGrid
-            kwargs['history'] = config['model']['history']         
-            kwargs['reduced_resolution'] = config['data']['reduce_res']
-            kwargs['reduced_batch'] = config['data']['reduce_batch']
+        
     dynamic_data = data_class(config['data']['data_path'], **kwargs)
     return dynamic_data
 
@@ -88,16 +97,18 @@ def main(config, args):
         if config['model']['grad']:
             model_class = PIFNO_grad
         else:
-            model_class = PIFNO    
+            model_class = PIFNO
 
-    model = model_class(ndims=dynamic_data.ndims,
-                        nclass=dynamic_data.nfeats,
-                        periodic=config['model']['periodic'],
+    fno = FNO(n_modes=config['model']['modes'],
+              in_channels=dynamic_data.nfeats * config['model']['history'],
+              out_channels=dynamic_data.nfeats,
+              hidden_channels=config['model']['hdim'],
+              n_layers=config['model']['layers'])
+    
+    model = model_class(fno=fno,
                         scale_mass='mass' in config['model']['scaling'],
                         scale_momentum='momentum' in config['model']['scaling'],
                         scale_energy='energy' in config['model']['scaling'],
-                        history=config['model']['history'],
-                        kernel_size=config['model']['kernel_size'],
                         static=config['model']['model_type'] == 'Static',
                         uncertainty=config['model']['model_type'] == 'Uncertainty')
     
@@ -106,7 +117,7 @@ def main(config, args):
                         weight_decay=config['training']['weight_decay'])
 
     # Train Model
-    pde_loss = get_pde_loss(dynamic_data.ndims, vorticity=config['model']['vorticity'])
+    pde_loss = get_pde_loss(dynamic_data.ndims, dynamic_data.spacing, vorticity=config['model']['vorticity'])
     lp_loss = get_lp_loss(dynamic_data.ndims)
     
     if config['model']['model_type'] == 'Uncertainty':
@@ -134,13 +145,8 @@ def main(config, args):
         if os.path.exists(f'out/reports/report_{NAME}.txt'):
             os.remove(f'out/reports/report_{NAME}.txt')
 
-        with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], record_shapes=True, profile_memory=True) as prof:
-            try:
-                train_losses, test_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])
-            except torch.cuda.OutOfMemoryError as e:
-                print(prof.key_averages().table(sort_by="self_cpu_memory_usage"))
-                print(prof.key_averages().table(sort_by="self_gpu_memory_usage"))
-                raise
+        train_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])            
+
 
     dynamic_model.model.eval()
     with torch.no_grad():
@@ -148,21 +154,20 @@ def main(config, args):
         dynamic_data.timesteps = timesteps
 
         dynamic_data.testing()
-        locations, features, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(locations, features, timesteps=timesteps, numpy=True)
+        features, _ = dynamic_data[0]
+        predictions = dynamic_model.predict(features[None,...], timesteps=timesteps, numpy=True)[0]
         predictions = np.moveaxis(predictions, -2, 0)
         np.save(f'out/predictions/{NAME}_test.npy', np.array(predictions))
 
         # get train and test metrics
 
         dynamic_data.testing()
-        print(len(dynamic_data))
         loss_info = []
         for i in range(len(dynamic_data)):
-            locations, features, targets = dynamic_data[i]
+            features, targets = dynamic_data[i]
 
             t0 = time.time()
-            predictions = dynamic_model.predict(locations, features, timesteps=timesteps)
+            predictions = dynamic_model.predict(features[None,...], timesteps=timesteps)[0]
             
             test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
             test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions).cpu().item()

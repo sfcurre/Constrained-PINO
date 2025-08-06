@@ -12,13 +12,10 @@ class StaticGrid(DynamicGrid):
         super(StaticGrid, self).__init__(grid, solution, timesteps=timesteps, history=history, use_cuda=use_cuda)
     
     def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
-        locations, features, targets = super().sample_grid(flow_features, index, num_batches, timesteps=timesteps, hist=hist)
-        features = features.reshape(features.shape[:-2] + (-1,))
-
+        features, targets = super().sample_grid(flow_features, index, num_batches, timesteps=timesteps, hist=hist)
+        features = features.reshape(features.shape[:-2] + (1, -1))
         features = features.tile((timesteps, 1))
-        locations = locations.unsqueeze(-2)
-        locations = locations.tile((timesteps, 1))
-        return locations, features, targets    
+        return features, targets
 
 class PDEBenchStaticGrid(StaticGrid, PDEBenchGrid):
     def __init__(self, *args, timesteps=1, history=1, use_cuda=False, **kwargs):
