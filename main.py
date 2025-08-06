@@ -81,9 +81,6 @@ def main(config, args):
 
     dynamic_data = select_dataset(config, CUDA)
     
-    np.save(f'GT_train_{dynamic_data.ndims}D{"_vorticity" * config["model"]["vorticity"]}.npy', dynamic_data.train[:100])
-    np.save(f'GT_test_{dynamic_data.ndims}D{"_vorticity" * config["model"]["vorticity"]}.npy', dynamic_data.test[:100])
-
     print('Num batches:', len(dynamic_data))
     dataloader = DataLoader(dynamic_data, batch_size=config['training']['batch_size'], shuffle=True)
 
@@ -154,10 +151,12 @@ def main(config, args):
         dynamic_data.timesteps = timesteps
 
         dynamic_data.testing()
-        features, _ = dynamic_data[0]
-        predictions = dynamic_model.predict(features[None,...], timesteps=timesteps, numpy=True)[0]
+        features, targets = dynamic_data[0]
+        predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
         predictions = np.moveaxis(predictions, -2, 0)
-        np.save(f'out/predictions/{NAME}_test.npy', np.array(predictions))
+        targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
+        np.save(f'out/predictions/{NAME}_test_preds.npy', predictions)
+        np.save(f'out/predictions/{NAME}_test_targets.npy', targets)
 
         # get train and test metrics
 
@@ -167,7 +166,7 @@ def main(config, args):
             features, targets = dynamic_data[i]
 
             t0 = time.time()
-            predictions = dynamic_model.predict(features[None,...], timesteps=timesteps)[0]
+            predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps)[0]
             
             test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
             test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions).cpu().item()
