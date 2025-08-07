@@ -229,19 +229,6 @@ class PDEBenchGrid(DynamicGrid):
                     X, Y = np.meshgrid(x, y)
                     self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
 
-        # while len(self.grid.shape) < 4:
-        #     self.grid = np.expand_dims(self.grid, axis=-2)
-        # while len(self.data.shape) < 6:
-        #     self.data = np.expand_dims(self.data, axis=-3)
-
-        # self.data = self.data.transpose((-2, 1, 2, 3, 0, -1)) #t, x, y, z, batch, ch
-        
-        self.data[..., 0:1] = self.data[..., 0:1] / self.data[..., 0:1].std()
-        self.data[..., 2:] = self.data[..., 2:] / self.data[..., 2:].std()
-        self.data[..., 1:2] = self.data[..., 1:2] / self.data[..., 1:2].std()
-
-        self.data = np.concatenate([self.data[..., 0:1], self.data[..., 2:], self.data[..., 1:2]], axis=-1)       
-
         return self.grid, self.data
     
 class PINOGrid(DynamicGrid):

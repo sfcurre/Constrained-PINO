@@ -13,7 +13,7 @@ class DebugGrid(DynamicGrid):
         samples, dims, duration = shape[0], shape[1:-1], shape[-1]
         grid = np.meshgrid(*[np.linspace(0, 1, d) for d in dims], indexing='ij')
         grid = np.stack(grid, axis=-1)
-        solution = np.random.rand(samples, *grid.shape[:-1])
+        solution = np.sin(grid.sum(axis=-1)*(2*np.pi + np.random.rand(samples, *grid.shape[:-1]))) + 1
         solution = np.stack([np.roll(solution, shift=np.arange(1, len(dims)) + i,
                                      axis=tuple(range(1, len(dims)))) for i in range(duration)], axis=-1)
         velocities = np.arange(1, len(dims)) * np.array([1/d for d in dims])

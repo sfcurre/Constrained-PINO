@@ -14,28 +14,28 @@ class PIFNO(nn.Module):
         self.uncertainty = uncertainty
             
     def scale_totals(self, features, x):
-        spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
-        initial = features[..., -x.shape[-2]:, :] #get last timestep of input
+        spatial_dims = list(range(1, len(features.shape) - 1)) # all but the batch and last dim
+        initial = features[..., -x.shape[-2]:] # get last timestep of input
  
-        total_density = torch.sum(initial[..., :1], dim=spatial_dims)
-        total_pressure = torch.sum(initial[..., -1:], dim=spatial_dims)
+        total_density = torch.sum(initial[..., :1], dim=spatial_dims, keepdim=True)
+        total_pressure = torch.sum(initial[..., -1:], dim=spatial_dims, keepdim=True)
 
-        out_density = torch.sum(x[..., :1], dim=spatial_dims)
+        out_density = torch.sum(x[..., :1], dim=spatial_dims, keepdim=True)
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., -1:], dim=spatial_dims)
+        out_pressure = torch.sum(x[..., -1:], dim=spatial_dims, keepdim=True)
         scaled_pressure = x[..., -1:] * total_pressure / out_pressure
         
         if self.scale_momentum:
-            total_momentums = torch.sum(initial[..., :1] * initial[..., 1:-1], dim=spatial_dims)
-            out_momentums = torch.sum(scaled_density * x[..., 1:-1], dim=spatial_dims)
+            total_momentums = torch.sum(initial[..., :1] * initial[..., 1:-1], dim=spatial_dims, keepdim=True)
+            out_momentums = torch.sum(scaled_density * x[..., 1:-1], dim=spatial_dims, keepdim=True)
             momentum_ratio = total_momentums / out_momentums
             scaled_velocity = x[..., 1:-1] * momentum_ratio
             x = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
 
         elif self.scale_energy:
-            total_kinetic_energy = torch.sum(initial[..., :1] * initial[..., 1:-1] ** 2, dim=spatial_dims)
-            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2, dim=spatial_dims)
+            total_kinetic_energy = torch.sum(initial[..., :1] * initial[..., 1:-1] ** 2, dim=spatial_dims, keepdim=True)
+            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2, dim=spatial_dims, keepdim=True)
             ke_ratio = total_kinetic_energy / out_kinetic_energy
             # v2 = (vx^2 + vy^2 + vz^2) needs to be scaled by ke
             # C*v2 = Cvx^2 + Cvy^2 + Cvz^2
@@ -60,10 +60,11 @@ class PIFNO(nn.Module):
         x = x.moveaxis(1, -1)
 
         if self.scale_mass:
+            features = features[..., -1, :]
             x = self.scale_totals(features, x)
         
         if not self.static:
-            x = x.unsqueeze(-2) 
+            x = x.unsqueeze(-2)
 
         return x
 
@@ -72,16 +73,16 @@ class PIFNO_grad(PIFNO):
         super(PIFNO_grad, self).__init__(*args, **kwargs)
         
     def scale_grads(self, features, dx):
-        spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
+        spatial_dims = list(range(1, len(features.shape) - 1)) # all but the batch and last dim
         initial = features[..., -dx.shape[-2]:, :] #get last timestep of input
         
-        scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
-        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims)
+        scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims, keepdim=True)
+        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims, keepdim=True)
         
         if self.scale_momentum:
             # sum of -grad(rho)*u
-            numerator = torch.sum(-scaled_density * initial[..., 1:-1], dim=spatial_dims)
-            denominator = torch.sum((initial[..., :1] + scaled_density) * dx[..., 1:-1], dim=spatial_dims)
+            numerator = torch.sum(-scaled_density * initial[..., 1:-1], dim=spatial_dims, keepdim=True)
+            denominator = torch.sum((initial[..., :1] + scaled_density) * dx[..., 1:-1], dim=spatial_dims, keepdim=True)
             scaled_velocity = dx[..., 1:-1] * (numerator / denominator)
             dx = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
 
@@ -102,6 +103,7 @@ class PIFNO_grad(PIFNO):
         dx = dx.moveaxis(1, -1)
 
         if self.scale_mass:
+            features = features[..., -1, :]
             dx = self.scale_grads(features, dx)
 
         x = fno_features.moveaxis(1, -1)[..., -self.nclass:] + dx
@@ -117,10 +119,10 @@ class iPIFNO(PIFNO):
         super(iPIFNO, self).__init__(*args, **kwargs)
     
     def scale_totals(self, features, x):
-        spatial_dims = list(range(0, len(features.shape) - 2)) #all but the last two dims
-        total_vorticity = torch.sum(features[..., -x.shape[-2]:, :1], dim=spatial_dims)
+        spatial_dims = list(range(1, len(features.shape) - 1)) # all but the batch and last dim
+        total_vorticity = torch.sum(features[..., :1], dim=spatial_dims, keepdim=True)
         
-        out_vorticity = torch.sum(x[..., :1], dim=spatial_dims)
+        out_vorticity = torch.sum(x[..., :1], dim=spatial_dims, keepdim=True)
         scaled_vorticity = x[..., :1] * total_vorticity / out_vorticity
 
         return scaled_vorticity
@@ -134,6 +136,7 @@ class iPIFNO(PIFNO):
         x = x.transpose(1, -1)
 
         if self.scale_mass:
+            features = features[..., -1, :]
             x = self.scale_totals(features, x)
 
         if not self.static:
@@ -146,8 +149,8 @@ class iPIFNO_grad(PIFNO):
         super(iPIFNO_grad, self).__init__(*args, **kwargs)
     
     def scale_grads(self, features, dx):
-        spatial_dims = list(range(0, len(features.shape) - 1)) #all but the last dim
-        scaled_vorticity = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims)
+        spatial_dims = list(range(1, len(features.shape) - 1)) # all but the batch and last dim
+        scaled_vorticity = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims, keepdim=True)
         return scaled_vorticity
 
     def forward(self, features):
@@ -159,6 +162,7 @@ class iPIFNO_grad(PIFNO):
         dx = dx.moveaxis(1, -1)
 
         if self.scale_mass:
+            features = features[..., -1, :]
             dx = self.scale_grads(features, dx)
 
         x = fno_features.moveaxis(1, -1)[..., -self.nclass:] + dx

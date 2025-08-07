@@ -1,33 +1,33 @@
 data:
-  data_path: [20, 32, 32, 10]
+  data_path: [20, 32, 32, 20]
   task: 'debug'
   reduce_res: 1
   reduce_batch: 1
 
 model:
   # architecture parameters
-  hdim: 10
+  hdim: 16
   layers: 2
   dropout: 0.1
-  modes: [5, 5]
+  modes: [8, 8]
   
   # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
-  model_type: 'PushForward'
+  model_type: 'AutoRegressive'
   # Combination of: mass, momentum, energy, vorticity
-  scaling: []
+  scaling: ['mass', 'momentum']
   periodic: true
   vorticity: false
   grad: false
 
   pde_weight: 0
   timesteps: 2
-  history: 1
+  history: 2
 
 training:
   batch_size: 2
   learning_rate: 0.001
   weight_decay: 0.0
-  epochs: 10
+  epochs: 50
   patience: 10
   gpus: 0
 

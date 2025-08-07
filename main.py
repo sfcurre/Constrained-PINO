@@ -151,12 +151,22 @@ def main(config, args):
         dynamic_data.timesteps = timesteps
 
         dynamic_data.testing()
-        features, targets = dynamic_data[0]
-        predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
-        predictions = np.moveaxis(predictions, -2, 0)
-        targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
-        np.save(f'out/predictions/{NAME}_test_preds.npy', predictions)
-        np.save(f'out/predictions/{NAME}_test_targets.npy', targets)
+        preds, targs = [], []
+        for i in range(min(len(dynamic_data), 10)):
+            features, targets = dynamic_data[i]
+            predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
+            predictions = np.moveaxis(predictions, -2, 0)
+            targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
+            preds.append(predictions)
+            targs.append(targets)
+
+        predictions = np.stack(preds, axis=0)
+        targets = np.stack(targs, axis=0)
+
+        if not os.path.exists(f'out/predictions/{NAME}'):
+            os.makedirs(f'out/predictions/{NAME}')
+        np.save(f'out/predictions/{NAME}/test_preds.npy', predictions)
+        np.save(f'out/predictions/{NAME}/test_targets.npy', targets)
 
         # get train and test metrics
 
@@ -164,9 +174,11 @@ def main(config, args):
         loss_info = []
         for i in range(len(dynamic_data)):
             features, targets = dynamic_data[i]
+            features = features.unsqueeze(0)
+            targets = targets.unsqueeze(0)
 
             t0 = time.time()
-            predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps)[0]
+            predictions = dynamic_model.predict(features, timesteps=timesteps)
             
             test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
             test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions).cpu().item()
