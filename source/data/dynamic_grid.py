@@ -25,8 +25,9 @@ class DynamicGrid(Dataset):
         self.test = self.solution[int(.9 * self.solution.shape[0]):]
         self.num_batches = self.train.shape[0]
         self.num_test_batches = self.test.shape[0]
+        self.variable_weights = 1
         self.is_training = True
-    
+        
     def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
         b = index % num_batches
         t = index // num_batches

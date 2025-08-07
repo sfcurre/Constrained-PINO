@@ -115,7 +115,7 @@ def main(config, args):
 
     # Train Model
     pde_loss = get_pde_loss(dynamic_data.ndims, dynamic_data.spacing, vorticity=config['model']['vorticity'])
-    lp_loss = get_lp_loss(dynamic_data.ndims)
+    lp_loss = get_lp_loss(dynamic_data.ndims, dynamic_data.variable_weights)
     
     if config['model']['model_type'] == 'Uncertainty':
         model_type = ARUncertaintyModel

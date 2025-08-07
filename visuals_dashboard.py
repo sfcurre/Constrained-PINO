@@ -32,10 +32,6 @@ def read_loss_file(file):
 st.title('Constrained Physics Informed Neural Operators - Evaluation')
 """Sean Current"""
 
-# DATAFILE = st.file_uploader('Upload JSON source/target/samples dataset:', accept_multiple_files=True)
-# if not DATAFILE:
-#     st.stop()
-
 configs = [('debug_2d', 1),]
 
 TIMES = [1, 3, 5, 10]
@@ -114,7 +110,7 @@ for j, (p_file, t_file, info) in enumerate(selected_files):
     j += 1
     for i, t in enumerate(TIMES):
         ax = axes[j, i+2]
-        ax.imshow(arr[t-1,...,fi], cmap='jet', origin='lower', vmin=vmin, vmax=vmax)
+        ax.imshow(arr[t,...,fi], cmap='jet', origin='lower', vmin=vmin, vmax=vmax)
         ax.set_xticks([])
         ax.set_yticks([])
 
@@ -160,7 +156,7 @@ for j, (p_file, t_file, info) in enumerate(selected_files):
     j += 1
     for i, t in enumerate(TIMES):
         ax = axes[j, i+2]
-        error = arr[t-1,...,fi] - test_data[t,...,fi]
+        error = arr[t,...,fi] - test_data[t,...,fi]
         ims.append(ax.imshow(error, cmap='RdBu', origin='lower'))
         ax.set_xticks([])
         ax.set_yticks([])
