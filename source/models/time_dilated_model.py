@@ -26,6 +26,7 @@ class TimeDilatedModel(DynamicModel):
         for i, (features, targets) in enumerate(self.dataloader):
             self.optimizer.zero_grad()
             
+            features = self.dilate(features)
             output = self.model(features)
             loss_train = self.get_loss(features, targets, output)
             losses.append(loss_train.cpu().item())
@@ -44,20 +45,27 @@ class TimeDilatedModel(DynamicModel):
     
     def dilate(self, features):
         if self.dilation > 1:
-            dilated_features = torch.repeat_interleave(features, self.dilation + 1)
+            dilated_features = torch.repeat_interleave(features, self.dilation, dim=-2)
             return dilated_features
         return features
+    
+    def contract(self, outputs):
+        if self.dilation > 1:
+            contracted_outputs = outputs[..., self.dilation//2::self.dilation, :]
+            return contracted_outputs
+        return outputs
 
     def get_loss(self, features, targets, outputs):
-        lp_loss = self.lp_loss(outputs, targets)
+        contracted_outputs = self.contract(outputs)
+        lp_loss = self.lp_loss(contracted_outputs, targets)
         pde_loss = 0
         if self.pde_weight > 0:
-            outputs = self.dilate(outputs)
             pde_loss = self.pde_loss(features, outputs)
         return (1-self.pde_weight) * lp_loss + self.pde_weight * pde_loss
 
     def predict(self, features, timesteps=1, numpy=False):
-        outputs = self.model(features)[..., :timesteps, :]
+        features = self.dilate(features)
+        outputs = self.contract(self.model(features))[:..., :timesteps, :]
         outputs = outputs.detach().cpu()
         if numpy:
             return outputs.numpy()

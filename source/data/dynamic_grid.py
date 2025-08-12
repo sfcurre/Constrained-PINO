@@ -50,6 +50,9 @@ class DynamicGrid(Dataset):
     def testing(self):
         self.is_training = False
 
+    def dilate_dt(self, dilation):
+        self.spacing[-1] /= dilation
+
     def __getitem__(self, index):
         if self.is_training:
             return self.sample_grid(self.train, index, self.num_batches, timesteps=self.timesteps, hist=self.history)

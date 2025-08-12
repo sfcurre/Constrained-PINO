@@ -46,14 +46,14 @@ def select_dataset(config, cuda):
                   history=config['model']['history'],
                   use_cuda=cuda)
     if config['data']['task'] == 'debug':
-        if config['model']['model_type'] == 'Static':
+        if config['model']['model_type']  in ['Static', 'TimeDilated']:
             data_class = DebugStaticGrid
         else:
             data_class = DebugGrid
         
     elif config['data']['task'] == 'pino':
         # Load PINO data
-        if config['model']['model_type'] == 'Static':
+        if config['model']['model_type']  in ['Static', 'TimeDilated']:
             data_class = PINOStaticGrid
         else:
             data_class = PINOGrid
@@ -68,6 +68,8 @@ def select_dataset(config, cuda):
             data_class = PDEBenchGrid
         
     dynamic_data = data_class(config['data']['data_path'], **kwargs)
+    if config['model']['dilation'] > 1 and config['model']['model_type'] == 'TimeDilated':
+        dynamic_data.dilate_dt(config['model']['dilation'])
     return dynamic_data
 
 def main(config, args):
@@ -106,7 +108,7 @@ def main(config, args):
                         scale_mass='mass' in config['model']['scaling'],
                         scale_momentum='momentum' in config['model']['scaling'],
                         scale_energy='energy' in config['model']['scaling'],
-                        static=config['model']['model_type'] == 'Static',
+                        static=config['model']['model_type'] in ['Static', 'TimeDilated'],
                         uncertainty=config['model']['model_type'] == 'Uncertainty')
     
     optimizer = optim.Adam(model.parameters(),

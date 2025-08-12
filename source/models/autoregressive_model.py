@@ -45,7 +45,6 @@ class AutoRegressiveModel(DynamicModel):
         
         return np.mean(losses)
 
-
     def get_loss(self, features, targets, outputs, mask=None):
         # print(features.shape, outputs.shape, targets.shape)
         lp_loss = self.lp_loss(outputs, targets)
