@@ -19,9 +19,9 @@ def get_pde_loss(dims, spacing, vorticity=False):
         return loss
 
 def pde_CFD1d(y1, y2, spacing, gamma=5/3):
-    print(y1.shape, y2.shape)
-    s = torch.concat([y1, y2], dim=-2)
-    
+    initial = y1[..., -1:, -y2.shape[-1]:]
+    s = torch.concat([initial, y2], dim=-2)
+
     h = s[..., 0]  # rho
     ux = s[..., 1]  # vx
     p = s[..., 2]  # p
@@ -49,8 +49,9 @@ def pde_CFD1d(y1, y2, spacing, gamma=5/3):
     return torch.mean(residual)
 
 def pde_CFD2d(y1, y2, spacing, gamma=5/3):
-    s = torch.concat([y1, y2], dim=-2)
-    
+    initial = y1[..., -1:, -y2.shape[-1]:]
+    s = torch.concat([initial, y2], dim=-2)
+
     h = s[..., 0]  # rho
     ux = s[..., 1]  # vx
     uy = s[..., 2]  # vy
@@ -85,7 +86,8 @@ def pde_CFD2d(y1, y2, spacing, gamma=5/3):
     return torch.mean(residual)
 
 def pde_CFD3d(y1, y2, spacing, gamma=5/3):
-    s = torch.concat([y1, y2], dim=-2)
+    initial = y1[..., -1:, -y2.shape[-1]:]
+    s = torch.concat([initial, y2], dim=-2)
 
     h = s[..., 0]  # rho
     ux = s[..., 1]  # vx

@@ -130,5 +130,5 @@ class DynamicModel:
         self.model.load_state_dict(state_dict)
 
     def concat_timesteps(self, features, outputs):
-        t0 = features[..., outputs.shape[-2]:, :]
+        t0 = features[..., 1:, :]
         return torch.concat([t0, outputs], dim=-2)

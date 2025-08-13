@@ -51,7 +51,7 @@ class TimeDilatedModel(DynamicModel):
     
     def contract(self, outputs):
         if self.dilation > 1:
-            contracted_outputs = outputs[..., self.dilation//2::self.dilation, :]
+            contracted_outputs = outputs[..., self.dilation-1::self.dilation, :]
             return contracted_outputs
         return outputs
 
@@ -65,7 +65,7 @@ class TimeDilatedModel(DynamicModel):
 
     def predict(self, features, timesteps=1, numpy=False):
         features = self.dilate(features)
-        outputs = self.contract(self.model(features))[:..., :timesteps, :]
+        outputs = self.contract(self.model(features))[..., :timesteps, :]
         outputs = outputs.detach().cpu()
         if numpy:
             return outputs.numpy()

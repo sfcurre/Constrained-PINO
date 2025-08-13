@@ -9,9 +9,9 @@ model:
   hdim: 16
   layers: 2
   dropout: 0.1
-  modes: [8, 8]
+  modes: [16, 16]
   
-  # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
+  # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static, TimeDilated
   model_type: 'AutoRegressive'
   # Combination of: mass, momentum, energy, vorticity
   scaling: ['mass', 'momentum']
@@ -20,15 +20,16 @@ model:
   grad: false
 
   pde_weight: 0
-  timesteps: 2
-  history: 2
+  timesteps: 3
+  history: 1
+  dilation: 2
 
 training:
   batch_size: 2
-  learning_rate: 0.001
+  learning_rate: 0.0001
   weight_decay: 0.0
-  epochs: 50
-  patience: 10
+  epochs: 300
+  patience: 100
   gpus: 0
 
   
