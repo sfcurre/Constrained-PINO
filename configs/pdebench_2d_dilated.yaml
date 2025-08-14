@@ -8,21 +8,21 @@ model:
   # architecture parameters
   hdim: 64
   layers: 4
-  kernel_size: 1
   dropout: 0.0
   modes: [24, 24]
   
   # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
-  model_type: 'AutoRegressive'
+  model_type: 'ARTimeDilated'
   # Combination of: mass, momentum, energy, vorticity
   scaling: ['mass']
   periodic: true
   vorticity: false
   grad: false
 
-  pde_weight: 0
+  pde_weight: 0.1
   timesteps: 2
-  history: 3
+  history: 2
+  dilation: 2
 
 training:
   batch_size: 1

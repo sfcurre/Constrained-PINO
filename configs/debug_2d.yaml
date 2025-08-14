@@ -1,5 +1,5 @@
 data:
-  data_path: [20, 32, 32, 20]
+  data_path: [2, 32, 32, 20]
   task: 'debug'
   reduce_res: 1
   reduce_batch: 1
@@ -11,24 +11,24 @@ model:
   dropout: 0.1
   modes: [16, 16]
   
-  # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static, TimeDilated
-  model_type: 'AutoRegressive'
+  # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static, TimeDilated, ARTimeDilated
+  model_type: 'ARTimeDilated'
   # Combination of: mass, momentum, energy, vorticity
-  scaling: ['mass', 'momentum']
+  scaling: ['mass'] #, 'momentum']
   periodic: true
   vorticity: false
   grad: false
 
-  pde_weight: 0
-  timesteps: 3
-  history: 1
-  dilation: 2
+  pde_weight: 0.1
+  timesteps: 10
+  history: 2
+  dilation: 4
 
 training:
   batch_size: 2
   learning_rate: 0.0001
   weight_decay: 0.0
-  epochs: 300
+  epochs: 100
   patience: 100
   gpus: 0
 

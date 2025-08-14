@@ -8,9 +8,8 @@ model:
   # architecture parameters
   hdim: 64
   layers: 4
-  kernel_size: 1
   dropout: 0.0
-  modes: [24, 24]
+  modes: [16, 16, 16]
   
   # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
   model_type: 'Static'
@@ -21,7 +20,7 @@ model:
   grad: false
 
   pde_weight: 0
-  timesteps: 3
+  timesteps: 20
   history: 1
 
 training:
