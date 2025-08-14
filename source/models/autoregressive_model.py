@@ -23,25 +23,24 @@ class AutoRegressiveModel(DynamicModel):
         self.optimizer.zero_grad()
         losses = []
         for _, (features, targets) in enumerate(self.dataloader):
-            batch_loss = 0
             initial = features
-            for i in range(targets.shape[-2]):
-                self.optimizer.zero_grad()
-                
+            outputs = []
+            self.optimizer.zero_grad()
+            for i in range(targets.shape[-2]):    
                 output = self.model(initial)
-                loss_train = self.get_loss(initial, targets[...,i:i+1,:], output)
-                
-                initial = self.concat_timesteps(initial, output)
-                batch_loss += loss_train
+                initial = self.concat_timesteps(initial, output.detach())
+                outputs.append(output)
 
-            batch_loss.backward()
+            loss = self.get_loss(features, targets, torch.stack(outputs, dim=-2))    
+
+            loss.backward()
             self.optimizer.step()
             self.scheduler.step()
             
-            losses.append(batch_loss.cpu().item())                
+            losses.append(loss.cpu().item())                
 
             # if (i + 1) % report_interval == 0:
-            self.report(features, targets, batch_loss, epoch)
+            self.report(features, targets, loss, epoch)
         
         return np.mean(losses)
 

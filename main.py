@@ -25,6 +25,7 @@ from source.models.autoregressive_model import AutoRegressiveModel
 from source.models.static_model import StaticModel
 from source.models.ar_uncertainty_model import ARUncertaintyModel
 from source.models.time_dilated_model import TimeDilatedModel
+from source.models.ar_time_dilated_model import ARTimeDilatedModel
 from source.losses.navier_stokes_loss import *
 from source.losses.lp_loss import *
 from source.losses.metrics import metric_func
@@ -98,8 +99,12 @@ def main(config, args):
         else:
             model_class = PIFNO
 
+    channels = dynamic_data.nfeats * config['model']['history']
+    if config['model']['model_type'] == 'ARTimeDilated':
+        channels = channels * config['model']['dilation'] - dynamic_data.nfeats
+
     fno = FNO(n_modes=config['model']['modes'],
-              in_channels=dynamic_data.nfeats * config['model']['history'],
+              in_channels=channels,
               out_channels=dynamic_data.nfeats,
               hidden_channels=config['model']['hdim'],
               n_layers=config['model']['layers'])
@@ -124,6 +129,8 @@ def main(config, args):
         lp_loss = nll_loss
     elif config['model']['model_type'] == 'TimeDilated':
         model_type = partial(TimeDilatedModel, dilation=config['model']['dilation'])
+    elif config['model']['model_type'] == 'ARTimeDilated':
+        model_type = partial(ARTimeDilatedModel, dilation=config['model']['dilation'])
     elif config['model']['model_type'] == 'Static':
         model_type = StaticModel
     elif config['model']['model_type'] == 'AutoRegressive':
