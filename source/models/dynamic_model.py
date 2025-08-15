@@ -66,12 +66,6 @@ class DynamicModel:
         self.model.eval()
         outputs = self.predict(features, timesteps=targets.shape[-2])
 
-        # pred = torch.stack(outputs, dim=-2).squeeze().unsqueeze(0)
-        # metric_targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
-
-        # pred = pred.contiguous().reshape(pred.shape)
-        # err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, metric_targets)
-
         loss_val = self.get_test_loss(targets, outputs)
         pde_loss_val = self.get_test_pde_loss(features, outputs)
         onestep_loss_val = self.get_test_loss(targets[..., :1, :], outputs[..., :1, :])
@@ -84,15 +78,9 @@ class DynamicModel:
                 'onestep_loss_val: {:.4f}'.format(onestep_loss_val.data.item()),
                 'onestep_pde_loss_val: {:.4f}'.format(onestep_pde_loss_val.data.item()),
                 'time: {:.4f}'.format(time.time() - self.t_start),
-                # 'RMSE: {:.4f}'.format(err_RMSE.cpu().item()),
-                # 'nRMSE: {:.4f}'.format(err_nRMSE.cpu().item()),
-                # 'err_CSV: {:.4f}'.format(err_CSV.cpu().item()),
-                # 'err_Max: {:.4f}'.format(err_Max.cpu().item()),
-                # 'err_BD: {:.4f}'.format(err_BD.cpu().item()),
-                # 'err_F: {:.4f}'.format(err_F.cpu().mean().item()),
                 sep=',', file=fp)
 
-        torch.save(self.model.state_dict(), f'out/models/{self.name}.pkl')
+        torch.save(self.model.state_dict(), f'out/models/{self.name}.pkl') 
         return loss_val.data.item()
 
     def train_step(self, epoch):
