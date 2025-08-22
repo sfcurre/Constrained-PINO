@@ -20,16 +20,16 @@ model:
   grad: false
 
   pde_weight: 0
-  timesteps: 2
+  timesteps: 3
   history: 2
   dilation: 1
 
 training:
   batch_size: 1
-  learning_rate: 0.0001
+  learning_rate: 0.00001
   weight_decay: 0.0
-  epochs: 1
-  patience: 1
+  epochs: 10
+  patience: 10
   gpus: 1  
 
   

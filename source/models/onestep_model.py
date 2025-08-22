@@ -33,16 +33,15 @@ class OneStepModel(DynamicModel):
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-            #if (i + 1) % report_interval == 0:
-            self.report(features, targets, loss_train, epoch)
+            if (i + 1) % report_interval == 0:
+                self.report(features, targets, loss_train, epoch)
         
         #self.report(adj, locations, features, targets, mask, loss_train, epoch)    
         return np.mean(losses)
 
     def get_loss(self, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)
-        if self.pde_weight > 0:        
+        pde_loss = 0
+        if self.pde_weight > 0:
             pde_loss = self.pde_loss(features, outputs)
-        else:
-            pde_loss = 0
-        return lp_loss + self.pde_weight * pde_loss
+        return (1-self.pde_weight) * lp_loss + self.pde_weight * pde_loss

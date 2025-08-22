@@ -35,8 +35,8 @@ class StaticModel(DynamicModel):
 
             self.scheduler.step()
 
-            #if (i + 1) % report_interval == 0:
-            self.report(features, targets, loss_train, epoch)
+            if (i + 1) % report_interval == 0:
+                self.report(features, targets, loss_train, epoch)
         
         #self.report(adj, locations, features, targets, mask, loss_train, epoch)    
         return np.mean(losses)

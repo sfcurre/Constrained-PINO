@@ -42,8 +42,8 @@ class ARTimeDilatedModel(DynamicModel):
             
             losses.append(loss.cpu().item())                
 
-            #if (i + 1) % report_interval == 0:
-            self.report(features, targets, loss, epoch)
+            if (i + 1) % report_interval == 0:
+                self.report(features, targets, loss, epoch)
         
         #self.report(adj, locations, features, targets, mask, loss_train, epoch)    
         return np.mean(losses)

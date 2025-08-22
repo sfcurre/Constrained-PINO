@@ -28,12 +28,12 @@ class DynamicModel:
         if self.use_cuda:
             model.cuda()
     
-    def train(self, epochs, patience, report_interval=1000):
+    def train(self, epochs, patience, report_interval=100):
         # Train model
         t_total = time.time()
         loss_values = []
         bad_counter = 0
-        best = epochs + 1
+        best = np.inf
         best_epoch = 0
         for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch, report_interval))

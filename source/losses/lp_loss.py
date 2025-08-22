@@ -15,6 +15,7 @@ def normalized_lp_loss(x, y, p=2):
 
 def lp_loss(output, target, dims, weights):
         #loss = normalized_lp_loss(*fargs, **kwargs, p=2)
+        weights = torch.tensor(weights, dtype=output.dtype, device=output.device)
         output = output * weights
         target = target * weights
         loss = F.mse_loss(output, target)

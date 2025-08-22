@@ -42,8 +42,7 @@ class PushForwardModel(DynamicModel):
 
     def get_loss(self, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)
-        if self.pde_weight > 0:        
+        pde_loss = 0
+        if self.pde_weight > 0:
             pde_loss = self.pde_loss(features, outputs)
-        else:
-            pde_loss = 0
-        return lp_loss + self.pde_weight * pde_loss
+        return (1-self.pde_weight) * lp_loss + self.pde_weight * pde_loss
