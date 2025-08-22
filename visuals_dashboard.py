@@ -33,6 +33,7 @@ st.title('Constrained Physics Informed Neural Operators - Evaluation')
 """Sean Current"""
 
 configs = [('debug_2d', 1),]
+# configs = [('pdebench_2d_ar', 1), ('pdebench_2d_ar_momentum', 0),]
 
 TIMES = [1, 3, 5, 10]
 IDX = 0
@@ -42,10 +43,10 @@ with st.spinner('Loading...'):
     data = defaultdict(list)
 
     for i, (config, use_target) in enumerate(configs):
-        loss_data = read_loss_file(f'out/losses/{config}_test_losses.json')
-        data['name'].append(loss_data.pop('name'))
-        for term, (mean, std) in loss_data.items():
-            data[term].append(f'{mean:.3g} +/- {std:.3g}')
+        # loss_data = read_loss_file(f'out/losses/{config}_test_losses.json')
+        # data['name'].append(loss_data.pop('name'))
+        # for term, (mean, std) in loss_data.items():
+        #     data[term].append(f'{mean:.3g} +/- {std:.3g}')
         
         pred_files.append(f'out/predictions/{config}/test_preds.npy')
         

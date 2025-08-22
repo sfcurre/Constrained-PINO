@@ -69,7 +69,7 @@ def select_dataset(config, cuda):
             data_class = PDEBenchGrid
         
     dynamic_data = data_class(config['data']['data_path'], **kwargs)
-    if config['model']['dilation'] > 1 and config['model']['model_type'] == 'TimeDilated':
+    if config['model']['dilation'] > 1 and config['model']['model_type'] in ['TimeDilated', 'ARTimeDilated']:
         dynamic_data.dilate_dt(config['model']['dilation'])
     return dynamic_data
 
@@ -100,7 +100,7 @@ def main(config, args):
             model_class = PIFNO
 
     channels = dynamic_data.nfeats * config['model']['history']
-    if config['model']['model_type'] == 'ARTimeDilated':
+    if config['model']['model_type'] == 'ARTimeDilated' and config['model']['history'] > 1 and config['model']['dilation'] > 1:
         channels = channels * config['model']['dilation'] - dynamic_data.nfeats
 
     fno = FNO(n_modes=config['model']['modes'],
@@ -166,8 +166,9 @@ def main(config, args):
             predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
             predictions = np.moveaxis(predictions, -2, 0)
             targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
-            preds.append(predictions)
-            targs.append(targets)
+            initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
+            preds.append(np.concat([initial, predictions], axis=0))
+            targs.append(np.concat([initial, targets], axis=0))
 
         predictions = np.stack(preds, axis=0)
         targets = np.stack(targs, axis=0)

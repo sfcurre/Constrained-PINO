@@ -45,7 +45,6 @@ def pde_CFD1d(y1, y2, spacing, gamma=5/3):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) +
                 torch.abs(eq3))
-    residual = residual[..., -(y2.shape[-2]):]
     return torch.mean(residual)
 
 def pde_CFD2d(y1, y2, spacing, gamma=5/3):
@@ -80,9 +79,9 @@ def pde_CFD2d(y1, y2, spacing, gamma=5/3):
     eq3 = h * (uy_t + ux * uy_x + uy * uy_y) - p_y
     eq4 = E_t + Fx_x + Fy_y
 
-    residual = (torch.abs(eq1) + torch.abs(eq2) +
-                torch.abs(eq3) + torch.abs(eq4))
-    residual = residual[..., -(y2.shape[-2]):]
+    # residual = (torch.abs(eq1) + torch.abs(eq2) +
+    #             torch.abs(eq3) + torch.abs(eq4))
+    residual = (torch.abs(eq1) + torch.abs(eq4))
     return torch.mean(residual)
 
 def pde_CFD3d(y1, y2, spacing, gamma=5/3):
@@ -125,7 +124,6 @@ def pde_CFD3d(y1, y2, spacing, gamma=5/3):
 
     residual = (torch.abs(eq1) + torch.abs(eq2) + torch.abs(eq3) +
                 torch.abs(eq4) + torch.abs(eq5))
-    residual = residual[..., -(y2.shape[-2]):]
     return torch.mean(residual)
 
 

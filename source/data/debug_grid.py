@@ -14,12 +14,15 @@ class DebugGrid(DynamicGrid):
         grid = np.meshgrid(*[np.linspace(0, 2*np.pi, d, endpoint=False) for d in dims], indexing='ij')
         grid = np.stack(grid, axis=-1)
         solution = np.sin(grid.sum(axis=-1) + np.random.rand(samples, *dims)) + 1
-        solution = np.stack([np.roll(solution, shift=2 * (np.arange(1, len(dims)) + i),
+        solution = np.stack([np.roll(solution, shift=(i * np.arange(1, len(dims) + 1)),
                                      axis=tuple(range(1, len(dims)))) for i in range(duration)], axis=-1)
-        velocities = np.arange(1, len(dims)) * np.array([1/d for d in dims])
+        velocities = duration * np.arange(1, len(dims) + 1) * np.array([2*np.pi/d for d in dims])
+
         velocities = np.stack([np.ones_like(solution) * v for v in velocities], axis=-1)
         solution = np.expand_dims(solution, -1)
         solution = np.concatenate([solution, velocities, solution], axis=-1)
+        if samples == 1:
+            solution = np.repeat(solution, 2, axis=0)
         super(DebugGrid, self).__init__(grid, solution, timesteps=timesteps, history=history, use_cuda=use_cuda)
 
 class DebugStaticGrid(DebugGrid):

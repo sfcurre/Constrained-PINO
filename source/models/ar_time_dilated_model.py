@@ -31,7 +31,7 @@ class ARTimeDilatedModel(DynamicModel):
             for i in range(targets.shape[-2]):
                 for j in range(self.dilation):
                     output = self.model(initial)
-                    initial = self.concat_timesteps(initial, output.detach())
+                    initial = self.concat_timesteps(initial, output)#.detach())
                     outputs.append(output)
 
             loss = self.get_loss(features, targets, torch.concat(outputs, dim=-2))
@@ -49,7 +49,7 @@ class ARTimeDilatedModel(DynamicModel):
         return np.mean(losses)
     
     def dilate(self, features):
-        if self.dilation > 1:
+        if self.dilation > 1 and features.shape[-2] > 1:
             # dilated_features = torch.repeat_interleave(features, self.dilation, dim=-2)
             # dilated_len = dilated_features.shape[-2] - self.dilation + 1
             # dilated_features = torch.stack([dilated_features[i:i+dilated_len] for i in range(self.dilation)], dim=-1)
