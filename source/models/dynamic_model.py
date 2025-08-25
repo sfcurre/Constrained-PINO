@@ -38,19 +38,18 @@ class DynamicModel:
         for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch, report_interval))
 
-            #torch.save(self.model.state_dict(), f'out/models/{self.name}_{epoch}.pkl')
             if loss_values[-1] < best:
                 best = loss_values[-1]
                 best_epoch = epoch
                 bad_counter = 0
-                torch.save(self.model.state_dict(), f'out/models/{self.name}_best.pkl')
+                torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_best.pkl')
             else:
                 bad_counter += 1
 
             if bad_counter == patience:
                 break
 
-            with open(f'out/reports/outfile_{self.name}.txt', 'a') as fp:
+            with open(f'out/{self.name}/outfile.txt', 'a') as fp:
                 print(epoch, loss_values[-1], sep='\t', file=fp)
 
         print("Optimization Finished!")
@@ -58,7 +57,7 @@ class DynamicModel:
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        self.load_model(f'out/models/{self.name}_best.pkl')
+        self.load_model(f'out/saved_models/{self.name}_best.pkl')
 
         return loss_values
 
@@ -70,7 +69,7 @@ class DynamicModel:
         pde_loss_val = self.get_test_pde_loss(features, outputs)
         onestep_loss_val = self.get_test_loss(targets[..., :1, :], outputs[..., :1, :])
         onestep_pde_loss_val = self.get_test_pde_loss(features, outputs[..., :1, :])
-        with open(f'out/reports/report_{self.name}.txt', 'a') as fp:
+        with open(f'out/{self.name}/report.txt', 'a') as fp:
             print('Epoch: {:04d}'.format(epoch+1),
                 'loss_train: {:.4f}'.format(loss_train.data.item()),
                 'loss_val: {:.4f}'.format(loss_val.data.item()),
@@ -80,7 +79,7 @@ class DynamicModel:
                 'time: {:.4f}'.format(time.time() - self.t_start),
                 sep=',', file=fp)
 
-        torch.save(self.model.state_dict(), f'out/models/{self.name}.pkl') 
+        torch.save(self.model.state_dict(), f'out/saved_models/{self.name}.pkl') 
         return loss_val.data.item()
 
     def train_step(self, epoch):

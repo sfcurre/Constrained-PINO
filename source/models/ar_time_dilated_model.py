@@ -28,10 +28,10 @@ class ARTimeDilatedModel(DynamicModel):
             initial = dilated_features
             outputs = []
             self.optimizer.zero_grad()        
-            for i in range(targets.shape[-2]):
-                for j in range(self.dilation):
+            for j in range(targets.shape[-2]):
+                for k in range(self.dilation):
                     output = self.model(initial)
-                    initial = self.concat_timesteps(initial, output)#.detach())
+                    initial = self.concat_timesteps(initial, output)
                     outputs.append(output)
 
             loss = self.get_loss(features, targets, torch.concat(outputs, dim=-2))
@@ -45,7 +45,7 @@ class ARTimeDilatedModel(DynamicModel):
             if (i + 1) % report_interval == 0:
                 self.report(features, targets, loss, epoch)
         
-        #self.report(adj, locations, features, targets, mask, loss_train, epoch)    
+        self.report(features, targets, loss, epoch) 
         return np.mean(losses)
     
     def dilate(self, features):

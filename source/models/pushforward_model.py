@@ -37,8 +37,8 @@ class PushForwardModel(DynamicModel):
             if (i + 1) % report_interval == 0:
                 self.report(features, targets, loss_train, epoch)
         
-        return self.report(features, targets, loss_train, epoch)
-
+        self.report(features, targets, loss_train, epoch)
+        return np.mean(loss_train.cpu().item())
 
     def get_loss(self, features, targets, outputs):
         lp_loss = self.lp_loss(outputs, targets)

@@ -145,11 +145,14 @@ def main(config, args):
     if args.load:
         dynamic_model.load_model(args.load)
 
+    if not os.path.exists(f'out/{NAME}'):
+        os.makedirs(f'out/{NAME}')
+
     if not args.eval:
-        if os.path.exists(f'out/reports/outfile_{NAME}.txt'):
-            os.remove(f'out/reports/outfile_{NAME}.txt')
-        if os.path.exists(f'out/reports/report_{NAME}.txt'):
-            os.remove(f'out/reports/report_{NAME}.txt')
+        if os.path.exists(f'out/{NAME}/outfile.txt'):
+            os.remove(f'out/{NAME}/outfile.txt')
+        if os.path.exists(f'out/{NAME}/report.txt'):
+            os.remove(f'out/{NAME}/report.txt')
 
         train_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])            
 
@@ -173,10 +176,8 @@ def main(config, args):
         predictions = np.stack(preds, axis=0)
         targets = np.stack(targs, axis=0)
 
-        if not os.path.exists(f'out/predictions/{NAME}'):
-            os.makedirs(f'out/predictions/{NAME}')
-        np.save(f'out/predictions/{NAME}/test_preds.npy', predictions)
-        np.save(f'out/predictions/{NAME}/test_targets.npy', targets)
+        np.save(f'out/{NAME}/test_preds.npy', predictions)
+        np.save(f'out/{NAME}/test_targets.npy', targets)
 
         # get train and test metrics
 
@@ -238,7 +239,7 @@ def main(config, args):
                     'err_F': err_F.cpu().mean().item()
                 })
 
-        with open(f'out/losses/{NAME}_test_losses.json', 'w') as fp:
+        with open(f'out/{NAME}/test_losses.json', 'w') as fp:
             json.dump(loss_info, fp)
 
 if __name__ == '__main__':

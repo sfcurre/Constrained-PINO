@@ -22,13 +22,13 @@ class AutoRegressiveModel(DynamicModel):
         self.model.train()
         self.optimizer.zero_grad()
         losses = []
-        for _, (features, targets) in enumerate(self.dataloader):
+        for i, (features, targets) in enumerate(self.dataloader):
             initial = features
             outputs = []
             self.optimizer.zero_grad()
-            for i in range(targets.shape[-2]):    
+            for _ in range(targets.shape[-2]):    
                 output = self.model(initial)
-                initial = self.concat_timesteps(initial, output.detach())
+                initial = self.concat_timesteps(initial, output)
                 outputs.append(output)
 
             loss = self.get_loss(features, targets, torch.concat(outputs, dim=-2))    
@@ -42,10 +42,10 @@ class AutoRegressiveModel(DynamicModel):
             if (i + 1) % report_interval == 0:
                 self.report(features, targets, loss, epoch)
         
+        self.report(features, targets, loss, epoch)
         return np.mean(losses)
 
     def get_loss(self, features, targets, outputs, mask=None):
-        # print(features.shape, outputs.shape, targets.shape)
         lp_loss = self.lp_loss(outputs, targets)
         pde_loss = 0
         if self.pde_weight > 0:
