@@ -24,39 +24,51 @@ def read_loss_file(file):
         arr = np.array(losses[term])
         losses[term] = arr.mean(), arr.std()
 
-    name = file.split('\\')[-1][:-17]
-    losses['name'] = name
-    
     return losses
+
+def read_report_file(file):
+    data = defaultdict(list)
+    with open(file, 'r') as fp:
+        for line in fp:
+            if line.startswith('Epoch'):
+                parts = line.split(',')
+                for part in parts:
+                    key, val = part.split(':')
+                    val = float(val.strip())
+                    data[key].append(val)
+    return data
 
 st.title('Constrained Physics Informed Neural Operators - Evaluation')
 """Sean Current"""
 
-configs = [('debug_2d', 1),]
-# configs = [('pdebench_2d_ar', 1), ('pdebench_2d_ar_momentum', 0),]
+# configs = [('debug_2d', 1),]
+configs = [('pdebench_2d_ar', 1), ('pdebench_2d_ar_momentum', 0),]
 
 TIMES = [1, 3, 5, 10]
 IDX = 0
 
 with st.spinner('Loading...'):
-    config_info, pred_files, target_files = [], [], []
+    config_info, pred_files, target_files, report_files = [], [], [], []
     data = defaultdict(list)
+    time_series_data = defaultdict()
 
     for i, (config, use_target) in enumerate(configs):
-        # loss_data = read_loss_file(f'out/losses/{config}_test_losses.json')
-        # data['name'].append(loss_data.pop('name'))
-        # for term, (mean, std) in loss_data.items():
-        #     data[term].append(f'{mean:.3g} +/- {std:.3g}')
+        loss_data = read_loss_file(f'out/{config}/test_losses.json')
+        data['name'].append(config)
+        for term, (mean, std) in loss_data.items():
+            data[term].append((f'{mean:.3g} +/- {std:.3g}'))
         
-        pred_files.append(f'out/predictions/{config}/test_preds.npy')
+        pred_files.append(f'out/{config}/test_preds.npy')
         
         if use_target:
-            target_files.append(f'out/predictions/{config}/test_targets.npy')
+            target_files.append(f'out/{config}/test_targets.npy')
         else:
             target_files.append(None)
 
         with open(f'configs/{config}.yaml', 'r') as stream:
             config_info.append(yaml.load(stream, yaml.FullLoader))
+
+        report_files.append(read_report_file(f'out/{config}/report.txt'))
 
     data = pd.DataFrame(data)
     # data = data.set_index('name')
@@ -68,11 +80,31 @@ for tag in tag_bool:
     tag_bool[tag] = st.toggle(tag, value=True)
 
 # filter files
-selected_files = [(p_file, t_file, tags) for p_file, t_file, tags in zip(pred_files, target_files, file_tags)
-                                                       if all(tag_bool[f'{tag}:{tags[tag]}'] for tag in tags)]
+selected_files = []
+selected_reports = []
+for p_file, t_file, r_file, tags in zip(pred_files, target_files, report_files, file_tags):
+    if all(tag_bool[f'{tag}:{tags[tag]}'] for tag in tags):
+        selected_files.append((p_file, t_file))
+        selected_reports.append((p_file.split('/')[-2], r_file))
 
 st.header('Loss Statistics')
-# st.dataframe(data.loc[[file.split('\\')[-1][:-9] for file in selected_files]])
+st.dataframe(data)
+
+st.header('Loss Curves')
+
+keys = list(filter(lambda x: 'loss' in x, selected_reports[0][1].keys()))
+term = st.selectbox('select term to visualize', options=keys, index=0)
+
+fig = plt.figure(figsize=(10, 6))
+for name, r_file in selected_reports:
+    if term in r_file:
+        plt.plot(r_file[term], label=name)
+
+plt.legend()
+plt.xlabel('Epochs')
+plt.ylabel(term)
+
+st.pyplot(fig)
 
 st.header('Flow Visualization')
 
@@ -83,7 +115,7 @@ fig, axes = plt.subplots(1 + len(selected_files), 6, figsize = (18, 5 + 4 * len(
                         gridspec_kw=dict(width_ratios=[6,1,6,6,6,6], hspace=0, wspace=0.1), squeeze = False)
 
 
-for j, (p_file, t_file, info) in enumerate(selected_files):
+for j, (p_file, t_file) in enumerate(selected_files):
 
     if t_file is not None:
         test_data = np.load(t_file)[IDX]
@@ -127,7 +159,7 @@ st.header('Error Visualization')
 fig, axes = plt.subplots(1 + len(selected_files), 6, figsize = (18, 5 + 4 * len(selected_files)), layout='constrained',
                         gridspec_kw=dict(width_ratios=[6,1,6,6,6,6], hspace=0, wspace=0.1), squeeze = False)
 
-for j, (p_file, t_file, info) in enumerate(selected_files):
+for j, (p_file, t_file) in enumerate(selected_files):
 
     if t_file is not None:
         test_data = np.load(t_file)[IDX]
