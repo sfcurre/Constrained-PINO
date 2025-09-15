@@ -23,12 +23,12 @@ class DynamicModel:
         self.pde_loss = pde_loss
         self.pde_weight = pde_weight
         self.use_cuda = use_cuda
-        self.scheduler = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer, step_size=10000, gamma=0.5)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer, step_size=1000000, gamma=0.5)
 
         if self.use_cuda:
             model.cuda()
     
-    def train(self, epochs, patience, report_interval=100):
+    def train(self, epochs, patience, report_interval=20):
         # Train model
         t_total = time.time()
         loss_values = []

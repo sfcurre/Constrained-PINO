@@ -11,7 +11,7 @@ class DebugGrid(DynamicGrid):
     def __init__(self, shape, timesteps=1, history=1, use_cuda=False):
         # make grid and solution
         samples, dims, duration = shape[0], shape[1:-1], shape[-1]
-        grid = np.meshgrid(*[np.linspace(0, 2*np.pi, d, endpoint=False) for d in dims], indexing='ij')
+        grid = np.meshgrid(*[np.linspace(0, 2*np.pi, d, endpoint=False) for d in dims], indexing='xy')
         grid = np.stack(grid, axis=-1)
         solution = np.sin(grid.sum(axis=-1) + np.random.rand(samples, *dims)) + 1
         solution = np.stack([np.roll(solution, shift=(i * np.arange(1, len(dims) + 1)),

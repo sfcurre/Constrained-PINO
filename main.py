@@ -166,6 +166,7 @@ def main(config, args):
         preds, targs = [], []
         for i in range(min(len(dynamic_data), 10)):
             features, targets = dynamic_data[i]
+            print(features.shape)
             predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
             predictions = np.moveaxis(predictions, -2, 0)
             targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)

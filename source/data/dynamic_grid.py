@@ -11,8 +11,9 @@ class DynamicGrid(Dataset):
         # batch, x, y, z, t, ch
         self.solution = solution
         self.duration = self.solution.shape[-2]
-        self.spacing = [np.diff(self.grid[...,i], axis=i).mean() for i in range(len(self.grid.shape) - 1)]
+        self.spacing = [np.diff(self.grid[...,i], axis=self.grid.shape[-1] - (i+1)).mean() for i in range(self.grid.shape[-1])]
         self.spacing.append(1 / (self.duration-1))
+        print('Grid spacing:', self.spacing)
         
         self.timesteps = min(timesteps, self.duration - history)
         self.history = history
@@ -25,7 +26,8 @@ class DynamicGrid(Dataset):
         self.test = self.solution[int(.9 * self.solution.shape[0]):]
         self.num_batches = self.train.shape[0]
         self.num_test_batches = self.test.shape[0]
-        self.variable_weights = 1 / np.sqrt(np.sum(self.train**2, axis=tuple(range(len(self.train.shape) - 1))))
+        self.variable_weights = 1 / np.sqrt(np.mean(self.train**2, axis=tuple(range(len(self.train.shape) - 1))))
+        print('Variable weights:', self.variable_weights)
         self.is_training = True
         
     def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
