@@ -43,7 +43,6 @@ class ARUncertaintyModel(DynamicModel):
 
             batch_loss.backward()
             self.optimizer.step()
-            self.scheduler.step()
             
             losses.append(batch_loss.cpu().item())                
 

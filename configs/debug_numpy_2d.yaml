@@ -1,0 +1,35 @@
+data:
+  data_path: 'out/pdebench_2d_ar/test_targets.npy'
+  task: 'debug_numpy'
+  reduce_res: 4
+  reduce_batch: 1
+
+model:
+  # architecture parameters
+  hdim: 64
+  layers: 4
+  dropout: 0.1
+  modes: [24, 24]
+  
+  # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static, TimeDilated, ARTimeDilated
+  model_type: 'AutoRegressive'
+  # Combination of: mass, momentum, energy, vorticity
+  scaling: [] #'mass'] #, 'momentum']
+  periodic: true
+  vorticity: false
+  grad: false
+
+  pde_weight: 0.0 # do not go over 0.1
+  timesteps: 5
+  history: 2
+  dilation: 1
+
+training:
+  batch_size: 1
+  learning_rate: 0.0001
+  weight_decay: 0.0
+  epochs: 200
+  patience: 100
+  gpus: 0
+
+  

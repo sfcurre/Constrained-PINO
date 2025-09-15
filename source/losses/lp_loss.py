@@ -22,7 +22,7 @@ def lp_loss(output, target, dims, weights):
         dims = list(range(-dims - 1, -1, 1))
         f_output, f_target = torch.fft.rfftn(output, dim=dims, norm='ortho'), torch.fft.rfftn(target, dim=dims, norm='ortho')
         floss = F.mse_loss(f_output.abs(), f_target.abs())
-        return loss + floss
+        return loss# + floss
 
 def get_lp_loss(dims, weights):
       return partial(lp_loss, dims=dims, weights=weights)

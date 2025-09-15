@@ -17,33 +17,33 @@ class PIFNO(nn.Module):
         spatial_dims = list(range(1, len(initial.shape) - 2)) # all but the batch and last two dims
         
         total_density = torch.sum(initial[..., :1], dim=spatial_dims, keepdim=True)
-        total_pressure = torch.sum(initial[..., -1:], dim=spatial_dims, keepdim=True)
+        total_pressure = torch.sum(initial[..., 1:2], dim=spatial_dims, keepdim=True)
 
         out_density = torch.sum(x[..., :1], dim=spatial_dims, keepdim=True)
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., -1:], dim=spatial_dims, keepdim=True)
-        scaled_pressure = x[..., -1:] * total_pressure / out_pressure
+        out_pressure = torch.sum(x[..., 1:2], dim=spatial_dims, keepdim=True)
+        scaled_pressure = x[..., 1:2]# * total_pressure / out_pressure
         
         if self.scale_momentum:
-            total_momentums = torch.sum(initial[..., :1] * initial[..., 1:-1], dim=spatial_dims, keepdim=True)
-            out_momentums = torch.sum(scaled_density * x[..., 1:-1], dim=spatial_dims, keepdim=True)
+            total_momentums = torch.sum(initial[..., :1] * initial[..., 2:], dim=spatial_dims, keepdim=True)
+            out_momentums = torch.sum(scaled_density * x[..., 2:], dim=spatial_dims, keepdim=True)
             momentum_ratio = total_momentums / out_momentums
-            scaled_velocity = x[..., 1:-1] * momentum_ratio
-            x = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
+            scaled_velocity = x[..., 2:] * momentum_ratio
+            x = torch.concat([scaled_density, scaled_pressure, scaled_velocity], dim=-1)
 
         elif self.scale_energy:
-            total_kinetic_energy = torch.sum(initial[..., :1] * initial[..., 1:-1] ** 2, dim=spatial_dims, keepdim=True)
-            out_kinetic_energy = torch.sum(scaled_density * x[..., 1:-1] ** 2, dim=spatial_dims, keepdim=True)
+            total_kinetic_energy = torch.sum(initial[..., :1] * initial[..., 2:] ** 2, dim=spatial_dims, keepdim=True)
+            out_kinetic_energy = torch.sum(scaled_density * x[..., 2:] ** 2, dim=spatial_dims, keepdim=True)
             ke_ratio = total_kinetic_energy / out_kinetic_energy
             # v2 = (vx^2 + vy^2 + vz^2) needs to be scaled by ke
             # C*v2 = Cvx^2 + Cvy^2 + Cvz^2
             # C*v2 = (root(C)vx)^2 + ...
-            scaled_velocity = x[..., 1:-1] * torch.sqrt(ke_ratio)
-            x = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
+            scaled_velocity = x[..., 2:] * torch.sqrt(ke_ratio)
+            x = torch.concat([scaled_density, scaled_pressure, scaled_velocity], dim=-1)
                 
         else:
-            x = torch.concat([scaled_density, x[..., 1:-1], scaled_pressure], dim=-1)
+            x = torch.concat([scaled_density, scaled_pressure, x[..., 2:]], dim=-1)
 
         if self.uncertainty:
             x[..., self.nclass // 2:] = x[..., self.nclass // 2:]**2
@@ -75,20 +75,20 @@ class PIFNO_grad(PIFNO):
         spatial_dims = list(range(1, len(initial.shape) - 2)) # all but the batch and last dim
         
         scaled_density = dx[..., :1] - dx[..., :1].mean(dim=spatial_dims, keepdim=True)
-        scaled_pressure = dx[..., -1:] - dx[..., -1:].mean(dim=spatial_dims, keepdim=True)
+        scaled_pressure = dx[..., 1:2] - dx[..., 1:2].mean(dim=spatial_dims, keepdim=True)
         
         if self.scale_momentum:
             # sum of -grad(rho)*u
-            numerator = torch.sum(-scaled_density * initial[..., 1:-1], dim=spatial_dims, keepdim=True)
-            denominator = torch.sum((initial[..., :1] + scaled_density) * dx[..., 1:-1], dim=spatial_dims, keepdim=True)
-            scaled_velocity = dx[..., 1:-1] * (numerator / denominator)
-            dx = torch.concat([scaled_density, scaled_velocity, scaled_pressure], dim=-1)
+            numerator = torch.sum(-scaled_density * initial[..., 2:], dim=spatial_dims, keepdim=True)
+            denominator = torch.sum((initial[..., :1] + scaled_density) * dx[..., 2:], dim=spatial_dims, keepdim=True)
+            scaled_velocity = dx[..., 2:] * (numerator / denominator)
+            dx = torch.concat([scaled_density, scaled_pressure, scaled_velocity], dim=-1)
 
         elif self.scale_energy:
             raise NotImplementedError('Energy scaling is not implemented yet for gradient models.')
             
         else:
-            dx = torch.concat([scaled_density, dx[..., 1:-1], scaled_pressure], dim=-1)
+            dx = torch.concat([scaled_density, scaled_pressure, dx[..., 2:]], dim=-1)
 
         return dx
     

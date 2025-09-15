@@ -38,7 +38,6 @@ class ARTimeDilatedModel(DynamicModel):
 
             loss.backward()
             self.optimizer.step()
-            self.scheduler.step()
             
             losses.append(loss.cpu().item())                
 

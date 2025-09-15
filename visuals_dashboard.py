@@ -8,6 +8,8 @@ import matplotlib.patches as mpatches
 import seaborn as sns
 import yaml
 
+from skimage.measure import block_reduce
+
 from collections import defaultdict, Counter
 from altair import datum
 
@@ -42,7 +44,12 @@ st.title('Constrained Physics Informed Neural Operators - Evaluation')
 """Sean Current"""
 
 # configs = [('debug_2d', 1),]
-configs = [('pdebench_2d_ar', 1), ('pdebench_2d_ar_momentum', 0),]
+configs = [('debug_numpy_2d', 1),]
+# configs = [('pdebench_2d_ar', 1),
+#            ('pdebench_2d_ar_momentum', 0),
+#            ('pdebench_2d_dilated', 0),
+#            ('pdebench_2d_dilated_momentum', 0),
+#            ]
 
 TIMES = [1, 3, 5, 10]
 IDX = 0
@@ -108,7 +115,7 @@ st.pyplot(fig)
 
 st.header('Flow Visualization')
 
-format_fis = {0:'density', 1:'vel_x', 2:'vel_y', 3:'pressure'}
+format_fis = {0:'density', 1:'pressure', 2:'vel_x', 3:'vel_y'}
 fi = st.selectbox('select feature to visualize', options=range(len(format_fis)), format_func=lambda i: format_fis[i])
 
 fig, axes = plt.subplots(1 + len(selected_files), 6, figsize = (18, 5 + 4 * len(selected_files)), layout='constrained',
@@ -205,14 +212,48 @@ for im in ims:
 
 st.pyplot(fig)
 
-# Visualize Fourier modes
-# st.header('Fourier Visualization')
+st.header('Reduction Visualization')
 
-# fft = np.fft.rfftn(test_data[hist].transpose(2, 0, 1), axes=(-2, -1))
-# print(fft.shape)
+test_data = np.load(selected_files[0][1])[IDX]
+fig, axes = plt.subplots(4, len(TIMES) + 2, figsize = (20, 20), layout='constrained')
 
-# fig, axes = plt.subplots(1, 4)
-# for i in range(len(axes)):
-#     axes[i].matshow(np.abs(fft[i]))
+vis_data = test_data
+for i in range(4):
+    
+    ax = axes[i, 0]
+    ax.imshow(vis_data[0,...,fi], cmap='jet', origin='lower')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    if i == 0:
+        ax.set_title(f"T=0", fontsize=20)
+    ax.set_ylabel(vis_data.shape[1:-1], fontsize=20)
 
-# st.pyplot(fig)
+    for j, t in enumerate(TIMES):
+        ax = axes[i, j+1]
+        if i == 0:
+            ax.set_title(f'T={t}', fontsize=20)
+        ax.imshow(vis_data[t,...,fi], cmap='jet', origin='lower')
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    # conservations
+    total_density = vis_data[...,0].sum(axis=(1,2))
+    total_pressure = vis_data[...,1].sum(axis=(1,2))
+    total_vx = vis_data[...,2].sum(axis=(1,2))
+    total_vy = vis_data[...,3].sum(axis=(1,2))
+    total_momentum_x = (vis_data[...,0] * vis_data[...,2]).sum(axis=(1,2))
+    total_momentum_y = (vis_data[...,0] * vis_data[...,3]).sum(axis=(1,2))
+    axes[i, -1].plot(total_density - total_density.mean(), label='density')
+    axes[i, -1].plot(total_pressure - total_pressure.mean(), label='pressure')
+    axes[i, -1].plot(total_vx - total_vx.mean(), label='vx')
+    axes[i, -1].plot(total_vy - total_vy.mean(), label='vy')
+    axes[i, -1].plot(total_momentum_x - total_momentum_x.mean(), label='momentum x')
+    axes[i, -1].plot(total_momentum_y - total_momentum_y.mean(), label='momentum y')
+    if i == 0:
+        axes[i, -1].set_title('Conservations', fontsize=20)
+    axes[i, -1].legend(fontsize=16)
+
+    vis_data = block_reduce(vis_data, block_size=(1,2,2,1), func=np.mean)
+    # vis_data = vis_data[:, ::2, ::2, :]
+
+st.pyplot(fig)

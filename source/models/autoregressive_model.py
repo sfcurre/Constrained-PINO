@@ -12,6 +12,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 
 from .dynamic_model import DynamicModel
+import matplotlib.pyplot as plt
 
 class AutoRegressiveModel(DynamicModel):
     def __init__(self, *args, **kwargs):
@@ -24,10 +25,20 @@ class AutoRegressiveModel(DynamicModel):
         losses = []
         for i, (features, targets) in enumerate(self.dataloader):
             initial = features
+            
+            # plt.imshow(initial[0, ..., -1, 0].detach().numpy())
+            # plt.show()
+
+            # plt.imshow(targets[0, ..., 0, 0].detach().numpy())
+            # plt.show()
+
             outputs = []
             self.optimizer.zero_grad()
             for _ in range(targets.shape[-2]):    
                 output = self.model(initial)
+                # plt.imshow(output[0, ..., 0, 0].detach().numpy())
+                # plt.show()
+
                 initial = self.concat_timesteps(initial, output)
                 outputs.append(output)
 
@@ -35,7 +46,6 @@ class AutoRegressiveModel(DynamicModel):
 
             loss.backward()
             self.optimizer.step()
-            self.scheduler.step()
             
             losses.append(loss.cpu().item())                
 

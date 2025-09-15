@@ -17,7 +17,7 @@ from neuralop.layers.embeddings import GridEmbeddingND
 
 from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.data.static_grid import PDEBenchStaticGrid, PINOStaticGrid
-from source.data.debug_grid import DebugGrid, DebugStaticGrid
+from source.data.debug_grid import DebugGrid, DebugStaticGrid, DebugNumpyGrid
 from source.nn_models import *
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
@@ -38,7 +38,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, help='path to config file.')
     parser.add_argument('--load', type=str, default='', help='Existing model state to load initially.')
-    parser.add_argument('--eval', action='store_true', default=False, help='Disable training (only run prediction).')
+    parser.add_argument('--eval', action='store_true', default=False, help='Disable training (only run prediction on val set).')
+    parser.add_argument('--test', action='store_true', default=False, help='Run predictions on test set.')
     args = parser.parse_args()
     return args
 
@@ -51,6 +52,10 @@ def select_dataset(config, cuda):
             data_class = DebugStaticGrid
         else:
             data_class = DebugGrid
+
+    if config['data']['task'] == 'debug_numpy':
+        data_class = DebugNumpyGrid
+        kwargs['reduced_resolution'] = config['data']['reduce_res']
         
     elif config['data']['task'] == 'pino':
         # Load PINO data
@@ -162,7 +167,7 @@ def main(config, args):
         timesteps = dynamic_data.duration - config['model']['history']
         dynamic_data.timesteps = timesteps
 
-        dynamic_data.testing()
+        dynamic_data.testing(test=args.test)
         preds, targs = [], []
         for i in range(min(len(dynamic_data), 10)):
             features, targets = dynamic_data[i]
@@ -182,7 +187,7 @@ def main(config, args):
 
         # get train and test metrics
 
-        dynamic_data.testing()
+        dynamic_data.testing(test=args.test)
         loss_info = []
         for i in range(len(dynamic_data)):
             features, targets = dynamic_data[i]

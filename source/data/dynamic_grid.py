@@ -22,13 +22,18 @@ class DynamicGrid(Dataset):
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
 
-        self.train = self.solution[:int(.9 * self.solution.shape[0])]
-        self.test = self.solution[int(.9 * self.solution.shape[0]):]
+        self.train = self.solution[:int(.8 * self.solution.shape[0])]
+        self.test = self.solution[int(.8 * self.solution.shape[0]):int(.9 * self.solution.shape[0])]
+        self.val = self.solution[int(.9 * self.solution.shape[0]):]
         self.num_batches = self.train.shape[0]
         self.num_test_batches = self.test.shape[0]
-        self.variable_weights = 1 / np.sqrt(np.mean(self.train**2, axis=tuple(range(len(self.train.shape) - 1))))
-        print('Variable weights:', self.variable_weights)
-        self.is_training = True
+        self.num_val_batches = self.val.shape[0]
+        print('Variable Means:', np.mean(self.train, axis=tuple(range(len(self.train.shape) - 1))))
+        print('Variable STDs:', np.std(self.train, axis=tuple(range(len(self.train.shape) - 1))))
+        self.variable_weights = 1 / np.std(self.train, axis=tuple(range(len(self.train.shape) - 1)))
+        # self.variable_weights = 1 / np.sqrt(np.mean(self.train**2, axis=tuple(range(len(self.train.shape) - 1))))
+        print('Variable Weights:', self.variable_weights)
+        self.subset = 'train'
         
     def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
         b = index % num_batches
@@ -47,23 +52,30 @@ class DynamicGrid(Dataset):
         return features, targets
 
     def training(self):
-        self.is_training = True
+        self.subset = 'train'
 
-    def testing(self):
-        self.is_training = False
+    def testing(self, test=False):
+        if test:
+            self.subset = 'test'
+        else:
+            self.subset = 'val'
 
     def dilate_dt(self, dilation):
         self.spacing[-1] /= dilation
 
     def __getitem__(self, index):
-        if self.is_training:
+        if self.subset == 'train':
             return self.sample_grid(self.train, index, self.num_batches, timesteps=self.timesteps, hist=self.history)
+        elif self.subset == 'val':
+            return self.sample_grid(self.val, index, self.num_val_batches, timesteps=self.timesteps, hist=self.history)
         else:
             return self.sample_grid(self.test, index, self.num_test_batches, timesteps=self.timesteps, hist=self.history)
 
     def __len__(self):
-        if self.is_training:
+        if self.subset == 'train':
             return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_batches
+        elif self.subset == 'val':
+            return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_val_batches
         else:
             return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_test_batches
 

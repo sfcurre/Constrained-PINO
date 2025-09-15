@@ -23,9 +23,9 @@ def pde_CFD1d(y1, y2, spacing, gamma=5/3):
     s = torch.concat([initial, y2], dim=-2)
 
     h = s[..., 0]  # rho
-    ux = s[..., 1]  # vx
-    p = s[..., 2]  # p
-
+    p = s[..., 1]  # p
+    ux = s[..., 2]  # vx
+    
     E = p/(gamma - 1.) + 0.5 * h * (ux**2)
     Fx = ux * (E + p)
 
@@ -52,10 +52,10 @@ def pde_CFD2d(y1, y2, spacing, gamma=5/3):
     s = torch.concat([initial, y2], dim=-2)
 
     h = s[..., 0]  # rho
-    ux = s[..., 1]  # vx
-    uy = s[..., 2]  # vy
-    p = s[..., 3]  # p
-
+    p = s[..., 1]  # p
+    ux = s[..., 2]  # vx
+    uy = s[..., 3]  # vy
+    
     E = p/(gamma - 1.) + 0.5 * h * (ux**2 + uy**2)
     Fx = ux * (E + p)
     Fy = uy * (E + p)
@@ -89,11 +89,11 @@ def pde_CFD3d(y1, y2, spacing, gamma=5/3):
     s = torch.concat([initial, y2], dim=-2)
 
     h = s[..., 0]  # rho
-    ux = s[..., 1]  # vx
-    uy = s[..., 2]  # vy
-    uz = s[..., 3]  # vz
-    p = s[..., 4]  # p
-
+    p = s[..., 1]  # p
+    ux = s[..., 2]  # vx
+    uy = s[..., 3]  # vy
+    uz = s[..., 4]  # vz
+    
     E = p/(gamma - 1.) + 0.5 * h * (ux**2 + uy**2 + uz**2)
     Fx = ux * (E + p)
     Fy = uy * (E + p)
