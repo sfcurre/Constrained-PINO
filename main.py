@@ -109,7 +109,7 @@ def main(config, args):
         channels = channels * config['model']['dilation'] - dynamic_data.nfeats
 
     fno = FNO(n_modes=config['model']['modes'],
-              in_channels=channels,
+              in_channels=channels * (1 + dynamic_data.ndims) if config['model']['grad_features'] else channels,
               out_channels=dynamic_data.nfeats,
               hidden_channels=config['model']['hdim'],
               n_layers=config['model']['layers'])
@@ -119,7 +119,8 @@ def main(config, args):
                         scale_momentum='momentum' in config['model']['scaling'],
                         scale_energy='energy' in config['model']['scaling'],
                         static=config['model']['model_type'] in ['Static', 'TimeDilated'],
-                        uncertainty=config['model']['model_type'] == 'Uncertainty')
+                        uncertainty=config['model']['model_type'] == 'Uncertainty',
+                        grad_features=config['model']['grad_features'])
     
     optimizer = optim.Adam(model.parameters(),
                         lr=config['training']['learning_rate'], 

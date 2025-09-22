@@ -244,7 +244,7 @@ for i in range(4):
     total_momentum_x = (vis_data[...,0] * vis_data[...,2]).sum(axis=(1,2))
     total_momentum_y = (vis_data[...,0] * vis_data[...,3]).sum(axis=(1,2))
     axes[i, -1].plot(total_density - total_density.mean(), label='density')
-    axes[i, -1].plot(total_pressure - total_pressure.mean(), label='pressure')
+    #axes[i, -1].plot(total_pressure - total_pressure.mean(), label='pressure')
     axes[i, -1].plot(total_vx - total_vx.mean(), label='vx')
     axes[i, -1].plot(total_vy - total_vy.mean(), label='vy')
     axes[i, -1].plot(total_momentum_x - total_momentum_x.mean(), label='momentum x')

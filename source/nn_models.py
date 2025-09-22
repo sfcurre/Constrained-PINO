@@ -4,7 +4,7 @@ import torch.nn.functional as F
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_energy=False, static=False, uncertainty=False):
+    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_energy=False, static=False, uncertainty=False, grad_features=False):
         super(PIFNO, self).__init__()
         self.fno = fno
         self.scale_mass = scale_mass
@@ -12,17 +12,17 @@ class PIFNO(nn.Module):
         self.scale_energy = scale_energy
         self.static = static
         self.uncertainty = uncertainty
+        self.grad_features = grad_features
             
     def scale_totals(self, initial, x):
         spatial_dims = list(range(1, len(initial.shape) - 2)) # all but the batch and last two dims
         
         total_density = torch.sum(initial[..., :1], dim=spatial_dims, keepdim=True)
-        total_pressure = torch.sum(initial[..., 1:2], dim=spatial_dims, keepdim=True)
-
         out_density = torch.sum(x[..., :1], dim=spatial_dims, keepdim=True)
         scaled_density = x[..., :1] * total_density / out_density
 
-        out_pressure = torch.sum(x[..., 1:2], dim=spatial_dims, keepdim=True)
+        # total_pressure = torch.sum(initial[..., 1:2], dim=spatial_dims, keepdim=True)
+        # out_pressure = torch.sum(x[..., 1:2], dim=spatial_dims, keepdim=True)
         scaled_pressure = x[..., 1:2]# * total_pressure / out_pressure
         
         if self.scale_momentum:
@@ -51,7 +51,14 @@ class PIFNO(nn.Module):
         return x
 
     def forward(self, features):
-        fno_features = features
+        # Extract gradient features
+        if self.grad_features:
+            spatial_dims = list(range(1, len(features.shape) - 2))
+            grads = [torch.gradient(features, dim=i)[0] for i in spatial_dims] #, spacing=1/(features.shape[i])
+            fno_features = torch.concatenate([features, *grads], dim=-1)
+        else:
+            fno_features = features
+
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
         fno_features = fno_features.moveaxis(-1, 1)

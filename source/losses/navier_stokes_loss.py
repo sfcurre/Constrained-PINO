@@ -53,8 +53,8 @@ def pde_CFD2d(y1, y2, spacing, gamma=5/3):
 
     h = s[..., 0]  # rho
     p = s[..., 1]  # p
-    ux = s[..., 2]  # vx
-    uy = s[..., 3]  # vy
+    uy = s[..., 2]  # vy
+    ux = s[..., 3]  # vx
     
     E = p/(gamma - 1.) + 0.5 * h * (ux**2 + uy**2)
     Fx = ux * (E + p)
@@ -79,9 +79,9 @@ def pde_CFD2d(y1, y2, spacing, gamma=5/3):
     eq3 = h * (uy_t + ux * uy_x + uy * uy_y) - p_y
     eq4 = E_t + Fx_x + Fy_y
 
-    # residual = (torch.abs(eq1) + torch.abs(eq2) +
-    #             torch.abs(eq3) + torch.abs(eq4))
-    residual = (torch.abs(eq1) + torch.abs(eq4))
+    residual = (torch.abs(eq1) + torch.abs(eq2) +
+                torch.abs(eq3) + torch.abs(eq4))
+    # residual = (torch.abs(eq1) + torch.abs(eq4))
     return torch.mean(residual)
 
 def pde_CFD3d(y1, y2, spacing, gamma=5/3):
@@ -90,9 +90,9 @@ def pde_CFD3d(y1, y2, spacing, gamma=5/3):
 
     h = s[..., 0]  # rho
     p = s[..., 1]  # p
-    ux = s[..., 2]  # vx
+    uz = s[..., 2]  # vx
     uy = s[..., 3]  # vy
-    uz = s[..., 4]  # vz
+    ux = s[..., 4]  # vz
     
     E = p/(gamma - 1.) + 0.5 * h * (ux**2 + uy**2 + uz**2)
     Fx = ux * (E + p)

@@ -39,9 +39,7 @@ class DebugStaticGrid(DebugGrid):
 class DebugNumpyGrid(DynamicGrid):
     def __init__(self, file, timesteps=1, history=1, use_cuda=False, reduced_resolution=1):
         solution = np.load(file)[0:1] # grab first sample
-        solution = np.moveaxis(solution, 1, -2)
-        # temp fix for ordering of channels: REMOVE LATER
-        # solution = solution[..., [0, -1, 1, 2]] # rho
+        solution = np.moveaxis(solution, 1, -2)#[..., :2, :]
         solution = np.repeat(solution, 2, axis=0)
         print(solution.shape)
         if reduced_resolution > 1:
