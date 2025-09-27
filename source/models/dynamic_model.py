@@ -23,7 +23,7 @@ class DynamicModel:
         self.pde_loss = pde_loss
         self.pde_weight = pde_weight
         self.use_cuda = use_cuda
-        self.scheduler = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer, step_size=50, gamma=0.9)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer, step_size=5, gamma=0.9)
 
         if self.use_cuda:
             model.cuda()
