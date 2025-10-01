@@ -19,6 +19,8 @@ from source.data.dynamic_grid import PDEBenchGrid, PINOGrid
 from source.data.static_grid import PDEBenchStaticGrid, PINOStaticGrid
 from source.data.debug_grid import DebugGrid, DebugStaticGrid, DebugNumpyGrid
 from source.nn_models import *
+from source.custom_fno import CustomFNO
+from source.dpot import DPOTNet, AFNO2D
 from source.models.onestep_model import OneStepModel
 from source.models.pushforward_model import PushForwardModel
 from source.models.autoregressive_model import AutoRegressiveModel
@@ -114,13 +116,27 @@ def main(config, args):
               hidden_channels=config['model']['hdim'],
               n_layers=config['model']['layers'])
     
+    channels_first = True
+    if 'dpot' in config['model'] and config['model']['dpot']:
+        channels_first = False
+        fno = DPOTNet(img_size=dynamic_data.solution.shape[1],
+                      patch_size=4,
+                      in_channels=dynamic_data.nfeats,
+                      out_channels=dynamic_data.nfeats * (1 + dynamic_data.ndims) if config['model']['grad_features'] else dynamic_data.nfeats,
+                      in_timesteps=config['model']['history'],
+                      out_timesteps=1,
+                      embed_dim=config['model']['hdim'],
+                      n_blocks=config['model']['layers'],
+                      normalize=True)
+        
     model = model_class(fno=fno,
                         scale_mass='mass' in config['model']['scaling'],
                         scale_momentum='momentum' in config['model']['scaling'],
                         scale_energy='energy' in config['model']['scaling'],
-                        static=config['model']['model_type'] in ['Static', 'TimeDilated'],
+                        static=config['model']['model_type'] in ['Static', 'TimeDilated'] or not channels_first,
                         uncertainty=config['model']['model_type'] == 'Uncertainty',
-                        grad_features=config['model']['grad_features'])
+                        grad_features=config['model']['grad_features'],
+                        channels_first=channels_first)
     
     optimizer = optim.Adam(model.parameters(),
                         lr=config['training']['learning_rate'], 

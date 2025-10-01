@@ -4,7 +4,7 @@ import torch.nn.functional as F
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_energy=False, static=False, uncertainty=False, grad_features=False):
+    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_energy=False, static=False, uncertainty=False, grad_features=False, channels_first=True):
         super(PIFNO, self).__init__()
         self.fno = fno
         self.scale_mass = scale_mass
@@ -13,6 +13,7 @@ class PIFNO(nn.Module):
         self.static = static
         self.uncertainty = uncertainty
         self.grad_features = grad_features
+        self.channels_first = channels_first
             
     def scale_totals(self, initial, x):
         spatial_dims = list(range(1, len(initial.shape) - 2)) # all but the batch and last two dims
@@ -61,9 +62,13 @@ class PIFNO(nn.Module):
 
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
-        fno_features = fno_features.moveaxis(-1, 1)
+        
+        if self.channels_first:
+            fno_features = fno_features.moveaxis(-1, 1)
+        
         x = self.fno(fno_features)
-        x = x.moveaxis(1, -1)
+        if self.channels_first:
+            x = x.moveaxis(1, -1)
 
         if not self.static:
             x = x.unsqueeze(-2)
@@ -100,7 +105,13 @@ class PIFNO_grad(PIFNO):
         return dx
     
     def forward(self, features):
-        fno_features = features
+        if self.grad_features:
+            spatial_dims = list(range(1, len(features.shape) - 2))
+            grads = [torch.gradient(features, dim=i)[0] for i in spatial_dims] #, spacing=1/(features.shape[i])
+            fno_features = torch.concatenate([features, *grads], dim=-1)
+        else:
+            fno_features = features
+
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
         fno_features = fno_features.moveaxis(-1, 1)
@@ -114,7 +125,7 @@ class PIFNO_grad(PIFNO):
             initial = features[..., -1:, -dx.shape[-1]:]
             dx = self.scale_grads(initial, dx)
 
-        x = features[..., -1:, -self.nclass:] + dx
+        x = features[..., -1:, -dx.shape[-1]:] + dx
         
         return x
 
