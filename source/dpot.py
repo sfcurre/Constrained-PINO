@@ -391,16 +391,16 @@ class DPOTNet(nn.Module):
 
 
 
-        cls_token = x.mean(dim=(2, 3), keepdim=False)
-        cls_pred = self.cls_head(cls_token)
+        #cls_token = x.mean(dim=(2, 3), keepdim=False)
+        #cls_pred = self.cls_head(cls_token)
 
         x = self.out_layer(x).permute(0, 2, 3, 1)
         x = x.reshape(*x.shape[:3], self.out_timesteps, self.out_channels).contiguous()
 
         if self.normalize:
-            x = x * sigma  + mu
+            x = x * sigma[...,:x.shape[-1]] + mu[...,:x.shape[-1]]
 
-        return x, cls_pred
+        return x #, cls_pred
 
     def extra_repr(self) -> str:
 

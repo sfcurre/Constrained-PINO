@@ -23,7 +23,6 @@ model:
   grad_features: false
   patch_size: 1
 
-
   pde_weight: 0.0
   timesteps: 5
   history: 2

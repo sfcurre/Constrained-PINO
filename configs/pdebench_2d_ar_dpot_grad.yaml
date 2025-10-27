@@ -21,12 +21,12 @@ model:
   vorticity: false
   grad: false
   grad_features: true
+  patch_size: 4
 
   pde_weight: 0.0
   timesteps: 5
   history: 2
   dilation: 1
-  patch_size: 4
 
 training:
   batch_size: 1

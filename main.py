@@ -120,9 +120,9 @@ def main(config, args):
     if 'dpot' in config['model'] and config['model']['dpot']:
         channels_first = False
         fno = DPOTNet(img_size=dynamic_data.solution.shape[1],
-                      patch_size=4,
-                      in_channels=dynamic_data.nfeats,
-                      out_channels=dynamic_data.nfeats * (1 + dynamic_data.ndims) if config['model']['grad_features'] else dynamic_data.nfeats,
+                      patch_size=config['model']['patch_size'],
+                      in_channels=dynamic_data.nfeats * (1 + dynamic_data.ndims) if config['model']['grad_features'] else dynamic_data.nfeats,
+                      out_channels=dynamic_data.nfeats,
                       in_timesteps=config['model']['history'],
                       out_timesteps=1,
                       embed_dim=config['model']['hdim'],
@@ -201,6 +201,18 @@ def main(config, args):
 
         np.save(f'out/{NAME}/test_preds.npy', predictions)
         np.save(f'out/{NAME}/test_targets.npy', targets)
+
+        preds, targs = [], []
+        for i in range(min(len(dynamic_data), 5)):
+            features, _ = dynamic_data[i]
+            print(features.shape)
+            predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=100, numpy=True)[0]
+            predictions = np.moveaxis(predictions, -2, 0)
+            initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
+            preds.append(np.concat([initial, predictions], axis=0))
+
+        predictions = np.stack(preds, axis=0)
+        np.save(f'out/{NAME}/test_preds_long.npy', predictions)
 
         # get train and test metrics
 
