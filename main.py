@@ -30,7 +30,7 @@ from source.models.time_dilated_model import TimeDilatedModel
 from source.models.ar_time_dilated_model import ARTimeDilatedModel
 from source.losses.navier_stokes_loss import *
 from source.losses.lp_loss import *
-from source.losses.metrics import metric_func
+from source.losses.metrics import metric_func, l2_relative_error
 
 random.seed(1998)
 np.random.seed(1998)
@@ -232,15 +232,17 @@ def main(config, args):
             predictions = torch.movedim(predictions, -2, 0)
             targets = torch.movedim(targets, -2, 0)
             t1 = time.time()
+            l2_rel_loss = []
             rho_loss = []
             vel_loss = []
             prs_loss = []
             for t, (output, target) in enumerate(zip(predictions, targets)):
-                output, target = output.cpu(), target.cpu() 
-                rho_loss.append(F.mse_loss(output[..., 0], target[..., 0]).item())
+                output, target = output.cpu(), target.cpu()
+                l2_rel_loss.append(l2_relative_error(output, target).item())
+                rho_loss.append(l2_relative_error(output[..., 0], target[..., 0]).item())
                 if not config['model']['vorticity']:
-                    vel_loss.append(F.mse_loss(output[..., 1:-1], target[..., 1:-1]).item())
-                    prs_loss.append(F.mse_loss(output[..., -1], target[..., -1]).item())
+                    vel_loss.append(l2_relative_error(output[..., 2:], target[..., 2:]).item())
+                    prs_loss.append(l2_relative_error(output[..., 1], target[..., 1]).item())
 
             # (batch, nx^i..., timesteps, nc)
             pred = predictions.moveaxis(0, -2).squeeze().unsqueeze(0)

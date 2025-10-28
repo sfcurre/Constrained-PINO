@@ -702,3 +702,30 @@ def inverse_metrics(u0,x,pred_u0,y):
     }    
 
     return metric
+
+def l2_relative_error(prediction, target) -> torch.Tensor:
+    """
+    Calculates the L2 relative error between a prediction and a target.
+
+    Args:
+        prediction (torch.Tensor): The predicted values.
+        target (torch.Tensor): The true target values.
+
+    Returns:
+        torch.Tensor: The L2 relative error.
+    """
+    # Calculate the squared L2 norm of the difference
+    squared_l2_diff = torch.sum(torch.square(prediction - target))
+
+    # Calculate the squared L2 norm of the target
+    squared_l2_target = torch.sum(torch.square(target))
+
+    # Handle potential division by zero if the target is all zeros
+    if squared_l2_target == 0:
+        return torch.tensor(0.0) if squared_l2_diff == 0 else torch.tensor(float('inf'))
+
+    # Calculate the L2 relative error
+    l2_rel_error = torch.sqrt(squared_l2_diff / squared_l2_target)
+
+    return l2_rel_error
+
