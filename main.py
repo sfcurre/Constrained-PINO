@@ -30,7 +30,7 @@ from source.models.time_dilated_model import TimeDilatedModel
 from source.models.ar_time_dilated_model import ARTimeDilatedModel
 from source.losses.navier_stokes_loss import *
 from source.losses.lp_loss import *
-from source.losses.metrics import metric_func, l2_relative_error
+from source.losses.metrics import metric_func
 
 from source.utils import convert_from_conservative_form
 
@@ -194,124 +194,73 @@ def main(config, args):
     with torch.no_grad():
         timesteps = dynamic_data.duration - config['model']['history']
         dynamic_data.timesteps = timesteps
-
         dynamic_data.testing(test=args.test)
-        preds, targs = [], []
-        for i in range(min(len(dynamic_data), 10)):
-            features, targets = dynamic_data[i]
-            predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
-            predictions = np.moveaxis(predictions, -2, 0)
-            targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
-            initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
-            preds.append(np.concat([initial, predictions], axis=0))
-            targs.append(np.concat([initial, targets], axis=0))
-
-        predictions = np.stack(preds, axis=0)
-        targets = np.stack(targs, axis=0)
-
-        # convert back from conservative form if needed
-        if config['data']['conservative_form']:
-            predictions = convert_from_conservative_form(predictions)
-            targets = convert_from_conservative_form(targets)
-
-        np.save(f'out/{NAME}/test_preds.npy', predictions)
-        np.save(f'out/targets/test_targets.npy', targets)
-
+        
         # Long rollout
         config['data']['data_path'] = 'data/2D_CFD_rand_Eta1e-08_Zeta1e-08_M0.1_periodic_Long.hdf5'
         long_data = select_dataset(config, CUDA)
+        long_data.timesteps = long_data.duration - config['model']['history']
         long_data.long()
 
-        preds, targs = [], []
-        for i in range(min(len(long_data), 10)):
-            features, targets = long_data[i]
-            predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=100, numpy=True)[0]
-            predictions = np.moveaxis(predictions, -2, 0)
-            targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
-            initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
-            preds.append(np.concat([initial, predictions], axis=0))
-            targs.append(np.concat([initial, targets], axis=0))
-
-        predictions = np.stack(preds, axis=0)
-        targets = np.stack(targs, axis=0)
-
-        # convert back from conservative form if needed
-        if config['data']['conservative_form']:
-            predictions = convert_from_conservative_form(predictions)
-            targets = convert_from_conservative_form(targets)            
-
-        np.save(f'out/{NAME}/test_preds_long.npy', predictions)
-        np.save(f'out/targets/test_targets_long.npy', targets)
-
+        for dataset, name in zip([dynamic_data, long_data], ['test', 'long']):
+        
         # get train and test metrics
+            loss_info = []
+            preds, targs = [], []
+            for i in range(len(dataset)):
+                features, targets = dataset[i]
+                features = features.unsqueeze(0)
+                targets = targets.unsqueeze(0)
 
-        dynamic_data.testing(test=args.test)
-        loss_info = []
-        for i in range(len(dynamic_data)):
-            features, targets = dynamic_data[i]
-            features = features.unsqueeze(0)
-            targets = targets.unsqueeze(0)
+                t0 = time.time()
+                predictions = dynamic_model.predict(features, timesteps=timesteps)
+                # convert back from conservative form if needed
+                if config['data']['conservative_form']:
+                    predictions = convert_from_conservative_form(predictions)
+                    targets = convert_from_conservative_form(targets)
+                    features = convert_from_conservative_form(features)
+                t1 = time.time()
+                
+                test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
 
-            t0 = time.time()
-            predictions = dynamic_model.predict(features, timesteps=timesteps)
-            # convert back from conservative form if needed
-            if config['data']['conservative_form']:
-                predictions = convert_from_conservative_form(predictions)
-                targets = convert_from_conservative_form(targets)
-                features = convert_from_conservative_form(features)
-            
-            test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
-            test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions).cpu().item()
+                predictions = torch.movedim(predictions, -2, 0)
+                targets = torch.movedim(targets, -2, 0)
+                l2_rel_loss = []
+                rho_loss = []
+                vel_loss = []
+                prs_loss = []
+                for t, (output, target) in enumerate(zip(predictions, targets)):
+                    l2_rel_loss.append(lp_loss(output, target).cpu().item())
+                    rho_loss.append(lp_loss(output[..., :1], target[..., :1]).cpu().item())
+                    vel_loss.append(lp_loss(output[..., 2:], target[..., 2:]).cpu().item())
+                    prs_loss.append(lp_loss(output[..., 1:2], target[..., 1:2]).cpu().item())
 
-            predictions = torch.movedim(predictions, -2, 0)
-            targets = torch.movedim(targets, -2, 0)
-            t1 = time.time()
-            l2_rel_loss = []
-            rho_loss = []
-            vel_loss = []
-            prs_loss = []
-            for t, (output, target) in enumerate(zip(predictions, targets)):
-                output, target = output.cpu(), target.cpu()
-                l2_rel_loss.append(l2_relative_error(output, target).item())
-                rho_loss.append(l2_relative_error(output[..., 0], target[..., 0]).item())
-                if not config['model']['vorticity']:
-                    vel_loss.append(l2_relative_error(output[..., 2:], target[..., 2:]).item())
-                    prs_loss.append(l2_relative_error(output[..., 1], target[..., 1]).item())
-
-            # (batch, nx^i..., timesteps, nc)
-            pred = predictions.moveaxis(0, -2).squeeze().unsqueeze(0)
-            targets = targets.moveaxis(0, -2).squeeze().unsqueeze(0)
-
-            pred = pred.contiguous().reshape(pred.shape)
-            targets.contiguous().reshape(targets.shape)
-            if not config['model']['vorticity']:
-                err_RMSE, err_nRMSE, err_CSV, err_Max, err_BD, err_F = metric_func(pred, targets)
-
-            if config['model']['vorticity']:
                 loss_info.append({
                     'pred_time': t1 - t0,
                     'test_loss': test_loss,
-                    'test_pde_loss': test_pde_loss,
-                    'vorticity_loss': rho_loss,
-                    })
-            else:
-                loss_info.append({
-                    'pred_time': t1 - t0,
-                    'test_loss': test_loss,
-                    'test_pde_loss': test_pde_loss,
+                    'l2_rel_loss': l2_rel_loss,
                     'density_loss': rho_loss,
                     'velocity_loss': vel_loss,
                     'pressure_loss': prs_loss,
-                    'RMSE': err_RMSE.cpu().item(),
-                    'nRMSE': err_nRMSE.cpu().item(),
-                    'err_CSV': err_CSV.cpu().item(),
-                    'err_Max': err_Max.cpu().item(),
-                    'err_BD': err_BD.cpu().item(),
-                    'err_F': err_F.cpu().mean().item()
                 })
 
-        with open(f'out/{NAME}/test_losses.json', 'w') as fp:
-            json.dump(loss_info, fp)
+                if i < 10:
+                    features = features.squeeze()
+                    predictions = predictions.squeeze()
+                    targets = targets.squeeze()
+                    initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
+                    preds.append(np.concat([initial, predictions], axis=0))
+                    targs.append(np.concat([initial, targets], axis=0))
+
+            predictions = np.stack(preds, axis=0)
+            targets = np.stack(targs, axis=0)
+
+            np.save(f'out/{NAME}/{name}_preds.npy', predictions)
+            np.save(f'out/targets/{name}_targets.npy', targets)
+
+
+            with open(f'out/{NAME}/{name}_losses.json', 'w') as fp:
+                json.dump(loss_info, fp)
 
 if __name__ == '__main__':
     args = parse_args()
