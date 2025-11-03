@@ -10,7 +10,7 @@ model:
   hdim: 128
   layers: 4
   dropout: 0.0
-  modes: [24, 24]
+  modes: [32, 32]
   
   # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
   model_type: 'AutoRegressive'
@@ -19,7 +19,7 @@ model:
   periodic: true
   vorticity: false
   grad: false
-  grad_features: true
+  grad_features: false
 
   pde_weight: 0.0
   timesteps: 5
@@ -27,10 +27,10 @@ model:
   dilation: 1
 
 training:
-  batch_size: 1
+  batch_size: 16
   learning_rate: 0.001
   weight_decay: 0.0
-  epochs: 30
+  epochs: 100
   patience: 100
   gpus: 1  
 

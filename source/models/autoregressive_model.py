@@ -42,12 +42,12 @@ class AutoRegressiveModel(DynamicModel):
                 initial = self.concat_timesteps(initial, output)
                 outputs.append(output)
 
-            loss = self.get_loss(features, targets, torch.concat(outputs, dim=-2))    
+            loss = self.get_loss(features, targets, torch.concat(outputs, dim=-2))
 
             loss.backward()
             self.optimizer.step()
             
-            losses.append(loss.cpu().item())                
+            losses.append(loss.cpu().item())
 
             if (i + 1) % report_interval == 0:
                 self.report(features, targets, loss, epoch)
@@ -56,7 +56,12 @@ class AutoRegressiveModel(DynamicModel):
         return np.mean(losses)
 
     def get_loss(self, features, targets, outputs, mask=None):
-        lp_loss = self.lp_loss(outputs, targets)
+        losses = []
+        for i in range(targets.shape[-2]):
+            output = outputs[..., i:i+1, :]
+            target = targets[..., i:i+1, :]
+            losses.append(self.lp_loss(output, target))
+        lp_loss = torch.mean(torch.stack(losses))
         pde_loss = 0
         if self.pde_weight > 0:
             pde_loss = self.pde_loss(features, outputs)

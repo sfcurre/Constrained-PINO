@@ -23,21 +23,21 @@ class DynamicModel:
         self.pde_loss = pde_loss
         self.pde_weight = pde_weight
         self.use_cuda = use_cuda
-        self.scheduler = torch.optim.lr_scheduler.StepLR(optimizer=self.optimizer, step_size=5, gamma=0.9)
 
         if self.use_cuda:
             model.cuda()
     
-    def train(self, epochs, patience, report_interval=20):
+    def train(self, epochs, patience, report_interval=500):
         # Train model
         t_total = time.time()
         loss_values = []
         bad_counter = 0
         best = np.inf
         best_epoch = 0
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer=self.optimizer, max_lr=1e-3, total_steps=epochs, pct_start=0.2)
         for epoch in tqdm(range(epochs)):
             loss_values.append(self.train_step(epoch, report_interval))
-            self.scheduler.step()
+            scheduler.step()
 
             if loss_values[-1] < best:
                 best = loss_values[-1]
@@ -81,6 +81,7 @@ class DynamicModel:
                 sep=',', file=fp)
 
         torch.save(self.model.state_dict(), f'out/saved_models/{self.name}.pkl') 
+        self.model.train()
         return loss_val.data.item()
 
     def train_step(self, epoch):

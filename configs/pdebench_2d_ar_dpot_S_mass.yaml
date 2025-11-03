@@ -7,10 +7,13 @@ data:
 
 model:
   # architecture parameters
-  hdim: 128
-  layers: 4
+  hdim: 1024
+  layers: 6
+  nheads: 8
   dropout: 0.0
-  modes: [24, 24]
+  modes: [32, 32]
+  dpot: true
+  normalize: true
   
   # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
   model_type: 'AutoRegressive'
@@ -23,15 +26,16 @@ model:
 
   pde_weight: 0.0
   timesteps: 5
-  history: 2
+  history: 10
   dilation: 1
+  patch_size: 8
 
 training:
-  batch_size: 1
+  batch_size: 16
   learning_rate: 0.001
   weight_decay: 0.0
-  epochs: 30
+  epochs: 100
   patience: 100
   gpus: 1  
-
   
+  # load_pretrain: 'pretrained/model_S.pth'

@@ -4,16 +4,16 @@ import torch.nn.functional as F
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_energy=False, static=False, uncertainty=False, grad_features=False, channels_first=True):
+    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_momentum_nonconservative=False, static=False, uncertainty=False, grad_features=False, channels_first=True):
         super(PIFNO, self).__init__()
         self.fno = fno
         self.scale_mass = scale_mass
         self.scale_momentum = scale_momentum
-        self.scale_energy = scale_energy
         self.static = static
         self.uncertainty = uncertainty
         self.grad_features = grad_features
         self.channels_first = channels_first
+        self.scale_momentum_nonconservative = scale_momentum_nonconservative
             
     def scale_totals(self, initial, x):
         spatial_dims = list(range(1, len(initial.shape) - 2)) # all but the batch and last two dims
@@ -22,29 +22,26 @@ class PIFNO(nn.Module):
         out_density = torch.sum(x[..., :1], dim=spatial_dims, keepdim=True)
         scaled_density = x[..., :1] * total_density / out_density
 
-        # total_pressure = torch.sum(initial[..., 1:2], dim=spatial_dims, keepdim=True)
-        # out_pressure = torch.sum(x[..., 1:2], dim=spatial_dims, keepdim=True)
-        scaled_pressure = x[..., 1:2]# * total_pressure / out_pressure
-        
-        if self.scale_momentum:
-            total_momentums = torch.sum(initial[..., :1] * initial[..., 2:], dim=spatial_dims, keepdim=True)
-            out_momentums = torch.sum(scaled_density * x[..., 2:], dim=spatial_dims, keepdim=True)
-            momentum_ratio = total_momentums / out_momentums
-            scaled_velocity = x[..., 2:] * momentum_ratio
-            x = torch.concat([scaled_density, scaled_pressure, scaled_velocity], dim=-1)
+        if self.scale_momentum and not self.scale_momentum_nonconservative:
+            # must be in coservative form
+            input_mean = torch.mean(initial[..., 2:], dim=spatial_dims, keepdim=True)
+            output_mean = torch.mean(x[..., 2:], dim=spatial_dims, keepdim=True)
+            scaled_momentum = x[..., 2:] - output_mean + input_mean
 
-        elif self.scale_energy:
-            total_kinetic_energy = torch.sum(initial[..., :1] * initial[..., 2:] ** 2, dim=spatial_dims, keepdim=True)
-            out_kinetic_energy = torch.sum(scaled_density * x[..., 2:] ** 2, dim=spatial_dims, keepdim=True)
-            ke_ratio = total_kinetic_energy / out_kinetic_energy
-            # v2 = (vx^2 + vy^2 + vz^2) needs to be scaled by ke
-            # C*v2 = Cvx^2 + Cvy^2 + Cvz^2
-            # C*v2 = (root(C)vx)^2 + ...
-            scaled_velocity = x[..., 2:] * torch.sqrt(ke_ratio)
-            x = torch.concat([scaled_density, scaled_pressure, scaled_velocity], dim=-1)
-                
+            x = torch.concat([scaled_density, x[...,1:2], scaled_momentum], dim=-1)
+        
+        elif self.scale_momentum and self.scale_momentum_nonconservative:
+            # must not be in coservative form
+            input_mean = torch.mean(initial[..., :1] * initial[..., 2:], dim=spatial_dims, keepdim=True)
+            temp_momentum = scaled_density * x[..., 2:]
+            output_mean = torch.mean(temp_momentum, dim=spatial_dims, keepdim=True)
+            scaled_momentum = (temp_momentum - output_mean + input_mean) / scaled_density
+
+            x = torch.concat([scaled_density, x[...,1:2], scaled_momentum], dim=-1)
+
         else:
-            x = torch.concat([scaled_density, scaled_pressure, x[..., 2:]], dim=-1)
+            # non conservative form
+            x = torch.concat([scaled_density, x[..., 1:]], dim=-1)
 
         if self.uncertainty:
             x[..., self.nclass // 2:] = x[..., self.nclass // 2:]**2

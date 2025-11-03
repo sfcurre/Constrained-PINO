@@ -8,7 +8,8 @@ data:
 model:
   # architecture parameters
   hdim: 512
-  layers: 4
+  layers: 12
+  nheads: 4
   dropout: 0.0
   modes: [24, 24]
   dpot: true

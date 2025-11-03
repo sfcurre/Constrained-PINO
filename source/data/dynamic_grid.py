@@ -4,6 +4,7 @@ import glob, os, h5py
 import math as mt
 import torch
 from torch.utils.data import Dataset
+from ..utils import convert_to_conservative_form
 
 class DynamicGrid(Dataset):
     def __init__(self, grid, solution, timesteps=1, history=1, use_cuda=False):
@@ -30,9 +31,6 @@ class DynamicGrid(Dataset):
         self.num_val_batches = self.val.shape[0]
         print('Variable Means:', np.mean(self.train, axis=tuple(range(len(self.train.shape) - 1))))
         print('Variable STDs:', np.std(self.train, axis=tuple(range(len(self.train.shape) - 1))))
-        self.variable_weights = 1 / np.std(self.train, axis=tuple(range(len(self.train.shape) - 1)))
-        # self.variable_weights = 1 / np.sqrt(np.mean(self.train**2, axis=tuple(range(len(self.train.shape) - 1))))
-        print('Variable Weights:', self.variable_weights)
         self.subset = 'train'
         
     def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
@@ -60,6 +58,9 @@ class DynamicGrid(Dataset):
         else:
             self.subset = 'val'
 
+    def long(self):
+        self.subset = 'long'
+
     def dilate_dt(self, dilation):
         self.spacing[-1] /= dilation
 
@@ -68,6 +69,8 @@ class DynamicGrid(Dataset):
             return self.sample_grid(self.train, index, self.num_batches, timesteps=self.timesteps, hist=self.history)
         elif self.subset == 'val':
             return self.sample_grid(self.val, index, self.num_val_batches, timesteps=self.timesteps, hist=self.history)
+        elif self.subset == 'long':
+            return self.sample_grid(self.solution, index, len(self.solution), timesteps=self.duration - self.history, hist=self.history)
         else:
             return self.sample_grid(self.test, index, self.num_test_batches, timesteps=self.timesteps, hist=self.history)
 
@@ -76,6 +79,8 @@ class DynamicGrid(Dataset):
             return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_batches
         elif self.subset == 'val':
             return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_val_batches
+        elif self.subset == 'long':
+            return len(self.solution)
         else:
             return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_test_batches
 
@@ -90,6 +95,7 @@ class PDEBenchGrid(DynamicGrid):
                                    reduced_resolution=1,
                                    reduced_resolution_t=1,
                                    reduced_batch=1,
+                                   conservative_form=False
                                    ):
         """
         :param filename: filename that contains the dataset
@@ -246,6 +252,10 @@ class PDEBenchGrid(DynamicGrid):
                     y = np.array(f["y-coordinate"], dtype=np.float32)
                     X, Y = np.meshgrid(x, y)
                     self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
+
+        if conservative_form:
+            print('Converting to conservative form...')
+            self.data = convert_to_conservative_form(self.data)
 
         return self.grid, self.data
     

@@ -32,6 +32,8 @@ from source.losses.navier_stokes_loss import *
 from source.losses.lp_loss import *
 from source.losses.metrics import metric_func, l2_relative_error
 
+from source.utils import convert_from_conservative_form
+
 random.seed(1998)
 np.random.seed(1998)
 torch.manual_seed(1998)
@@ -39,7 +41,7 @@ torch.manual_seed(1998)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, help='path to config file.')
-    parser.add_argument('--load', type=str, default='', help='Existing model state to load initially.')
+    parser.add_argument('--load', type=str, default=None, help='Existing model state to load initially.')
     parser.add_argument('--eval', action='store_true', default=False, help='Disable training (only run prediction on val set).')
     parser.add_argument('--test', action='store_true', default=False, help='Run predictions on test set.')
     args = parser.parse_args()
@@ -74,6 +76,8 @@ def select_dataset(config, cuda):
             data_class = PDEBenchStaticGrid
         else:
             data_class = PDEBenchGrid
+        kwargs['conservative_form'] = config['data'].get('conservative_form', False)
+        config['data']['conservative_form'] = kwargs['conservative_form']
         
     dynamic_data = data_class(config['data']['data_path'], **kwargs)
     if config['model']['dilation'] > 1 and config['model']['model_type'] in ['TimeDilated', 'ARTimeDilated']:
@@ -126,13 +130,18 @@ def main(config, args):
                       in_timesteps=config['model']['history'],
                       out_timesteps=1,
                       embed_dim=config['model']['hdim'],
-                      n_blocks=config['model']['layers'],
-                      normalize=True)
+                      depth=config['model']['layers'],
+                      n_blocks=config['model']['nheads'],
+                      normalize=config['model']['normalize'] if 'normalize' in config['model'] else True)
+        
+    if 'load_pretrain' in config['training'] and config['training']['load_pretrain']:
+        print('Loading pretrained model from {}.'.format(config['training']['load_pretrain']))
+        fno.load_state_dict(torch.load(config['training']['load_pretrain'], weights_only=False)['model'])
         
     model = model_class(fno=fno,
                         scale_mass='mass' in config['model']['scaling'],
                         scale_momentum='momentum' in config['model']['scaling'],
-                        scale_energy='energy' in config['model']['scaling'],
+                        scale_momentum_nonconservative='nonconservative' in config['model']['scaling'],
                         static=config['model']['model_type'] in ['Static', 'TimeDilated'] or not channels_first,
                         uncertainty=config['model']['model_type'] == 'Uncertainty',
                         grad_features=config['model']['grad_features'],
@@ -144,7 +153,8 @@ def main(config, args):
 
     # Train Model
     pde_loss = get_pde_loss(dynamic_data.ndims, dynamic_data.spacing, vorticity=config['model']['vorticity'])
-    lp_loss = get_lp_loss(dynamic_data.ndims, dynamic_data.variable_weights)
+    # lp_loss = get_lp_loss(dynamic_data.ndims, dynamic_data.variable_weights)
+    lp_loss = normalized_lp_loss
     
     if config['model']['model_type'] == 'Uncertainty':
         model_type = ARUncertaintyModel
@@ -176,7 +186,7 @@ def main(config, args):
         if os.path.exists(f'out/{NAME}/report.txt'):
             os.remove(f'out/{NAME}/report.txt')
 
-        train_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])            
+        train_losses = dynamic_model.train(config['training']['epochs'], config['training']['patience'])
 
 
     dynamic_model.model.eval()
@@ -188,7 +198,6 @@ def main(config, args):
         preds, targs = [], []
         for i in range(min(len(dynamic_data), 10)):
             features, targets = dynamic_data[i]
-            print(features.shape)
             predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=timesteps, numpy=True)[0]
             predictions = np.moveaxis(predictions, -2, 0)
             targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
@@ -199,20 +208,39 @@ def main(config, args):
         predictions = np.stack(preds, axis=0)
         targets = np.stack(targs, axis=0)
 
+        # convert back from conservative form if needed
+        if config['data']['conservative_form']:
+            predictions = convert_from_conservative_form(predictions)
+            targets = convert_from_conservative_form(targets)
+
         np.save(f'out/{NAME}/test_preds.npy', predictions)
-        np.save(f'out/{NAME}/test_targets.npy', targets)
+        np.save(f'out/targets/test_targets.npy', targets)
+
+        # Long rollout
+        config['data']['data_path'] = 'data/2D_CFD_rand_Eta1e-08_Zeta1e-08_M0.1_periodic_Long.hdf5'
+        long_data = select_dataset(config, CUDA)
+        long_data.long()
 
         preds, targs = [], []
-        for i in range(min(len(dynamic_data), 5)):
-            features, _ = dynamic_data[i]
-            print(features.shape)
+        for i in range(min(len(long_data), 10)):
+            features, targets = long_data[i]
             predictions = dynamic_model.predict(features.unsqueeze(0), timesteps=100, numpy=True)[0]
             predictions = np.moveaxis(predictions, -2, 0)
+            targets = np.moveaxis(targets.detach().cpu().numpy(), -2, 0)
             initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
             preds.append(np.concat([initial, predictions], axis=0))
+            targs.append(np.concat([initial, targets], axis=0))
 
         predictions = np.stack(preds, axis=0)
+        targets = np.stack(targs, axis=0)
+
+        # convert back from conservative form if needed
+        if config['data']['conservative_form']:
+            predictions = convert_from_conservative_form(predictions)
+            targets = convert_from_conservative_form(targets)            
+
         np.save(f'out/{NAME}/test_preds_long.npy', predictions)
+        np.save(f'out/targets/test_targets_long.npy', targets)
 
         # get train and test metrics
 
@@ -225,6 +253,11 @@ def main(config, args):
 
             t0 = time.time()
             predictions = dynamic_model.predict(features, timesteps=timesteps)
+            # convert back from conservative form if needed
+            if config['data']['conservative_form']:
+                predictions = convert_from_conservative_form(predictions)
+                targets = convert_from_conservative_form(targets)
+                features = convert_from_conservative_form(features)
             
             test_loss = dynamic_model.get_test_loss(targets, predictions).cpu().item()
             test_pde_loss = dynamic_model.get_test_pde_loss(features, predictions).cpu().item()
