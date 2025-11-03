@@ -145,7 +145,8 @@ def main(config, args):
                         static=config['model']['model_type'] in ['Static', 'TimeDilated'] or not channels_first,
                         uncertainty=config['model']['model_type'] == 'Uncertainty',
                         grad_features=config['model']['grad_features'],
-                        channels_first=channels_first)
+                        channels_first=channels_first,
+                        noisy=config['model'].get('noisy', False))
     
     optimizer = optim.Adam(model.parameters(),
                         lr=config['training']['learning_rate'], 

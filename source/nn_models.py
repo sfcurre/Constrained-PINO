@@ -4,7 +4,7 @@ import torch.nn.functional as F
 # from pytorch_memlab import profile
 
 class PIFNO(nn.Module):
-    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_momentum_nonconservative=False, static=False, uncertainty=False, grad_features=False, channels_first=True):
+    def __init__(self, fno, scale_mass=True, scale_momentum=False, scale_momentum_nonconservative=False, static=False, uncertainty=False, grad_features=False, channels_first=True, noisy=False):
         super(PIFNO, self).__init__()
         self.fno = fno
         self.scale_mass = scale_mass
@@ -14,6 +14,7 @@ class PIFNO(nn.Module):
         self.grad_features = grad_features
         self.channels_first = channels_first
         self.scale_momentum_nonconservative = scale_momentum_nonconservative
+        self.noisy = noisy
             
     def scale_totals(self, initial, x):
         spatial_dims = list(range(1, len(initial.shape) - 2)) # all but the batch and last two dims
@@ -57,6 +58,9 @@ class PIFNO(nn.Module):
         else:
             fno_features = features
 
+        if self.noisy:
+            fno_features = fno_features + 5e-5 *torch.sum(fno_features**2, dim=(1,2,3),keepdim=True)**0.5 * torch.randn_like(fno_features)
+        
         if not self.static:
             fno_features = fno_features.reshape(fno_features.shape[:-2] + (-1,))
         
