@@ -22,6 +22,7 @@ class DynamicGrid(Dataset):
         self.num_channels = self.solution.shape[-1]
         self.nfeats = self.num_channels
         self.ndims = self.grid.shape[-1]
+        self.start_index = 0
 
         self.train = self.solution[:int(.8 * self.solution.shape[0])]
         self.test = self.solution[int(.8 * self.solution.shape[0]):int(.9 * self.solution.shape[0])]
@@ -33,9 +34,9 @@ class DynamicGrid(Dataset):
         print('Variable STDs:', np.std(self.train, axis=tuple(range(len(self.train.shape) - 1))))
         self.subset = 'train'
         
-    def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1):
+    def sample_grid(self, flow_features, index, num_batches, timesteps=1, hist=1, start_index=0):
         b = index % num_batches
-        t = index // num_batches
+        t = index // num_batches + start_index
         features = flow_features[b][..., t:t+hist, :]
         targets = flow_features[b][..., t+hist:t+hist+timesteps, :]
 
@@ -64,25 +65,28 @@ class DynamicGrid(Dataset):
     def dilate_dt(self, dilation):
         self.spacing[-1] /= dilation
 
+    def set_start_index(self, start_index):
+        self.start_index = start_index
+
     def __getitem__(self, index):
         if self.subset == 'train':
-            return self.sample_grid(self.train, index, self.num_batches, timesteps=self.timesteps, hist=self.history)
+            return self.sample_grid(self.train, index, self.num_batches, timesteps=self.timesteps, hist=self.history, start_index=self.start_index)
         elif self.subset == 'val':
-            return self.sample_grid(self.val, index, self.num_val_batches, timesteps=self.timesteps, hist=self.history)
+            return self.sample_grid(self.val, index, self.num_val_batches, timesteps=self.timesteps, hist=self.history, start_index=self.start_index)
         elif self.subset == 'long':
-            return self.sample_grid(self.solution, index, len(self.solution), timesteps=self.duration - self.history, hist=self.history)
-        else:
-            return self.sample_grid(self.test, index, self.num_test_batches, timesteps=self.timesteps, hist=self.history)
+            return self.sample_grid(self.solution, index, len(self.solution), timesteps=self.duration - self.history, hist=self.history, start_index=self.start_index)
+        elif self.subset == 'test':
+            return self.sample_grid(self.test, index, self.num_test_batches, timesteps=self.timesteps, hist=self.history, start_index=self.start_index)
 
     def __len__(self):
         if self.subset == 'train':
-            return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_batches
+            return (self.solution.shape[-2] - self.timesteps - self.history - self.start_index + 1) * self.num_batches
         elif self.subset == 'val':
-            return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_val_batches
+            return (self.solution.shape[-2] - self.timesteps - self.history - self.start_index + 1) * self.num_val_batches
         elif self.subset == 'long':
             return len(self.solution)
-        else:
-            return (self.solution.shape[-2] - self.timesteps - self.history + 1) * self.num_test_batches
+        elif self.subset == 'test':
+            return (self.solution.shape[-2] - self.timesteps - self.history - self.start_index + 1) * self.num_test_batches
 
 
 class PDEBenchGrid(DynamicGrid):

@@ -195,12 +195,14 @@ def main(config, args):
         timesteps = dynamic_data.duration - config['model']['history']
         dynamic_data.timesteps = timesteps
         dynamic_data.testing(test=args.test)
+        dynamic_data.set_start_index(10)
         
         # Long rollout
         config['data']['data_path'] = 'data/2D_CFD_rand_Eta1e-08_Zeta1e-08_M0.1_periodic_Long.hdf5'
         long_data = select_dataset(config, CUDA)
         long_data.timesteps = long_data.duration - config['model']['history']
         long_data.long()
+        long_data.set_start_index(10)
 
         for dataset, name in zip([dynamic_data, long_data], ['test', 'long']):
         
