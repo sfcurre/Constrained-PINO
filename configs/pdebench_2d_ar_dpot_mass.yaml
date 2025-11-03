@@ -4,6 +4,7 @@ data:
   task: 'pdebench'
   reduce_res: 4
   reduce_batch: 1
+  conservative_form: false
 
 model:
   # architecture parameters

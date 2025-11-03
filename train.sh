@@ -24,14 +24,36 @@ cd ~/Constrained-PINO
 
 # python main.py --config configs/pdebench_2d_ar.yaml
 # python main.py --config configs/pdebench_2d_ar_mass.yaml
+# python main.py --config configs/pdebench_2d_ar_conservative.yaml
 # python main.py --config configs/pdebench_2d_ar_momentum.yaml
 
-# python main.py --config configs/pdebench_2d_ar_turb.yaml
-# python main.py --config configs/pdebench_2d_ar_mass_turb.yaml
-# python main.py --config configs/pdebench_2d_ar_momentum_turb.yaml
-
-# python main.py --config configs/pdebench_2d_dilated.yaml
-# python main.py --config configs/pdebench_2d_dilated_momentum.yaml
-
 # python main.py --config configs/pdebench_2d_ar_nograd.yaml
-python main.py --config configs/pdebench_2d_ar_turb_nograd.yaml
+# python main.py --config configs/pdebench_2d_ar_nograd_mass.yaml
+
+# python main.py --config configs/pdebench_2d_ar_dpot.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_noh.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_grad.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_patch2.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_patch8.yaml
+
+# python main.py --config configs/pdebench_2d_ar_dpot_conservative.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_momentum.yaml
+
+# python main.py --config configs/pdebench_2d_ar_dpot_mass.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_mass_noh.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_grad_mass.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_mass_patch2.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_mass_patch8.yaml
+
+# python main.py --config configs/pdebench_2d_ar_dpot_Ti.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_Ti_mass.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_Ti_conservative.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_Ti_conservative_mass.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_Ti_momentum.yaml
+
+# python main.py --config configs/pdebench_2d_ar_dpot_S.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_S_mass.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_S_conservative.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_S_momentum.yaml
+
+python main.py --config configs/pdebench_2d_ar_dpot_Ti_base.yaml

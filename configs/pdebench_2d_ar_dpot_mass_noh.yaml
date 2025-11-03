@@ -4,14 +4,15 @@ data:
   task: 'pdebench'
   reduce_res: 4
   reduce_batch: 1
+  conservative_form: false
 
 model:
   # architecture parameters
   hdim: 512
-  layers: 12
+  layers: 4
   nheads: 4
   dropout: 0.0
-  modes: [24, 24]
+  modes: [32, 32]
   dpot: true
   
   # One of: OneStep, AutoRegressive, PushForward, Uncertainty, Static
@@ -22,19 +23,19 @@ model:
   vorticity: false
   grad: false
   grad_features: false
-  patch_size: 2
+  patch_size: 4
 
 
   pde_weight: 0.0
   timesteps: 5
-  history: 2
+  history: 1
   dilation: 1
 
 training:
-  batch_size: 1
+  batch_size: 16
   learning_rate: 0.001
   weight_decay: 0.0
-  epochs: 30
+  epochs: 100
   patience: 100
   gpus: 1  
 

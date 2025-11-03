@@ -3,6 +3,11 @@ jobs/*.sh
 jobs/job_files/*.sh
 jobs/job_files/out/*
 
+out/
+reports/
+data/
+pretrained/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
