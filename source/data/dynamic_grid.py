@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import glob, os, h5py
 import math as mt
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from ..utils import convert_to_conservative_form
 
@@ -11,6 +12,8 @@ class DynamicGrid(Dataset):
         self.grid = grid
         # batch, x, y, z, t, ch
         self.solution = solution
+        print('Solution shape:', self.solution.shape)
+        print('Grid shape:', self.grid.shape)
         self.duration = self.solution.shape[-2]
         self.spacing = [np.diff(self.grid[...,i], axis=self.grid.shape[-1] - (i+1)).mean() for i in range(self.grid.shape[-1])]
         self.spacing.append(1 / (self.duration-1))
@@ -113,150 +116,45 @@ class PDEBenchGrid(DynamicGrid):
         with h5py.File(root_path, 'r') as f:
             keys = list(f.keys())
             keys.sort()
-            if 'tensor' not in keys:
-                _data = np.array(f['density'], dtype=np.float32)  # batch, time, x,...
-                idx_cfd = _data.shape
-                if len(idx_cfd)==3:  # 1D
-                    self.data = np.zeros([idx_cfd[0]//reduced_batch,
-                                          idx_cfd[2]//reduced_resolution,
-                                          mt.ceil(idx_cfd[1]/reduced_resolution_t),
-                                          3],
-                                        dtype=np.float32)
-                    #density
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data[...,0] = _data   # batch, x, t, ch
-                    # pressure
-                    _data = np.array(f['pressure'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data[...,1] = _data   # batch, x, t, ch
-                    # Vx
-                    _data = np.array(f['Vx'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data[...,2] = _data   # batch, x, t, ch
+            print(keys)
+            vx = f['Vx']
+            vy = f['Vy']
+            # vz = f['Vz']
+            density = f['density']
+            pressure = f['pressure']
+            t = f['t-coordinate']
+            x = f['x-coordinate']
+            y = f['y-coordinate']
+            # z = f['z-coordinate']
 
-                    self.grid = np.array(f["x-coordinate"], dtype=np.float32)
-                    self.grid = self.grid[::reduced_resolution, None]
+            vx = np.array(vx, dtype=np.float32)
+            vy = np.array(vy, dtype=np.float32)
+            # vz = np.array(vz, dtype=np.float32)
+            density = np.array(density, dtype=np.float32)
+            pressure = np.array(pressure, dtype=np.float32)
 
-                if len(idx_cfd)==4:  # 2D
-                    self.data = np.zeros([idx_cfd[0]//reduced_batch,
-                                          idx_cfd[2]//reduced_resolution,
-                                          idx_cfd[3]//reduced_resolution,
-                                          mt.ceil(idx_cfd[1]/reduced_resolution_t),
-                                          4],
-                                         dtype=np.float32)
-                    # density
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[...,0] = _data   # batch, x, t, ch
-                    # pressure
-                    _data = np.array(f['pressure'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[...,1] = _data   # batch, x, t, ch
-                    # Vx
-                    _data = np.array(f['Vx'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[...,2] = _data   # batch, x, t, ch
-                    # Vy
-                    _data = np.array(f['Vy'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[...,3] = _data   # batch, x, t, ch
+            t = np.array(t, dtype=np.float32)    ###, t, x are equispaced
+            x = np.array(x, dtype=np.float32)
+            y = np.array(y, dtype=np.float32)
+            # z = np.array(z, dtype=np.float32)
 
-                    x = np.array(f["x-coordinate"], dtype=np.float32)
-                    y = np.array(f["y-coordinate"], dtype=np.float32)
-                    X, Y = np.meshgrid(x, y)
-                    self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
-            
-                if len(idx_cfd)==5:  # 3D
-                    self.data = np.zeros([idx_cfd[0]//reduced_batch,
-                                          idx_cfd[2]//reduced_resolution,
-                                          idx_cfd[3]//reduced_resolution,
-                                          idx_cfd[4]//reduced_resolution,
-                                          mt.ceil(idx_cfd[1]/reduced_resolution_t),
-                                          5],
-                                         dtype=np.float32)
-                    # density
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 4, 1))
-                    self.data[...,0] = _data   # batch, x, t, ch
-                    # pressure
-                    _data = np.array(f['pressure'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 4, 1))
-                    self.data[...,1] = _data   # batch, x, t, ch
-                    # Vx
-                    _data = np.array(f['Vx'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 4, 1))
-                    self.data[...,2] = _data   # batch, x, t, ch
-                    # Vy
-                    _data = np.array(f['Vy'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 4, 1))
-                    self.data[...,3] = _data   # batch, x, t, ch
-                    # Vz
-                    _data = np.array(f['Vz'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 4, 1))
-                    self.data[...,4] = _data   # batch, x, t, ch
+            X, Y = np.meshgrid(x, y)
+            self.grid = np.stack((X, Y), axis=-1)
+            self.data = np.stack([density, pressure, vx, vy],axis=-1).transpose(0,2,3,1,4)
 
-                    x = np.array(f["x-coordinate"], dtype=np.float32)
-                    y = np.array(f["y-coordinate"], dtype=np.float32)
-                    z = np.array(f["z-coordinate"], dtype=np.float32)
-                    X, Y, Z = np.meshgrid(x, y, z)
-                    self.grid = np.stack((X, Y, Z), axis=-1)[::reduced_resolution,\
-                                                             ::reduced_resolution,\
-                                                             ::reduced_resolution]
-                           
-            else:  # scalar equations
-                ## data dim = [t, x1, ..., xd, v]
-                _data = np.array(f['tensor'], dtype=np.float32)  # batch, time, x,...
-                if len(_data.shape) == 3:  # 1D
-                    _data = _data[::reduced_batch,::reduced_resolution_t,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data = _data[:, :, :, None]  # batch, x, t, ch
-
-                    self.grid = np.array(f["x-coordinate"], dtype=np.float32)
-                    self.grid = torch.tensor(self.grid[::reduced_resolution], dtype=torch.float).unsqueeze(-1)
-                if len(_data.shape) == 4:  # 2D Darcy flow
-                    # u: label
-                    _data = _data[::reduced_batch,:,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :, :], (0, 2, 3, 1))
-                    #if _data.shape[-1]==1:  # if nt==1
-                    #    _data = np.tile(_data, (1, 1, 1, 2))
-                    self.data = _data
-                    # nu: input
-                    _data = np.array(f['nu'], dtype=np.float32)  # batch, time, x,...
-                    _data = _data[::reduced_batch, None,::reduced_resolution,::reduced_resolution]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :, :], (0, 2, 3, 1))
-                    self.data = np.concatenate([_data, self.data], axis=-1)
-                    self.data = self.data[:, :, :, :, None]  # batch, x, y, t, ch
-
-                    x = np.array(f["x-coordinate"], dtype=np.float32)
-                    y = np.array(f["y-coordinate"], dtype=np.float32)
-                    X, Y = np.meshgrid(x, y)
-                    self.grid = np.stack((X, Y), axis=-1)[::reduced_resolution, ::reduced_resolution]
-
+            if reduced_batch > 1:
+                self.data = self.data[::reduced_batch,...]
+            if reduced_resolution > 1:
+                self.grid = self.grid[::reduced_resolution, ::reduced_resolution]
+                # self.data = self.data[:, ::reduced_resolution, ::reduced_resolution, ...]
+                new_shape = (self.data.shape[1] // reduced_resolution,
+                             self.data.shape[2] // reduced_resolution)
+                B, H, W, T, C = self.data.shape
+                x = self.data.reshape((B, H, W, -1)).transpose(0, 3, 1, 2)
+                x = F.interpolate(torch.from_numpy(x), size=new_shape, mode='bilinear').permute(0, 2, 3, 1)
+                self.data = x.reshape((B, *new_shape, T, C)).numpy()
+            print(self.data.shape)   # B, X, Y, T, C
+        
         if conservative_form:
             print('Converting to conservative form...')
             self.data = convert_to_conservative_form(self.data)

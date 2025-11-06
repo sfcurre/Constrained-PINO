@@ -32,7 +32,7 @@ class PIFNO(nn.Module):
             x = torch.concat([scaled_density, x[...,1:2], scaled_momentum], dim=-1)
         
         elif self.scale_momentum and self.scale_momentum_nonconservative:
-            # must not be in coservative form
+            # must not be in conservative form
             input_mean = torch.mean(initial[..., :1] * initial[..., 2:], dim=spatial_dims, keepdim=True)
             temp_momentum = scaled_density * x[..., 2:]
             output_mean = torch.mean(temp_momentum, dim=spatial_dims, keepdim=True)

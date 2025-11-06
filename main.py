@@ -41,6 +41,7 @@ torch.manual_seed(1998)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, help='path to config file.')
+    parser.add_argument('--dataset', type=str, default=None, help='Dataset to use (overrides config file).')
     parser.add_argument('--load', type=str, default=None, help='Existing model state to load initially.')
     parser.add_argument('--eval', action='store_true', default=False, help='Disable training (only run prediction on val set).')
     parser.add_argument('--test', action='store_true', default=False, help='Run predictions on test set.')
@@ -86,7 +87,9 @@ def select_dataset(config, cuda):
 
 def main(config, args):
 
-    NAME = args.config.split('/')[-1].split('.')[0]
+    experiment_name = args.config.split('/')[-1].split('.')[0]
+    dataset_name = config['data']['data_path'].split('/')[-1].split('.')[:-1].join('')
+    NAME = dataset_name + '/' + experiment_name
     CUDA = False
     if config['training']['gpus'] > 0 and torch.cuda.is_available():
         print("Using CUDA.")
@@ -192,17 +195,17 @@ def main(config, args):
 
     dynamic_model.model.eval()
     with torch.no_grad():
-        timesteps = dynamic_data.duration - config['model']['history']
-        dynamic_data.timesteps = timesteps
+        start_index = 10 - dynamic_data.history # align with baselines
+        dynamic_data.timesteps = dynamic_data.duration - config['model']['history'] - start_index
         dynamic_data.testing(test=args.test)
-        dynamic_data.set_start_index(10)
+        dynamic_data.set_start_index(start_index)
         
         # Long rollout
-        config['data']['data_path'] = 'data/2D_CFD_rand_Eta1e-08_Zeta1e-08_M0.1_periodic_Long.hdf5'
+        config['data']['data_path'] = '/local/storage/current.33/CFD/2D_CFD_rand_Eta1e-08_Zeta1e-08_M0.1_periodic_Train.hdf5'
         long_data = select_dataset(config, CUDA)
-        long_data.timesteps = long_data.duration - config['model']['history']
+        long_data.timesteps = long_data.duration - config['model']['history'] - start_index
         long_data.long()
-        long_data.set_start_index(10)
+        long_data.set_start_index(start_index)
 
         for dataset, name in zip([dynamic_data, long_data], ['test', 'long']):
         
@@ -215,7 +218,7 @@ def main(config, args):
                 targets = targets.unsqueeze(0)
 
                 t0 = time.time()
-                predictions = dynamic_model.predict(features, timesteps=timesteps)
+                predictions = dynamic_model.predict(features, timesteps=dataset.timesteps)
                 # convert back from conservative form if needed
                 if config['data']['conservative_form']:
                     predictions = convert_from_conservative_form(predictions)
@@ -247,10 +250,10 @@ def main(config, args):
                 })
 
                 if i < 10:
-                    features = features.squeeze()
-                    predictions = predictions.squeeze()
-                    targets = targets.squeeze()
-                    initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:].detach().cpu().numpy(), -2, 0)
+                    features = features.squeeze(0).cpu().numpy()
+                    predictions = predictions.squeeze(1).cpu().numpy()
+                    targets = targets.squeeze(1).cpu().numpy()
+                    initial = np.moveaxis(features[..., -1:, -predictions.shape[-1]:], -2, 0)
                     preds.append(np.concat([initial, predictions], axis=0))
                     targs.append(np.concat([initial, targets], axis=0))
 
@@ -269,5 +272,8 @@ if __name__ == '__main__':
     config_file = args.config
     with open(config_file, 'r') as stream:
         config = yaml.load(stream, yaml.FullLoader)
+
+    if args.dataset is not None:
+        config['data']['data_path'] = args.dataset
 
     main(config, args)

@@ -3,7 +3,7 @@ import torch
 
 def convert_to_conservative_form(data):
     if type(data) is torch.Tensor:
-        c_data = data.clone()
+        c_data = data.clone().to(data.device)
     else:
         c_data = data.copy()
     c_data[...,0] = data[...,0]
@@ -19,7 +19,7 @@ def convert_to_conservative_form(data):
 
 def convert_from_conservative_form(c_data):
     if type(c_data) is torch.Tensor:
-        data = c_data.clone()
+        data = c_data.clone().to(c_data.device)
     else:
         data = c_data.copy()
     data[...,0] = c_data[...,0]

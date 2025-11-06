@@ -379,7 +379,10 @@ class DPOTNet(nn.Module):
 
         x = rearrange(x, '(b t) c x y -> b x y t c', b=B, t=T)
 
-        x = self.time_agg_layer(x)
+        if self.in_timesteps > 1:
+            x = self.time_agg_layer(x)
+        else:
+            x = x.squeeze(-2)
 
         x = rearrange(x, 'b x y c -> b c x y')
 

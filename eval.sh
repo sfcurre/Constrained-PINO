@@ -22,24 +22,24 @@ conda activate cpino
 
 cd ~/Constrained-PINO
 
-python main.py --config configs/pdebench_2d_ar.yaml --load out/saved_models/pdebench_2d_ar_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_mass.yaml --load out/saved_models/pdebench_2d_ar_mass_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_conservative.yaml --load out/saved_models/pdebench_2d_ar_conservative_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_momentum.yaml --load out/saved_models/pdebench_2d_ar_momentum_best.pkl --eval
+python main.py --config configs/pdebench_2d_ar.yaml --load out/saved_models/pdebench_2d_ar_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_mass.yaml --load out/saved_models/pdebench_2d_ar_mass_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_conservative.yaml --load out/saved_models/pdebench_2d_ar_conservative_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_momentum.yaml --load out/saved_models/pdebench_2d_ar_momentum_best.pkl --eval --test
 
-python main.py --config configs/pdebench_2d_ar_dpot.yaml --load out/saved_models/pdebench_2d_ar_dpot_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_mass.yaml --load out/saved_models/pdebench_2d_ar_dpot_mass_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_conservative.yaml --load out/saved_models/pdebench_2d_ar_dpot_conservative_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_momentum.yaml --load out/saved_models/pdebench_2d_ar_dpot_momentum_best.pkl --eval
+python main.py --config configs/pdebench_2d_ar_dpot.yaml --load out/saved_models/pdebench_2d_ar_dpot_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_mass.yaml --load out/saved_models/pdebench_2d_ar_dpot_mass_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_conservative.yaml --load out/saved_models/pdebench_2d_ar_dpot_conservative_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_momentum.yaml --load out/saved_models/pdebench_2d_ar_dpot_momentum_best.pkl --eval --test
 
-python main.py --config configs/pdebench_2d_ar_dpot_Ti.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_Ti_mass.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_mass_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_Ti_conservative.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_conservative_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_Ti_momentum.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_momentum_best.pkl --eval
+python main.py --config configs/pdebench_2d_ar_dpot_Ti.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_Ti_mass.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_mass_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_Ti_conservative.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_conservative_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_Ti_momentum.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_momentum_best.pkl --eval --test
 
-python main.py --config configs/pdebench_2d_ar_dpot_S.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_S_mass.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_mass_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_S_conservative.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_conservative_best.pkl --eval
-python main.py --config configs/pdebench_2d_ar_dpot_S_momentum.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_momentum_best.pkl --eval
+python main.py --config configs/pdebench_2d_ar_dpot_S.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_S_mass.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_mass_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_S_conservative.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_conservative_best.pkl --eval --test
+python main.py --config configs/pdebench_2d_ar_dpot_S_momentum.yaml --load out/saved_models/pdebench_2d_ar_dpot_S_momentum_best.pkl --eval --test
 
-# python main.py --config configs/pdebench_2d_ar_dpot_Ti_base.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_base_best.pkl --eval
+python main.py --config configs/pdebench_2d_ar_dpot_Ti_base.yaml --load out/saved_models/pdebench_2d_ar_dpot_Ti_base_best.pkl --eval --test

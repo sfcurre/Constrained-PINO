@@ -43,7 +43,7 @@ class DynamicModel:
                 best = loss_values[-1]
                 best_epoch = epoch
                 bad_counter = 0
-                torch.save(self.model.state_dict(), f'out/saved_models/{self.name}_best.pkl')
+                torch.save(self.model.state_dict(), f'out/{self.name}/best_model.pkl')
             else:
                 bad_counter += 1
 
@@ -58,7 +58,7 @@ class DynamicModel:
 
         # Restore best model
         print('Loading {}th epoch'.format(best_epoch))
-        self.load_model(f'out/saved_models/{self.name}_best.pkl')
+        self.load_model(f'out/{self.name}/best_model.pkl')
 
         return loss_values
 
@@ -66,23 +66,23 @@ class DynamicModel:
         self.model.eval()
         outputs = self.predict(features, timesteps=targets.shape[-2])
 
-        loss_val = self.get_test_loss(targets, outputs)
-        pde_loss_val = self.get_test_pde_loss(features, outputs)
-        onestep_loss_val = self.get_test_loss(targets[..., :1, :], outputs[..., :1, :])
-        onestep_pde_loss_val = self.get_test_pde_loss(features, outputs[..., :1, :])
+        loss_val = self.get_test_loss(targets, outputs).cpu().item()
+        pde_loss_val = self.get_test_pde_loss(features, outputs).cpu().item()
+        onestep_loss_val = self.get_test_loss(targets[..., :1, :], outputs[..., :1, :]).cpu().item()
+        onestep_pde_loss_val = self.get_test_pde_loss(features, outputs[..., :1, :]).cpu().item()
         with open(f'out/{self.name}/report.txt', 'a') as fp:
             print('Epoch: {:04d}'.format(epoch+1),
                 'loss_train: {:.4f}'.format(loss_train.data.item()),
-                'loss_val: {:.4f}'.format(loss_val.data.item()),
-                'pde_loss_val: {:.4f}'.format(pde_loss_val.data.item()),
-                'onestep_loss_val: {:.4f}'.format(onestep_loss_val.data.item()),
-                'onestep_pde_loss_val: {:.4f}'.format(onestep_pde_loss_val.data.item()),
+                'loss_val: {:.4f}'.format(loss_val),
+                'pde_loss_val: {:.4f}'.format(pde_loss_val),
+                'onestep_loss_val: {:.4f}'.format(onestep_loss_val),
+                'onestep_pde_loss_val: {:.4f}'.format(onestep_pde_loss_val),
                 'time: {:.4f}'.format(time.time() - self.t_start),
                 sep=',', file=fp)
 
-        torch.save(self.model.state_dict(), f'out/saved_models/{self.name}.pkl') 
+        torch.save(self.model.state_dict(), f'out/{self.name}/model.pkl') 
         self.model.train()
-        return loss_val.data.item()
+        return loss_val
 
     def train_step(self, epoch):
         raise NotImplementedError()
@@ -96,9 +96,8 @@ class DynamicModel:
         for i in range(timesteps):
             output = self.model(features)
             features = self.concat_timesteps(features, output)
-            output = output.detach().cpu()
             if numpy:
-                output = output.numpy()
+                output = output.detach().cpu().numpy()
             outputs.append(output)
 
         if numpy:
@@ -106,11 +105,11 @@ class DynamicModel:
         return torch.concat(outputs, dim=-2)
 
     def get_test_loss(self, targets, outputs):
-        total_loss = self.lp_loss(outputs.cpu(), targets.cpu())
+        total_loss = self.lp_loss(outputs, targets)
         return total_loss
 
     def get_test_pde_loss(self, features, outputs):
-        return self.pde_loss(features.cpu(), outputs.cpu())
+        return self.pde_loss(features, outputs)
 
     def load_model(self, pkl_file):
         state_dict = torch.load(pkl_file, weights_only=False)

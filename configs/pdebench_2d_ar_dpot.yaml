@@ -25,7 +25,7 @@ model:
 
   pde_weight: 0.0
   timesteps: 5
-  history: 2
+  history: 1
   dilation: 1
   patch_size: 4
 

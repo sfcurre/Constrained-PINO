@@ -22,33 +22,26 @@ conda activate cpino
 
 cd ~/Constrained-PINO
 
+# data = "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta0.01_zeta0.01_periodic_128_train.hdf5"
+# data = "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m1.0_eta0.01_zeta0.01_periodic_128_train.hdf5"
+data = "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta0.1_zeta0.1_periodic_128_train.hdf5"
+# data = "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m1.0_eta0.1_zeta0.1_periodic_128_train.hdf5"
+# data = "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m0.1_eta1e-08_zeta1e-08_periodic_512_train.hdf5"
+# data = "/local/storage/current.33/cfd/2D/CFD/2D_Train_Rand/2d_cfd_rand_m1.0_eta1e-08_zeta1e-08_periodic_512_train.hdf5"
+
 # python main.py --config configs/pdebench_2d_ar.yaml
 # python main.py --config configs/pdebench_2d_ar_mass.yaml
 # python main.py --config configs/pdebench_2d_ar_conservative.yaml
 # python main.py --config configs/pdebench_2d_ar_momentum.yaml
 
-# python main.py --config configs/pdebench_2d_ar_nograd.yaml
-# python main.py --config configs/pdebench_2d_ar_nograd_mass.yaml
-
-# python main.py --config configs/pdebench_2d_ar_dpot.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_noh.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_grad.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_patch2.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_patch8.yaml
-
+python main.py --config configs/pdebench_2d_ar_dpot.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_mass.yaml
 # python main.py --config configs/pdebench_2d_ar_dpot_conservative.yaml
 # python main.py --config configs/pdebench_2d_ar_dpot_momentum.yaml
-
-# python main.py --config configs/pdebench_2d_ar_dpot_mass.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_mass_noh.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_grad_mass.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_mass_patch2.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_mass_patch8.yaml
 
 # python main.py --config configs/pdebench_2d_ar_dpot_Ti.yaml
 # python main.py --config configs/pdebench_2d_ar_dpot_Ti_mass.yaml
 # python main.py --config configs/pdebench_2d_ar_dpot_Ti_conservative.yaml
-# python main.py --config configs/pdebench_2d_ar_dpot_Ti_conservative_mass.yaml
 # python main.py --config configs/pdebench_2d_ar_dpot_Ti_momentum.yaml
 
 # python main.py --config configs/pdebench_2d_ar_dpot_S.yaml
@@ -56,4 +49,4 @@ cd ~/Constrained-PINO
 # python main.py --config configs/pdebench_2d_ar_dpot_S_conservative.yaml
 # python main.py --config configs/pdebench_2d_ar_dpot_S_momentum.yaml
 
-python main.py --config configs/pdebench_2d_ar_dpot_Ti_base.yaml
+# python main.py --config configs/pdebench_2d_ar_dpot_Ti_base.yaml
