@@ -144,16 +144,23 @@ class PDEBenchGrid(DynamicGrid):
 
             if reduced_batch > 1:
                 self.data = self.data[::reduced_batch,...]
+            
+            # reduce to 128 for all experiments
             if reduced_resolution > 1:
+                print('Setting resolution reduction is deprecated, using fixed reduction to 128.')
+            
+            reduced_resolution = self.data.shape[1] // 128
+            if reduced_resolution > 1:
+                print('Reducing spatial resolution by factor of ', reduced_resolution)
                 self.grid = self.grid[::reduced_resolution, ::reduced_resolution]
                 # self.data = self.data[:, ::reduced_resolution, ::reduced_resolution, ...]
                 new_shape = (self.data.shape[1] // reduced_resolution,
-                             self.data.shape[2] // reduced_resolution)
+                                self.data.shape[2] // reduced_resolution)
                 B, H, W, T, C = self.data.shape
                 x = self.data.reshape((B, H, W, -1)).transpose(0, 3, 1, 2)
                 x = F.interpolate(torch.from_numpy(x), size=new_shape, mode='bilinear').permute(0, 2, 3, 1)
                 self.data = x.reshape((B, *new_shape, T, C)).numpy()
-            print(self.data.shape)   # B, X, Y, T, C
+                print(self.data.shape)   # B, X, Y, T, C
         
         if conservative_form:
             print('Converting to conservative form...')
