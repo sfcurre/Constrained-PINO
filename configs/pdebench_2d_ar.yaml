@@ -22,7 +22,7 @@ model:
   grad_features: false
 
   pde_weight: 0.0
-  timesteps: 5
+  timesteps: 2
   history: 1
   dilation: 1
 
